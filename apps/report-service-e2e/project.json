@@ -1,0 +1,17 @@
+{
+  "name": "report-service-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "implicitDependencies": ["report-service"],
+  "targets": {
+    "e2e": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{e2eProjectRoot}"],
+      "options": {
+        "jestConfig": "apps/report-service-e2e/jest.config.ts",
+        "passWithNoTests": true
+      },
+      "dependsOn": ["report-service:build", "report-service:serve"]
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "misc",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/misc/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:swc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/misc",
+        "main": "libs/misc/src/index.ts",
+        "tsConfig": "libs/misc/tsconfig.lib.json",
+        "assets": ["libs/misc/*.md"]
+      }
+    }
+  }
+}

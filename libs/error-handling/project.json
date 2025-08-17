@@ -1,0 +1,19 @@
+{
+  "name": "error-handling",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/error-handling/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:swc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/error-handling",
+        "main": "libs/error-handling/src/index.ts",
+        "tsConfig": "libs/error-handling/tsconfig.lib.json",
+        "assets": ["libs/error-handling/*.md"]
+      }
+    }
+  }
+}
