@@ -11,6 +11,18 @@
     }
   ],
   "compilerOptions": {
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "plugins": [
+      {
+        "name": "@nestjs/swagger/plugin",
+        "options": {
+          "dtoFileNameSuffix": [".dto.ts", ".entity.ts"],
+          "classValidatorShim": true,
+          "introspectComments": true
+        }
+      }
+    ]
   }
 }
