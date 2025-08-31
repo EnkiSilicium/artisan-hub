@@ -1,6 +1,6 @@
 import { TestingModule, Test } from '@nestjs/testing';
 import { Order } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.entity';
-import { makeOrder } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/order/order.mock-factory';
+import { makeOrder } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.entity.mock-factory';
 import {
   TypeOrmUoW,
   inRollbackedTestTx,
@@ -72,80 +72,86 @@ describe('OrderRepo (integration)', () => {
     await container.stop();
   });
 
-  it('insert: sets version=1 and timestamps (DB + memory) inside UoW', async () => {
-    await inRollbackedTestTx(ds, async () => {
-      const order = makeOrder({ commissionerId: randomUUID(), version: 1 });
-      await uow.run({}, async () => {
-        await repo.insert(order);
+  describe('insert', () => {
+    it('sets version=1 and timestamps (DB + memory) inside UoW', async () => {
+      await inRollbackedTestTx(ds, async () => {
+        const order = makeOrder({ commissionerId: randomUUID(), version: 1 });
+        await uow.run({}, async () => {
+          await repo.insert(order);
+        });
+        const found = await repo.findById(order.orderId);
+        expect(found).not.toBeNull();
+        expect(found!.version).toBe(1);
+        expect(order.version).toBe(1);
+        expect(found!.createdAt).toBeTruthy();
+        expect(found!.lastUpdatedAt).toBeTruthy();
       });
-      const found = await repo.findById(order.orderId);
-      expect(found).not.toBeNull();
-      expect(found!.version).toBe(1);
-      expect(order.version).toBe(1);
-      expect(found!.createdAt).toBeTruthy();
-      expect(found!.lastUpdatedAt).toBeTruthy();
     });
   });
 
-  it('update: bumps version and persists fields', async () => {
-    await inRollbackedTestTx(ds, async () => {
-      const order = makeOrder({ commissionerId: randomUUID(), version: 1 });
-      await uow.run({}, async () => {
-        await repo.insert(order);
-      });
-      const v1 = order.version;
+  describe('update', () => {
+    it('bumps version and persists fields', async () => {
+      await inRollbackedTestTx(ds, async () => {
+        const order = makeOrder({ commissionerId: randomUUID(), version: 1 });
+        await uow.run({}, async () => {
+          await repo.insert(order);
+        });
+        const v1 = order.version;
 
-      order.commissionerId = randomUUID();
-      await uow.run({}, async () => {
-        await repo.update(order);
-      });
+        order.commissionerId = randomUUID();
+        await uow.run({}, async () => {
+          await repo.update(order);
+        });
 
-      const found = await repo.findById(order.orderId);
-      expect(found!.commissionerId).toBe(order.commissionerId);
-      expect(found!.version).toBe(v1 + 1);
-      expect(order.version).toBe(v1 + 1);
+        const found = await repo.findById(order.orderId);
+        expect(found!.commissionerId).toBe(order.commissionerId);
+        expect(found!.version).toBe(v1 + 1);
+        expect(order.version).toBe(v1 + 1);
+      });
+    });
+
+    it('optimistic lock: stale update fails with InfraError:TX_CONFLICT', async () => {
+      await inRollbackedTestTx(ds, async () => {
+        const order = makeOrder({ commissionerId: randomUUID(), version: 1 });
+        await uow.run({}, async () => {
+          await repo.insert(order);
+        });
+
+        // first legit update
+        order.commissionerId = randomUUID();
+        await uow.run({}, async () => {
+          await repo.update(order);
+        });
+        const current = order.version;
+
+        // stale copy with old version
+        const stale = makeOrder({
+          orderId: order.orderId,
+          commissionerId: randomUUID(),
+          state: order.state,
+          isTerminated: order.isTerminated,
+          createdAt: order.createdAt,
+          lastUpdatedAt: order.lastUpdatedAt,
+          version: current - 1,
+        });
+
+        await expect(
+          uow.run({}, async () => {
+            await repo.update(stale);
+          }),
+        ).rejects.toThrow(InfraError);
+
+        const found = await repo.findById(order.orderId);
+        expect(found!.version).toBe(current);
+        expect(found!.commissionerId).toBe(order.commissionerId);
+      });
     });
   });
 
-  it('optimistic lock: stale update fails with InfraError:TX_CONFLICT', async () => {
-    await inRollbackedTestTx(ds, async () => {
+  describe('guards', () => {
+    it('writing outside UoW throws (requireTxManager guard)', async () => {
       const order = makeOrder({ commissionerId: randomUUID(), version: 1 });
-      await uow.run({}, async () => {
-        await repo.insert(order);
-      });
-
-      // first legit update  
-      order.commissionerId = randomUUID();
-      await uow.run({}, async () => {
-        await repo.update(order);
-      });
-      const current = order.version;
-
-      // stale copy with old version
-      const stale = makeOrder({
-        orderId: order.orderId,
-        commissionerId: randomUUID(),
-        state: order.state,
-        isTerminated: order.isTerminated,
-        createdAt: order.createdAt,
-        lastUpdatedAt: order.lastUpdatedAt,
-        version: current - 1,
-      });
-
-      await expect(
-        uow.run({}, async () => {
-          await repo.update(stale);
-        }),
-      ).rejects.toThrow(InfraError);
-
-      const found = await repo.findById(order.orderId);
-      expect(found!.version).toBe(current);
-      expect(found!.commissionerId).toBe(order.commissionerId);
+      await expect(repo.insert(order)).rejects.toThrow(ProgrammerError);
     });
-  });
-
-  it('writing outside UoW throws (requireTxManager guard)', async () => {
-    const order = makeOrder({ commissionerId: randomUUID(), version: 1 });
-    await expect(repo.insert(order)).rejects.toThrow(ProgrammerError);
   });
 });

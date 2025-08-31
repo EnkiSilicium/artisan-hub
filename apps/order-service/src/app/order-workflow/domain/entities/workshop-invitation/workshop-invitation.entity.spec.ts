@@ -2,6 +2,7 @@
 
 import { WorkshopInvitation } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.entity';
 import { WorkshopInvitationStatus } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.enum';
+import { makeWorkshopInvitation as makeWorkshopInvitationFactory } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.entity.mock-factory';
 import 'reflect-metadata';
 
 describe('WorkshopInvitation (domain entity)', () => {
@@ -9,20 +10,14 @@ describe('WorkshopInvitation (domain entity)', () => {
   const uuid = (n = 1) =>
     `${n.toString().padStart(8, '0')}-1111-4111-8111-11111111111${n}`;
 
-  const makeWorkshopInvitation = (seed?: Partial<WorkshopInvitation>) => {
-    // Bypass constructor so we can control initial shape precisely.
-    const o = Object.create(WorkshopInvitation.prototype) as WorkshopInvitation;
-    o.orderId = seed?.orderId ?? uuid(1);
-    o.workshopId = seed?.workshopId ?? uuid(2);
-    o.status = seed?.status ?? WorkshopInvitationStatus.Pending;
-    o.createdAt = seed?.createdAt ?? new Date().toISOString();
-    // Some codebases call this lastEditedAt in the entity;
-    // keep test-scoped property name consistent with current domain model.
-    (o as any).lastUpdatedAt = (seed as any)?.lastUpdatedAt ?? o.createdAt;
-    o.version = 1;
-    // optional fields left undefined until accept/edit fills them
-    return o;
-  };
+  const makeWorkshopInvitation = (seed?: Partial<WorkshopInvitation>) =>
+    makeWorkshopInvitationFactory({
+      orderId: seed?.orderId ?? uuid(1),
+      workshopId: seed?.workshopId ?? uuid(2),
+      status: seed?.status ?? WorkshopInvitationStatus.Pending,
+      createdAt: seed?.createdAt ?? new Date().toISOString(),
+      lastUpdatedAt: (seed as any)?.lastUpdatedAt,
+    });
 
   // ---------------- constructor ----------------
   describe('constructor', () => {

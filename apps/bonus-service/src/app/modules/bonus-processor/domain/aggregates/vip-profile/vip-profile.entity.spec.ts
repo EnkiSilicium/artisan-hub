@@ -2,6 +2,10 @@ import 'reflect-metadata';
 import { VipProfile } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.entity';
 import { LastMonthEventSet } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/last-month-event-set.entity';
 import {
+  makeVipProfile,
+  makeLMEvent,
+} from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.entity.mock-factory';
+import {
   BonusEventName,
   BonusEventRegistryInterface,
   EventBonusInfo,
@@ -18,24 +22,6 @@ import {
 const uuid = (n = 1) =>
   `${String(n).padStart(8, '0')}-1111-4111-8111-11111111111${n}`;
 
-// Bypass constructor so we can control initial shape precisely.
-const makeProfile = (over: Partial<VipProfile>) => {
-  const o = Object.create(VipProfile.prototype) as VipProfile;
-  o.commissionerId = over.commissionerId ?? uuid(1);
-  o.lastPeriodPoints = over.lastPeriodPoints ?? 0;
-  o.isVIP = over.isVIP ?? false;
-  o.lastTickAt = over.lastTickAt ?? new Date().toISOString();
-  o.lastBucket = over.lastBucket ?? 0;
-  o.lastMonthEvents = over.lastMonthEvents ?? [];
-  o.vipPolicyVersion = over.vipPolicyVersion ?? 1;
-  o.windowAlgoPolicyVersion = over.windowAlgoPolicyVersion ?? 1;
-  o.bonusPolicyVersion = over.bonusPolicyVersion ?? 1;
-  return o;
-};
-
-// Tiny factory to reduce noise when creating events
-const makeEvent = (over: ConstructorParameters<typeof LastMonthEventSet>[0]) =>
-  new LastMonthEventSet(over, true);
 
 // Base policy instances
 const baseWindowAlgoRegistry: WindowAlgoRegistryInterface = WindowAlgoRegistry;
@@ -136,12 +122,12 @@ describe('VipProfile', () => {
       });
 
       it('places the event in a correct bucket', () => {
-        const profile1 = makeProfile({
+        const profile1 = makeVipProfile({
           commissionerId: uuid(2),
           lastBucket: 0,
           isVIP: false,
         });
-        const profile2 = makeProfile({
+        const profile2 = makeVipProfile({
           commissionerId: uuid(2),
           lastBucket: 4,
         });
@@ -207,7 +193,7 @@ describe('VipProfile', () => {
 
       it('correctly detects VIP threshold cross (vip gained)', () => {
         const initialPoints = 990;
-        const profile = makeProfile({
+        const profile = makeVipProfile({
           commissionerId: uuid(1),
           lastPeriodPoints: initialPoints,
           isVIP: false,
@@ -238,7 +224,7 @@ describe('VipProfile', () => {
       });
 
       it('correctly increments the total', () => {
-        const profile = makeProfile({
+        const profile = makeVipProfile({
           commissionerId: uuid(2),
           lastPeriodPoints: 100,
           isVIP: false,
@@ -314,13 +300,13 @@ describe('VipProfile', () => {
         const lastBucket = 5;
         const oneMinuteAgo = new Date(Date.now() - 61 * 1000).toISOString();
 
-        const evictEvent = makeEvent({
+        const evictEvent = makeLMEvent({
           commissionerId: uuid(1),
           eventId: uuid(2),
           eventName: 'bronze' as any,
           bucket: (lastBucket + 1) % baseWindowAlgoRegistry.amountOfBuckets,
         });
-        const keepEvent = makeEvent({
+        const keepEvent = makeLMEvent({
           commissionerId: uuid(1),
           eventId: uuid(3),
           eventName: 'silver' as any,
@@ -328,7 +314,7 @@ describe('VipProfile', () => {
         });
 
         const initialPoints = 20 + 30;
-        const profile = makeProfile({
+        const profile = makeVipProfile({
           commissionerId: uuid(1),
           lastBucket,
           lastTickAt: oneMinuteAgo,
@@ -363,14 +349,14 @@ describe('VipProfile', () => {
         const lastBucket = 0;
         const pastTime = new Date(Date.now() - 61 * 1000).toISOString();
 
-        const staleEvent = makeEvent({
+        const staleEvent = makeLMEvent({
           commissionerId: uuid(1),
           eventId: uuid(2),
           eventName: 'stale' as any,
           bucket: (lastBucket + 1) % baseWindowAlgoRegistry.amountOfBuckets,
         });
 
-        const profile = makeProfile({
+        const profile = makeVipProfile({
           commissionerId: uuid(3),
           lastBucket,
           lastTickAt: pastTime,
@@ -401,25 +387,25 @@ describe('VipProfile', () => {
           Date.now() - (minutesPassed * 60 + 10) * 1000,
         ).toISOString();
 
-        const eventA = makeEvent({
+        const eventA = makeLMEvent({
           commissionerId: uuid(1),
           eventId: uuid(2),
           eventName: 'A' as any,
           bucket: (lastBucket + 1) % baseWindowAlgoRegistry.amountOfBuckets,
         });
-        const eventB = makeEvent({
+        const eventB = makeLMEvent({
           commissionerId: uuid(1),
           eventId: uuid(3),
           eventName: 'B' as any,
           bucket: (lastBucket + 2) % baseWindowAlgoRegistry.amountOfBuckets,
         });
-        const eventC = makeEvent({
+        const eventC = makeLMEvent({
           commissionerId: uuid(1),
           eventId: uuid(4),
           eventName: 'C' as any,
           bucket: (lastBucket + 3) % baseWindowAlgoRegistry.amountOfBuckets,
         });
-        const eventD = makeEvent({
+        const eventD = makeLMEvent({
           commissionerId: uuid(1),
           eventId: uuid(5),
           eventName: 'D' as any,
@@ -430,7 +416,7 @@ describe('VipProfile', () => {
           pointsB = 20,
           pointsC = 30,
           pointsD = 40;
-        const profile = makeProfile({
+        const profile = makeVipProfile({
           commissionerId: uuid(2),
           lastBucket,
           lastTickAt: pastTime,
@@ -481,14 +467,14 @@ describe('VipProfile', () => {
       it('recalculates the points per last stage', () => {
         const eventName = 'bronze' as any;
         const oldPoints = 10;
-        const event = makeEvent({
+        const event = makeLMEvent({
           commissionerId: uuid(1),
           eventId: uuid(2),
           eventName,
           bucket: 0,
         });
 
-        const profile = makeProfile({
+        const profile = makeVipProfile({
           commissionerId: uuid(1),
           lastMonthEvents: [event],
           lastPeriodPoints: oldPoints,
@@ -507,7 +493,7 @@ describe('VipProfile', () => {
       });
 
       it('changes policy version', () => {
-        const profile = makeProfile({
+        const profile = makeVipProfile({
           commissionerId: uuid(2),
           bonusPolicyVersion: 1,
         });
@@ -523,7 +509,7 @@ describe('VipProfile', () => {
     describe('updateVipProfileRegistry', () => {
       it('promotes to VIP when threshold is lowered', () => {
         const newThreshold = 500;
-        const profile = makeProfile({
+        const profile = makeVipProfile({
           commissionerId: uuid(1),
           lastPeriodPoints: 800,
           isVIP: false,
@@ -543,7 +529,7 @@ describe('VipProfile', () => {
 
       it('revokes VIP when threshold is raised above current points', () => {
         const newThreshold = 1000;
-        const profile = makeProfile({
+        const profile = makeVipProfile({
           commissionerId: uuid(2),
           lastPeriodPoints: 800,
           isVIP: true,
@@ -558,7 +544,7 @@ describe('VipProfile', () => {
       });
 
       it('changes policy version', () => {
-        const profile = makeProfile({
+        const profile = makeVipProfile({
           commissionerId: uuid(3),
           vipPolicyVersion: 1,
           isVIP: false,
@@ -576,20 +562,20 @@ describe('VipProfile', () => {
         const oldEventBonusPoints = 20;
         const newEventBonusPoints = 120;
 
-        const event1 = makeEvent({
+        const event1 = makeLMEvent({
           commissionerId: uuid(1),
           eventId: uuid(2),
           eventName,
           bucket: 0,
         });
-        const event2 = makeEvent({
+        const event2 = makeLMEvent({
           commissionerId: uuid(1),
           eventId: uuid(2),
           eventName,
           bucket: 0,
         });
 
-        const profile = makeProfile({
+        const profile = makeVipProfile({
           commissionerId: uuid(1),
           lastMonthEvents: [event1, event2],
           lastPeriodPoints: oldEventBonusPoints * 2,
@@ -627,20 +613,20 @@ describe('VipProfile', () => {
         const oldEventBonusPoints = 120;
         const newEventBonusPoints = 20;
 
-        const event1 = makeEvent({
+        const event1 = makeLMEvent({
           commissionerId: uuid(1),
           eventId: uuid(2),
           eventName,
           bucket: 0,
         });
-        const event2 = makeEvent({
+        const event2 = makeLMEvent({
           commissionerId: uuid(1),
           eventId: uuid(2),
           eventName,
           bucket: 0,
         });
 
-        const profile = makeProfile({
+        const profile = makeVipProfile({
           commissionerId: uuid(1),
           lastMonthEvents: [event1, event2],
           lastPeriodPoints: oldEventBonusPoints * 2,
@@ -677,20 +663,20 @@ describe('VipProfile', () => {
         const newThreshold = 25;
         const eventBonusPoints = 20;
 
-        const event1 = makeEvent({
+        const event1 = makeLMEvent({
           commissionerId: uuid(1),
           eventId: uuid(2),
           eventName,
           bucket: 0,
         });
-        const event2 = makeEvent({
+        const event2 = makeLMEvent({
           commissionerId: uuid(1),
           eventId: uuid(2),
           eventName,
           bucket: 0,
         });
 
-        const profile = makeProfile({
+        const profile = makeVipProfile({
           commissionerId: uuid(1),
           lastMonthEvents: [event1, event2],
           lastPeriodPoints: eventBonusPoints * 2,
@@ -726,20 +712,20 @@ describe('VipProfile', () => {
         const newThreshold = 1000;
         const eventBonusPoints = 20;
 
-        const event1 = makeEvent({
+        const event1 = makeLMEvent({
           commissionerId: uuid(1),
           eventId: uuid(2),
           eventName,
           bucket: 0,
         });
-        const event2 = makeEvent({
+        const event2 = makeLMEvent({
           commissionerId: uuid(1),
           eventId: uuid(2),
           eventName,
           bucket: 0,
         });
 
-        const profile = makeProfile({
+        const profile = makeVipProfile({
           commissionerId: uuid(1),
           lastMonthEvents: [event1, event2],
           lastPeriodPoints: eventBonusPoints * 2,
@@ -774,7 +760,7 @@ describe('VipProfile', () => {
         const newVersionBonus = 3;
         const newVersionVip = 3;
 
-        const profile = makeProfile({
+        const profile = makeVipProfile({
           commissionerId: uuid(1),
           lastMonthEvents: [],
           lastPeriodPoints: 0,

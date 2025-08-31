@@ -8,6 +8,8 @@ import {
 import { GradePolicyInterface, GradeInfo, GradeName } from "apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/grade.policy";
 import { AdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity';
 import { BonusEventEntity } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity';
+import { makeAdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity.mock-factory';
+import { makeBonusEvent } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity.mock-factory';
 
 const uuid = (n = 1) =>
   `${String(n).padStart(8, '0')}-1111-4111-8111-11111111111${n}`;
@@ -59,25 +61,6 @@ const mkBonus = (over: Partial<BonusEventRegistryInterface>) => ({
   ...over,
 });
 
-const makeAdditiveBonusEntity = (over: Partial<AdditiveBonus>) => {
-  const o = Object.create(AdditiveBonus.prototype) as AdditiveBonus;
-  o.commissionerId = over.commissionerId ?? uuid(1);
-  o.totalPoints = over.totalPoints ?? 0;
-  o.grade = over.grade ?? baseGradePolicy.defaultGrade;
-  o.bonusPolicyVersion = over.bonusPolicyVersion ?? 1;
-  o.gradePolicyVersion = over.gradePolicyVersion ?? 1;
-  return o;
-};
-
-const makeEvent = (over: Partial<BonusEventEntity>) => {
-  const o = Object.create(BonusEventEntity.prototype) as BonusEventEntity;
-  o.commissionerId = over.commissionerId ?? uuid(3);
-  o.eventId = over.eventId ?? uuid(2);
-  o.createdAt = over.createdAt ?? '2025-08-21T20:38:51+00:00';
-  o.eventName = <BonusEventName>(over.eventName ?? 'event');
-
-  return o;
-};
 
 describe('AdditiveBonus', () => {
   describe('constructor', () => {
@@ -96,12 +79,12 @@ describe('AdditiveBonus', () => {
 
   describe('processBonusEvent', () => {
     it('throws on policy version mismatch', () => {
-      const entity = makeAdditiveBonusEntity({
+      const entity = makeAdditiveBonus({
         bonusPolicyVersion: 1,
         gradePolicyVersion: 1,
       });
 
-      const event = makeEvent({});
+      const event = makeBonusEvent({});
       const wrongGradePolicy = mkGrade({
         version: 6,
       });
@@ -133,12 +116,12 @@ describe('AdditiveBonus', () => {
     });
 
     it('throws if event not in registry', () => {
-      const entity = makeAdditiveBonusEntity({
+      const entity = makeAdditiveBonus({
         bonusPolicyVersion: 1,
         gradePolicyVersion: 1,
       });
 
-      const event = makeEvent({
+      const event = makeBonusEvent({
         eventName: 'GGGGG' as BonusEventName,
       });
 
@@ -155,13 +138,13 @@ describe('AdditiveBonus', () => {
       const eventName = 'name' as BonusEventName;
       const eventBonus = 80;
       const initialTotal = 20;
-      const entity = makeAdditiveBonusEntity({
+      const entity = makeAdditiveBonus({
         totalPoints: initialTotal,
         bonusPolicyVersion: 1,
         gradePolicyVersion: 1,
       });
 
-      const event = makeEvent({ eventName: eventName });
+      const event = makeBonusEvent({ eventName: eventName });
 
       const bonusRegistry = mkBonus({
         registry: {
@@ -180,14 +163,14 @@ describe('AdditiveBonus', () => {
       const eventBonus1 = 120,
         eventBonus2 = 999999;
       const initialTotal = 0;
-      const entity = makeAdditiveBonusEntity({
+      const entity = makeAdditiveBonus({
         totalPoints: initialTotal,
         bonusPolicyVersion: 1,
         gradePolicyVersion: 1,
       });
 
-      const event1 = makeEvent({ eventName: eventName1 });
-      const event2 = makeEvent({ eventName: eventName2 });
+      const event1 = makeBonusEvent({ eventName: eventName1 });
+      const event2 = makeBonusEvent({ eventName: eventName2 });
 
       const bonusRegistry = mkBonus({
         registry: {
@@ -235,9 +218,9 @@ describe('AdditiveBonus', () => {
         eventBonus2 = 20,
         eventBonus3 = 30;
 
-      const event1 = makeEvent({ eventName: eventName1 });
-      const event2 = makeEvent({ eventName: eventName2 });
-      const event3 = makeEvent({ eventName: eventName3 });
+      const event1 = makeBonusEvent({ eventName: eventName1 });
+      const event2 = makeBonusEvent({ eventName: eventName2 });
+      const event3 = makeBonusEvent({ eventName: eventName3 });
 
       const newGrade1 = 'super',
         newGrade2 = 'supergiga',
@@ -274,7 +257,7 @@ describe('AdditiveBonus', () => {
         defaultGrade: newGrade1 as GradeName,
       });
 
-      const entity = makeAdditiveBonusEntity({
+      const entity = makeAdditiveBonus({
         totalPoints: oldTotal,
         bonusPolicyVersion: 1,
         gradePolicyVersion: 1,
@@ -311,7 +294,7 @@ describe('AdditiveBonus', () => {
     });
 
     it('changes policy version', () => {
-      const entity = makeAdditiveBonusEntity({
+      const entity = makeAdditiveBonus({
         bonusPolicyVersion: 1,
         gradePolicyVersion: 1,
       });

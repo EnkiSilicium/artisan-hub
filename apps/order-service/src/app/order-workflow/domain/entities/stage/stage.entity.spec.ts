@@ -3,8 +3,8 @@ import 'reflect-metadata';
 
 // Adjust these paths to your project layout:
 import { StagesAggregate, Stage } from './stage.entity';
-import { isoNow } from 'shared-kernel';
 import { StageStatus } from 'apps/order-service/src/app/order-workflow/domain/entities/stage/stage-status.enum';
+import { makeStage } from 'apps/order-service/src/app/order-workflow/domain/entities/stage/stage.entity.mock-factory';
 
 describe('StagesAggregate', () => {
   // ---------------- helpers ----------------
@@ -12,17 +12,17 @@ describe('StagesAggregate', () => {
     `${String(n).padStart(8, '0')}-1111-4111-8111-11111111111${n}`;
 
   const makeStageData = (over: Partial<Stage> = {}) => ({
-    orderId: over.orderId ?? uuid(1),
-    workshopId: over.workshopId ?? uuid(2),
-    stageName:
-      over.stageName ?? `stage-${Math.random().toString(36).slice(2, 7)}`,
-    approximateLength: over.approximateLength ?? '2d',
-    needsConfirmation: over.needsConfirmation ?? false,
-    description: over.description ?? 'desc',
-    stageOrder: over.stageOrder ?? 0, // 0-based
-    version: over.version ?? 1,
-    createdAt: over.createdAt ?? isoNow(),
-    lastEditedAt: over.lastUpdatedAt ?? isoNow(),
+    ...makeStage({
+      orderId: over.orderId ?? uuid(1),
+      workshopId: over.workshopId ?? uuid(2),
+      stageName:
+        over.stageName ?? `stage-${Math.random().toString(36).slice(2, 7)}`,
+      approximateLength: over.approximateLength ?? '2d',
+      needsConfirmation: over.needsConfirmation ?? false,
+      description: over.description ?? 'desc',
+      stageOrder: over.stageOrder ?? 0,
+      version: over.version ?? 1,
+    }),
   });
 
   describe('constructor & invariants', () => {

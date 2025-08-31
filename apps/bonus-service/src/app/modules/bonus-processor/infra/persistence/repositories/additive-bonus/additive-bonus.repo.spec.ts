@@ -21,7 +21,7 @@ import {
   inRollbackedTestTx,
   requireTxManager,
 } from 'persistence';
-import { makeAdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/persistence/repositories/additive-bonus/additive-bonus.mock-factory';
+import { makeAdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity.mock-factory';
 
 class KafkaMock {
   published: any[] = [];
@@ -78,55 +78,74 @@ describe('AdditiveBonusRepo (integration)', () => {
     await container.stop();
   });
 
-  it('insert persists with v=1 and findByCommissionerId works', async () => {
-    await inRollbackedTestTx(ds, async () => {
-      const ab = makeAdditiveBonus({ version: 1 });
+  describe('insert', () => {
+    it('persists with v=1 and findByCommissionerId works', async () => {
+      await inRollbackedTestTx(ds, async () => {
+        const ab = makeAdditiveBonus({ version: 1 });
 
-      await uow.run({}, async () => {
-        await repo.insert(ab);
+        await uow.run({}, async () => {
+          await repo.insert(ab);
+        });
+
+        const found = await repo.findByCommissionerId(ab.commissionerId);
+        expect(found).not.toBeNull();
+        expect(found!.commissionerId).toBe(ab.commissionerId);
+        expect(found!.version).toBe(1);
       });
-
-      const found = await repo.findByCommissionerId(ab.commissionerId);
-      expect(found).not.toBeNull();
-      expect(found!.commissionerId).toBe(ab.commissionerId);
-      expect(found!.version).toBe(1);
     });
   });
 
-  it('update bumps version; stale version rejects (optimistic concurrency enforced)', async () => {
-    await inRollbackedTestTx(ds, async () => {
-      const ab = makeAdditiveBonus({ totalPoints: 5, version: 1 });
+  describe('update', () => {
+    it('bumps version', async () => {
+      await inRollbackedTestTx(ds, async () => {
+        const ab = makeAdditiveBonus({ totalPoints: 5, version: 1 });
 
-      await uow.run({}, async () => {
-        await repo.insert(ab);
-      });
+        await uow.run({}, async () => {
+          await repo.insert(ab);
+        });
 
-      const manager = requireTxManager(ds);
-      // concurrent bump to v=2
-      await manager
-        .createQueryBuilder()
-        .update(AdditiveBonus)
-        .set({
-          totalPoints: () => `"total_points" + 1`,
-          version: () => `"version" + 1`,
-        })
-        .where(`"commissioner_id" = :id AND "version" = :v`, {
-          id: ab.commissionerId,
-          v: 1,
-        })
-        .execute();
-
-      // try updating with stale v=1
-      ab.totalPoints = 10;
-      await expect(
-        uow.run({}, async () => {
+        ab.totalPoints = 10;
+        await uow.run({}, async () => {
           await repo.update(ab);
-        }),
-      ).rejects.toThrow();
+        });
 
-      // fresh read should be v=2 (unchanged by our failed attempt)
-      const row = await repo.findByCommissionerId(ab.commissionerId);
-      expect(row!.version).toBe(2);
+        const row = await repo.findByCommissionerId(ab.commissionerId);
+        expect(row!.version).toBe(2);
+      });
+    });
+
+    it('stale version rejects (optimistic concurrency enforced)', async () => {
+      await inRollbackedTestTx(ds, async () => {
+        const ab = makeAdditiveBonus({ totalPoints: 5, version: 1 });
+
+        await uow.run({}, async () => {
+          await repo.insert(ab);
+        });
+
+        const manager = requireTxManager(ds);
+        await manager
+          .createQueryBuilder()
+          .update(AdditiveBonus)
+          .set({
+            totalPoints: () => `"total_points" + 1`,
+            version: () => `"version" + 1`,
+          })
+          .where(`"commissioner_id" = :id AND "version" = :v`, {
+            id: ab.commissionerId,
+            v: 1,
+          })
+          .execute();
+
+        ab.totalPoints = 10;
+        await expect(
+          uow.run({}, async () => {
+            await repo.update(ab);
+          }),
+        ).rejects.toThrow();
+
+        const row = await repo.findByCommissionerId(ab.commissionerId);
+        expect(row!.version).toBe(2);
+      });
     });
   });
 });

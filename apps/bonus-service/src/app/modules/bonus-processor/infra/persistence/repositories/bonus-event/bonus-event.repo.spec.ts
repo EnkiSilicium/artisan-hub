@@ -20,8 +20,8 @@ import {
   requireTxManager,
   TypeOrmUoW,
 } from 'persistence';
-import { makeBonusEvent } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/persistence/repositories/bonus-event/bonus-event.mock-factory';
-import { makeAdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/persistence/repositories/additive-bonus/additive-bonus.mock-factory';
+import { makeBonusEvent } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity.mock-factory';
+import { makeAdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity.mock-factory';
 import { KafkaProducerPort } from 'adapter';
 
 const kafkaMock = { dispatch: jest.fn().mockResolvedValue(undefined) } as KafkaProducerPort<any>;
@@ -74,48 +74,52 @@ describe('BonusEventRepo (integration)', () => {
     await container.stop();
   });
 
-  it('insert, then findByEventId and findByCommissionerId work', async () => {
-    await inRollbackedTestTx(ds, async () => {
-      const event = makeBonusEvent();
-      const additiveEntity = makeAdditiveBonus({
-        commissionerId: event.commissionerId,
+  describe('insert', () => {
+    it('then findByEventId and findByCommissionerId work', async () => {
+      await inRollbackedTestTx(ds, async () => {
+        const event = makeBonusEvent();
+        const additiveEntity = makeAdditiveBonus({
+          commissionerId: event.commissionerId,
+        });
+        const manager = requireTxManager(ds);
+        manager.insert(AdditiveBonus, additiveEntity);
+
+        await uow.run({}, async () => {
+          await repo.insert(event);
+        });
+
+        const byEvent = await repo.findByEventId(event.eventId);
+        expect(byEvent).not.toBeNull();
+
+        const byComm = await repo.findByCommissionerId(event.commissionerId);
+        expect(byComm).not.toBeNull();
       });
-      const manager = requireTxManager(ds);
-      manager.insert(AdditiveBonus, additiveEntity);
-
-      await uow.run({}, async () => {
-        await repo.insert(event);
-      });
-
-      const byEvent = await repo.findByEventId(event.eventId);
-      expect(byEvent).not.toBeNull();
-
-      const byComm = await repo.findByCommissionerId(event.commissionerId);
-      expect(byComm).not.toBeNull();
     });
   });
 
-  it('composite unique (event_id, commissioner_id) enforced', async () => {
-    await inRollbackedTestTx(ds, async () => {
-      const commissionerId = randomUUID();
-      const event1 = makeBonusEvent({ commissionerId });
-      const event2 = makeBonusEvent({
-        eventId: event1.eventId,
-        commissionerId,
-      });
-      const additiveEntity = makeAdditiveBonus({ commissionerId });
-      const manager = requireTxManager(ds);
-      manager.insert(AdditiveBonus, additiveEntity);
+  describe('constraints', () => {
+    it('composite unique (event_id, commissioner_id) enforced', async () => {
+      await inRollbackedTestTx(ds, async () => {
+        const commissionerId = randomUUID();
+        const event1 = makeBonusEvent({ commissionerId });
+        const event2 = makeBonusEvent({
+          eventId: event1.eventId,
+          commissionerId,
+        });
+        const additiveEntity = makeAdditiveBonus({ commissionerId });
+        const manager = requireTxManager(ds);
+        manager.insert(AdditiveBonus, additiveEntity);
 
-      await uow.run({}, async () => {
-        await repo.insert(event1);
-      });
+        await uow.run({}, async () => {
+          await repo.insert(event1);
+        });
 
-      await expect(
-        uow.run({}, async () => {
-          await repo.insert(event2);
-        }),
-      ).rejects.toThrow();
+        await expect(
+          uow.run({}, async () => {
+            await repo.insert(event2);
+          }),
+        ).rejects.toThrow();
+      });
     });
   });
 });
