@@ -1,0 +1,19 @@
+{
+  "name": "workshop-error-registry",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "error-handling/registries/workshop/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "libs/dist/error-handling/registries/workshop",
+        "main": "libs/error-handling/registries/workshop/src/index.ts",
+        "tsConfig": "libs/error-handling/registries/workshop/tsconfig.json",
+        "assets": ["libs/error-handling/registries/workshop/*.md"]
+      }
+    }
+  }
+}
