@@ -20,11 +20,11 @@ if (swcJestConfig.swcrc === undefined) {
 
 export default {
   displayName: 'error-handling',
-  preset: '../../jest.preset',
+  preset: '../../jest.preset.js',
   transform: {
     '^.+\\.[tj]s$': ['@swc/jest', swcJestConfig],
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   testEnvironment: 'node',
-  coverageDirectory: '../../coverage/error-handling',
+  coverageDirectory: '../../coverage/libs/error-handling',
 };

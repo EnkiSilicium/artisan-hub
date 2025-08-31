@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "module": "nodenext",
+    "module": "commonjs",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "importHelpers": true,
