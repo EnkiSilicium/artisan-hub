@@ -1,0 +1,121 @@
+import 'reflect-metadata';
+import { Test } from '@nestjs/testing';
+import { DataSource } from 'typeorm';
+import {
+  PostgreSqlContainer,
+  StartedPostgreSqlContainer,
+} from '@testcontainers/postgresql';
+import { randomUUID } from 'crypto';
+
+import { BonusEventRepo } from './bonus-event.repo';
+
+import { AdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity';
+import { BonusEventEntity } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity';
+import { VipProfile } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.entity';
+import { LastMonthEventSet } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/last-month-event-set.entity';
+
+import {
+  inRollbackedTestTx,
+
+  requireTxManager,
+  TypeOrmUoW,
+} from 'persistence';
+import { makeBonusEvent } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/persistence/repositories/bonus-event/bonus-event.mock-factory';
+import { makeAdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/persistence/repositories/additive-bonus/additive-bonus.mock-factory';
+import { KafkaProducerPort } from 'adapter';
+
+const kafkaMock = { dispatch: jest.fn().mockResolvedValue(undefined) } as KafkaProducerPort<any>;
+
+jest.setTimeout(60_000);
+
+describe('BonusEventRepo (integration)', () => {
+  let container: StartedPostgreSqlContainer;
+  let ds: DataSource;
+  let uow: TypeOrmUoW;
+  let repo: BonusEventRepo;
+
+  beforeAll(async () => {
+    container = await new PostgreSqlContainer('postgres:16-alpine')
+      .withDatabase('testdb')
+      .withUsername('testuser')
+      .withPassword('testpw')
+      .start();
+
+    ds = new DataSource({
+      type: 'postgres',
+      host: container.getHost(),
+      port: container.getPort(),
+      username: container.getUsername(),
+      password: container.getPassword(),
+      database: container.getDatabase(),
+      entities: [AdditiveBonus, BonusEventEntity, VipProfile, LastMonthEventSet],
+      synchronize: true,
+      entitySkipConstructor: true,
+    });
+    await ds.initialize();
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        BonusEventRepo,
+        { provide: DataSource, useValue: ds },
+        {
+          provide: TypeOrmUoW,
+          useFactory: () => new TypeOrmUoW(ds, kafkaMock),
+        },
+      ],
+    }).compile();
+
+    repo = moduleRef.get(BonusEventRepo);
+    uow = moduleRef.get(TypeOrmUoW);
+  });
+
+  afterAll(async () => {
+    if (ds.isInitialized) await ds.destroy();
+    await container.stop();
+  });
+
+  it('insert, then findByEventId and findByCommissionerId work', async () => {
+    await inRollbackedTestTx(ds, async () => {
+      const event = makeBonusEvent();
+      const additiveEntity = makeAdditiveBonus({
+        commissionerId: event.commissionerId,
+      });
+      const manager = requireTxManager(ds);
+      manager.insert(AdditiveBonus, additiveEntity);
+
+      await uow.run({}, async () => {
+        await repo.insert(event);
+      });
+
+      const byEvent = await repo.findByEventId(event.eventId);
+      expect(byEvent).not.toBeNull();
+
+      const byComm = await repo.findByCommissionerId(event.commissionerId);
+      expect(byComm).not.toBeNull();
+    });
+  });
+
+  it('composite unique (event_id, commissioner_id) enforced', async () => {
+    await inRollbackedTestTx(ds, async () => {
+      const commissionerId = randomUUID();
+      const event1 = makeBonusEvent({ commissionerId });
+      const event2 = makeBonusEvent({
+        eventId: event1.eventId,
+        commissionerId,
+      });
+      const additiveEntity = makeAdditiveBonus({ commissionerId });
+      const manager = requireTxManager(ds);
+      manager.insert(AdditiveBonus, additiveEntity);
+
+      await uow.run({}, async () => {
+        await repo.insert(event1);
+      });
+
+      await expect(
+        uow.run({}, async () => {
+          await repo.insert(event2);
+        }),
+      ).rejects.toThrow();
+    });
+  });
+});
