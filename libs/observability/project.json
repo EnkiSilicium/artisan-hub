@@ -6,12 +6,12 @@
   "tags": [],
   "targets": {
     "build": {
-      "executor": "@nx/js:swc",
+      "executor": "@nx/js:tsc",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/libs/observability",
         "main": "libs/observability/src/index.ts",
-        "tsConfig": "libs/observability/tsconfig.lib.json",
+        "tsConfig": "libs/observability/tsconfig.json",
         "assets": ["libs/observability/*.md"]
       }
     }
