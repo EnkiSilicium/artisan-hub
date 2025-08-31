@@ -24,10 +24,10 @@ import {
 import {
   makeVipProfile,
   makeLMEvent,
-} from 'apps/bonus-service/src/app/modules/bonus-processor/infra/persistence/repositories/vip-profile/vip-profile.mock-factory';
-import { makeBonusEvent } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/persistence/repositories/bonus-event/bonus-event.mock-factory';
+} from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.entity.mock-factory';
+import { makeBonusEvent } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity.mock-factory';
 import { BonusEventName } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.registy';
-import { makeAdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/persistence/repositories/additive-bonus/additive-bonus.mock-factory';
+import { makeAdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity.mock-factory';
 import { KafkaProducerPort } from 'adapter';
 import { isoNow } from 'shared-kernel';
 
@@ -131,155 +131,147 @@ describe('VipProfileRepo (integration) — save semantics with rollback isolatio
     if (ds.isInitialized) await ds.destroy();
     await container.stop();
   });
+  describe('update', () => {
+    it('inserts missing events', async () => {
+      await inRollbackedTestTx(ds, async () => {
+        const commissionerId = randomUUID();
 
-  it('insert profile; update inserts missing events', async () => {
-    await inRollbackedTestTx(ds, async () => {
-      const commissionerId = randomUUID();
+        const event1 = makeLMEvent({ commissionerId });
+        const event2 = makeLMEvent({ commissionerId, bucket: 1 });
+        const vp = makeVipProfile({
+          commissionerId,
+          lastMonthEvents: [event1, event2],
+        });
 
-      // Aggregate proposes LMES rows
-      const event1 = makeLMEvent({ commissionerId });
-      const event2 = makeLMEvent({ commissionerId, bucket: 1 });
-      const vp = makeVipProfile({
-        commissionerId,
-        lastMonthEvents: [event1, event2],
+        await uow.run({}, async () => {
+          await repo.insert(vp);
+        });
+
+        await seedBonusParentsAndBundles(ds, uow, commissionerId, [
+          event1,
+          event2,
+        ]);
+
+        await uow.run({}, async () => {
+          await repo.update(vp);
+        });
+
+        const manager = requireTxManager(ds);
+        const rows = await manager.find(LastMonthEventSet, {
+          where: { commissionerId },
+        });
+
+        expect(rows.map((r) => r.eventId).sort()).toEqual(
+          [event1.eventId, event2.eventId].sort(),
+        );
+        expect(rows.every((r) => r.version === 1)).toBe(true);
       });
-
-      // Persist the profile first (parent for LMES via commissioner_id)
-      await uow.run({}, async () => {
-        await repo.insert(vp);
-      });
-
-      // Seed required parents for LMES: AdditiveBonus + matching BonusEventEntity rows
-      await seedBonusParentsAndBundles(ds, uow, commissionerId, [
-        event1,
-        event2,
-      ]);
-
-      // Now update should insert LMES without FK explosions
-      await uow.run({}, async () => {
-        await repo.update(vp);
-      });
-
-      const manager = requireTxManager(ds);
-      const rows = await manager.find(LastMonthEventSet, {
-        where: { commissionerId },
-      });
-
-      expect(rows.map((r) => r.eventId).sort()).toEqual(
-        [event1.eventId, event2.eventId].sort(),
-      );
-      expect(rows.every((r) => r.version === 1)).toBe(true);
     });
-  });
 
-  it('update removes rows not present in aggregate', async () => {
-    await inRollbackedTestTx(ds, async () => {
-      const commissionerId = randomUUID();
-      const event1 = makeLMEvent({ commissionerId, bucket: 0 });
-      const event2 = makeLMEvent({ commissionerId, bucket: 1 });
-      const vp = makeVipProfile({
-        commissionerId,
-        lastMonthEvents: [event1, event2],
+    it('removes rows not present in aggregate', async () => {
+      await inRollbackedTestTx(ds, async () => {
+        const commissionerId = randomUUID();
+        const event1 = makeLMEvent({ commissionerId, bucket: 0 });
+        const event2 = makeLMEvent({ commissionerId, bucket: 1 });
+        const vp = makeVipProfile({
+          commissionerId,
+          lastMonthEvents: [event1, event2],
+        });
+
+        await uow.run({}, async () => {
+          await repo.insert(vp);
+        });
+        await seedBonusParentsAndBundles(ds, uow, commissionerId, [
+          event1,
+          event2,
+        ]);
+
+        await uow.run({}, async () => {
+          await repo.update(vp);
+        });
+
+        vp.lastMonthEvents = [event2];
+
+        await uow.run({}, async () => {
+          await repo.update(vp);
+        });
+
+        const manager = requireTxManager(ds);
+        const rows = await manager.find(LastMonthEventSet, {
+          where: { commissionerId },
+        });
+        expect(rows).toHaveLength(1);
+        expect(rows[0].eventId).toBe(event2.eventId);
       });
-
-      // Insert VIP profile and parents for both events
-      await uow.run({}, async () => {
-        await repo.insert(vp);
-      });
-      await seedBonusParentsAndBundles(ds, uow, commissionerId, [
-        event1,
-        event2,
-      ]);
-
-      // First sync inserts both LMES
-      await uow.run({}, async () => {
-        await repo.update(vp);
-      });
-
-      // Now shrink to only event2; update should delete event1
-      vp.lastMonthEvents = [event2];
-
-      await uow.run({}, async () => {
-        await repo.update(vp);
-      });
-
-      const manager = requireTxManager(ds);
-      const rows = await manager.find(LastMonthEventSet, {
-        where: { commissionerId },
-      });
-      expect(rows).toHaveLength(1);
-      expect(rows[0].eventId).toBe(event2.eventId);
     });
-  });
 
-  it('update is idempotent for same set', async () => {
-    await inRollbackedTestTx(ds, async () => {
-      const commissionerId = randomUUID();
-      const event1 = makeLMEvent({ commissionerId, bucket: 2 });
-      const event2 = makeLMEvent({ commissionerId, bucket: 3 });
-      const vp = makeVipProfile({
-        commissionerId,
-        lastMonthEvents: [event1, event2],
-      });
+    it('is idempotent for same set', async () => {
+      await inRollbackedTestTx(ds, async () => {
+        const commissionerId = randomUUID();
+        const event1 = makeLMEvent({ commissionerId, bucket: 2 });
+        const event2 = makeLMEvent({ commissionerId, bucket: 3 });
+        const vp = makeVipProfile({
+          commissionerId,
+          lastMonthEvents: [event1, event2],
+        });
 
-      await uow.run({}, async () => {
-        await repo.insert(vp);
-      });
-      await seedBonusParentsAndBundles(ds, uow, commissionerId, [
-        event1,
-        event2,
-      ]);
+        await uow.run({}, async () => {
+          await repo.insert(vp);
+        });
+        await seedBonusParentsAndBundles(ds, uow, commissionerId, [
+          event1,
+          event2,
+        ]);
 
-      await uow.run({}, async () => {
-        await repo.update(vp);
-        await repo.update(vp);
-      });
+        await uow.run({}, async () => {
+          await repo.update(vp);
+          await repo.update(vp);
+        });
 
-      const manager = requireTxManager(ds);
-      const rows = await manager.find(LastMonthEventSet, {
-        where: { commissionerId },
+        const manager = requireTxManager(ds);
+        const rows = await manager.find(LastMonthEventSet, {
+          where: { commissionerId },
+        });
+        expect(rows.map((r) => r.eventId).sort()).toEqual(
+          [event1.eventId, event2.eventId].sort(),
+        );
       });
-      expect(rows.map((r) => r.eventId).sort()).toEqual(
-        [event1.eventId, event2.eventId].sort(),
-      );
     });
-  });
 
-  it('empty events => delete all', async () => {
-    await inRollbackedTestTx(ds, async () => {
-      const commissionerId = randomUUID();
-      const event1 = makeLMEvent({ commissionerId });
-      const event2 = makeLMEvent({ commissionerId });
-      const vp = makeVipProfile({
-        commissionerId,
-        lastMonthEvents: [event1, event2],
+    it('empty events => delete all', async () => {
+      await inRollbackedTestTx(ds, async () => {
+        const commissionerId = randomUUID();
+        const event1 = makeLMEvent({ commissionerId });
+        const event2 = makeLMEvent({ commissionerId });
+        const vp = makeVipProfile({
+          commissionerId,
+          lastMonthEvents: [event1, event2],
+        });
+
+        await uow.run({}, async () => {
+          await repo.insert(vp);
+        });
+        await seedBonusParentsAndBundles(ds, uow, commissionerId, [
+          event1,
+          event2,
+        ]);
+
+        await uow.run({}, async () => {
+          await repo.update(vp);
+        });
+
+        vp.lastMonthEvents = [];
+
+        await uow.run({}, async () => {
+          await repo.update(vp);
+        });
+
+        const manager = requireTxManager(ds);
+        const rows = await manager.find(LastMonthEventSet, {
+          where: { commissionerId },
+        });
+        expect(rows).toHaveLength(0);
       });
-
-      await uow.run({}, async () => {
-        await repo.insert(vp);
-      });
-      await seedBonusParentsAndBundles(ds, uow, commissionerId, [
-        event1,
-        event2,
-      ]);
-
-      // First bring DB in sync with two LMES
-      await uow.run({}, async () => {
-        await repo.update(vp);
-      });
-
-      // Then drop them all
-      vp.lastMonthEvents = [];
-
-      await uow.run({}, async () => {
-        await repo.update(vp);
-      });
-
-      const manager = requireTxManager(ds);
-      const rows = await manager.find(LastMonthEventSet, {
-        where: { commissionerId },
-      });
-      expect(rows).toHaveLength(0);
     });
   });
 });

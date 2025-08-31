@@ -1,4 +1,5 @@
-import { Order } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.entity';
+import { Order } from './order.entity';
+import { PendingWorkshopInvitations } from './order.state';
 import { isoNow } from 'shared-kernel';
 import { randomUUID } from 'crypto';
 
@@ -7,7 +8,7 @@ export function makeOrder(over: Partial<Order> = {}): Order {
   Object.assign(o, {
     orderId: randomUUID(),
     commissionerId: randomUUID(),
-    state: 'PendingWorkshopInvitations',
+    state: new PendingWorkshopInvitations(),
     isTerminated: false,
     createdAt: isoNow(),
     lastUpdatedAt: isoNow(),

@@ -1,11 +1,10 @@
-import { AdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity';
+import { AdditiveBonus } from './additive-bonus.entity';
 import { isoNow } from 'shared-kernel';
 import { randomUUID } from 'crypto';
 
-export function makeAdditiveBonus(
-  over: Partial<AdditiveBonus> = {},
-): AdditiveBonus {
-  const event = Object.assign(Object.create(AdditiveBonus.prototype), {
+export function makeAdditiveBonus(over: Partial<AdditiveBonus> = {}): AdditiveBonus {
+  const ab = Object.create(AdditiveBonus.prototype) as AdditiveBonus;
+  Object.assign(ab, {
     commissionerId: over.commissionerId ?? randomUUID(),
     totalPoints: over.totalPoints ?? 0,
     grade: over.grade ?? 'Bronze',
@@ -14,7 +13,8 @@ export function makeAdditiveBonus(
     createdAt: over.createdAt ?? isoNow(),
     lastUpdatedAt: over.lastUpdatedAt ?? isoNow(),
     version: over.version ?? 1,
-    events: [],
-  }) as AdditiveBonus;
-  return event;
+    events: over.events ?? [],
+    ...over,
+  });
+  return ab;
 }
