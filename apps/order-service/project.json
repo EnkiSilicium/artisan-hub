@@ -10,7 +10,10 @@
       "options": {
         "command": "webpack-cli build",
         "args": ["--node-env=production"],
-        "cwd": "apps/order-service"
+        "cwd": "apps/order-service",
+        "target": "node"
+
+
       },
       "configurations": {
         "development": {
@@ -18,6 +21,7 @@
         }
       }
     },
+    
     "prune-lockfile": {
       "dependsOn": ["build"],
       "cache": true,
