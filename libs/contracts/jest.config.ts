@@ -20,7 +20,7 @@ if (swcJestConfig.swcrc === undefined) {
 
 export default {
   displayName: 'contracts',
-  preset: '../../jest.preset.js',
+  preset: '../../jest.preset',
   transform: {
     '^.+\\.[tj]s$': ['@swc/jest', swcJestConfig],
   },
