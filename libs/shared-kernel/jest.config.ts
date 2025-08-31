@@ -19,12 +19,12 @@ if (swcJestConfig.swcrc === undefined) {
 // swcJestConfig.module.noInterop = false;
 
 export default {
-  displayName: 'logging',
-  preset: '../../jest.preset.js',
+  displayName: 'shared-kernel',
+  preset: '../../jest.preset',
   transform: {
     '^.+\\.[tj]s$': ['@swc/jest', swcJestConfig],
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   testEnvironment: 'node',
-  coverageDirectory: '../../coverage/libs/logging',
+  coverageDirectory: '../../coverage/libs/shared-kernel',
 };

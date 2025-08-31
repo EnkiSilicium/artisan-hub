@@ -6,12 +6,12 @@
   "tags": [],
   "targets": {
     "build": {
-      "executor": "@nx/js:swc",
+      "executor": "@nx/js:tsc",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/libs/auth",
         "main": "libs/auth/src/index.ts",
-        "tsConfig": "libs/auth/tsconfig.lib.json",
+        "tsConfig": "libs/auth/tsconfig.json",
         "assets": ["libs/auth/*.md"]
       }
     }

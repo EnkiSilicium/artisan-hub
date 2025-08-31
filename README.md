@@ -81,7 +81,7 @@ Check out a few resources that may come in handy when working with NestJS:
 - Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
 - Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
 - To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+- Looking for a job, or have a job to workshopInvitation? Check out our official [Jobs board](https://jobs.nestjs.com).
 
 ## Support
 

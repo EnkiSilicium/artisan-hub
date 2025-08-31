@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "resolvePackageJsonExports": true,
     "esModuleInterop": true,
     "isolatedModules": true,
@@ -18,17 +18,41 @@
     "skipLibCheck": true,
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
+      "adapter": ["libs/adapter/src/index.ts"],
       "auth": ["libs/auth/src/index.ts"],
-      "common": ["libs/common/src/index.ts"],
       "contracts": ["libs/contracts/src/index.ts"],
       "error-handling": ["libs/error-handling/src/index.ts"],
-      "logging": ["libs/logging/src/index.ts"],
-      "misc": ["libs/misc/src/index.ts"],
-      "observability": ["libs/observability/src/index.ts"]
+      "observability": ["libs/observability/src/index.ts"],
+      "persistence": ["libs/persistence/src/index.ts"],
+      "shared-kernel": ["libs/shared-kernel/src/index.ts"],
+      "error-handling/error-core": [
+        "libs/error-handling/error-core/src/index.ts"
+      ],
+      "error-handling/interceptor": [
+        "libs/error-handling/interceptor/src/index.ts"
+      ],
+      "error-handling/registries/bonus": [
+        "libs/error-handling/registries/bonus/src/index.ts"
+      ],
+      "error-handling/registries/commissioner": [
+        "libs/error-handling/registries/commissioner/src/index.ts"
+      ],
+      "error-handling/registries/common": [
+        "libs/error-handling/registries/common/src/index.ts"
+      ],
+      "error-handling/registries/order": [
+        "libs/error-handling/registries/order/src/index.ts"
+      ],
+      "error-handling/registries/workshop": [
+        "libs/error-handling/registries/workshop/src/index.ts"
+      ],
+      "error-handling/remapper/typeorm-postgres": [
+        "libs/error-handling/remapper/typeorm-postgres/src/index.ts"
+      ]
     }
   }
 }

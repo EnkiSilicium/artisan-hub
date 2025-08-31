@@ -1,0 +1,100 @@
+{
+    "compilerOptions": {
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
+        "resolvePackageJsonExports": true,
+        "esModuleInterop": true,
+        "isolatedModules": true,
+        "declaration": true,
+        "removeComments": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "allowSyntheticDefaultImports": true,
+        "target": "es2023",
+        "sourceMap": true,
+        "outDir": "../../../../dist",
+        "baseUrl": "../../../..",
+        "incremental": true,
+        "skipLibCheck": true,
+        "strictNullChecks": true,
+        "forceConsistentCasingInFileNames": true,
+        "noImplicitAny": true,
+        "strictBindCallApply": false,
+        "noFallthroughCasesInSwitch": true,
+        "paths": {
+            "adapter": [
+                "libs/adapter/src/index.ts"
+            ],
+            "auth": [
+                "libs/auth/src/index.ts"
+            ],
+            "contracts": [
+                "libs/contracts/src/index.ts"
+            ],
+            "error-handling": [
+                "libs/error-handling/src/index.ts"
+            ],
+            "observability": [
+                "libs/observability/src/index.ts"
+            ],
+            "persistence": [
+                "libs/persistence/src/index.ts"
+            ],
+            "shared-kernel": [
+                "libs/shared-kernel/src/index.ts"
+            ],
+            "error-handling/error-core": [
+                "libs/error-handling/error-core/src/index.ts"
+            ],
+            "error-handling/interceptor": [
+                "libs/error-handling/interceptor/src/index.ts"
+            ],
+            "error-handling/registries/bonus": [
+                "libs/error-handling/registries/bonus/src/index.ts"
+            ],
+            "error-handling/registries/commissioner": [
+                "libs/error-handling/registries/commissioner/src/index.ts"
+            ],
+            "error-handling/registries/common": [
+                "libs/error-handling/registries/common/src/index.ts"
+            ],
+            "error-handling/registries/order": [
+                "libs/error-handling/registries/order/src/index.ts"
+            ],
+            "error-handling/registries/workshop": [
+                "libs/error-handling/registries/workshop/src/index.ts"
+            ],
+            "error-handling/remapper/typeorm-postgres": [
+                "libs/error-handling/remapper/typeorm-postgres/src/index.ts"
+            ]
+        },
+        "strict": true,
+        "importHelpers": true,
+        "noImplicitOverride": true,
+        "noImplicitReturns": true,
+        "composite": true,
+        "noPropertyAccessFromIndexSignature": true,
+        "moduleDetection": "force",
+        "resolvePackageJsonImports": true,
+        "resolveJsonModule": true,
+        "preserveConstEnums": true,
+        "useDefineForClassFields": true,
+        "noImplicitThis": true,
+        "strictFunctionTypes": true,
+        "strictPropertyInitialization": true,
+        "strictBuiltinIteratorReturn": true,
+        "alwaysStrict": true,
+        "useUnknownInCatchVariables": true
+    },
+    "references": [
+        {
+            "path": "./tsconfig.lib.json"
+        },
+        {
+            "path": "./tsconfig.spec.json"
+        }
+    ],
+    "exclude": [
+        "D:/TINKEREO/portf/portf/artisan-hub/dist"
+    ]
+}
