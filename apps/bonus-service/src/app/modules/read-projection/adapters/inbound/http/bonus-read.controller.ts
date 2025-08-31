@@ -1,23 +1,37 @@
-// read-model/vip-additive.controller.ts
 import {
   Controller,
   Get,
-  HttpCode,
   Post,
+  HttpCode,
   Query,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiOkResponse,
+  ApiAcceptedResponse,
+} from '@nestjs/swagger';
 import { BonusReadHandler } from 'apps/bonus-service/src/app/modules/read-projection/application/bonus-read/bonus-read.query-handler';
-import { BonusReadresultDto, BonusReadQueryDto } from 'contracts';
+import {
+  BonusReadresultDto,
+  BonusReadQueryDto,
+} from 'contracts';
 
+@ApiTags('Bonus read')
 @Controller('bonus-read')
 export class BonusReadController {
   constructor(private readonly svc: BonusReadHandler) {}
 
   @Get()
+  @ApiOperation({
+    summary: 'List VIP/additive bonus records',
+    description: 'Returns a paginated list of bonus records with filters.',
+  })
+  @ApiOkResponse({ type: BonusReadresultDto })
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
-  async read(@Query() q: BonusReadQueryDto): Promise<BonusReadresultDto> {
+  async read(@Query() q: BonusReadQueryDto) {
     return this.svc.read({
       commissionerId: q.commissionerId,
       isVIP: q.isVIP,
@@ -38,6 +52,13 @@ export class BonusReadController {
 
   @Post('refresh')
   @HttpCode(202)
+  @ApiOperation({
+    summary: 'Refresh the bonus read projection',
+    description: 'Initiates an asynchronous refresh of the bonus read model.',
+  })
+  @ApiAcceptedResponse({
+    description: 'Refresh has been initiated',
+  })
   async refresh(): Promise<{ ok: boolean }> {
     return this.svc.refresh();
   }
