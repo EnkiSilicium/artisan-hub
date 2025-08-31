@@ -1,0 +1,176 @@
+import { TestingModule, Test } from '@nestjs/testing';
+import {
+  PostgreSqlContainer,
+  StartedPostgreSqlContainer,
+} from '@testcontainers/postgresql';
+
+import {
+  TypeOrmUoW,
+  inRollbackedTestTx,
+} from 'persistence';
+import { randomUUID } from 'crypto';
+import { DataSource } from 'typeorm';
+import { KafkaProducerPort } from 'adapter';
+import { Order } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.entity';
+import { RequestEntity } from 'apps/order-service/src/app/order-workflow/domain/entities/request/request.entity';
+import { Stage } from 'apps/order-service/src/app/order-workflow/domain/entities/stage/stage.entity';
+import { WorkshopInvitation } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.entity';
+import { makeOrder } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/order/order.mock-factory';
+import { OrderRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/order/order.repo';
+import { makeRequest } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/request/request.mock-factory';
+import { RequestRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/request/request.repo';
+import { InfraError } from 'error-handling/error-core';
+
+describe('RequestRepo (integration)', () => {
+  let moduleRef: TestingModule;
+  let ds: DataSource;
+  let orderRepo: OrderRepo;
+  let requestRepo: RequestRepo;
+  let uow: TypeOrmUoW;
+  let container: StartedPostgreSqlContainer;
+
+  beforeAll(async () => {
+    container = await new PostgreSqlContainer('postgres:16-alpine')
+      .withDatabase('testdb')
+      .withUsername('testuser')
+      .withPassword('testpw')
+      .start();
+
+    ds = new DataSource({
+      type: 'postgres',
+      host: container.getHost(),
+      port: container.getPort(),
+      username: container.getUsername(),
+      password: container.getPassword(),
+      database: container.getDatabase(),
+      entities: [Order, RequestEntity, Stage, WorkshopInvitation],
+      synchronize: true,
+    });
+    await ds.initialize();
+
+    const kafkaMock = { dispatch: jest.fn().mockResolvedValue(undefined) } as KafkaProducerPort<any>;
+
+    moduleRef = await Test.createTestingModule({
+      providers: [
+        OrderRepo,
+        RequestRepo,
+        { provide: DataSource, useValue: ds },
+        { provide: 'KAFKA_PUBLISHER', useValue: kafkaMock },
+        {
+          provide: TypeOrmUoW,
+          useFactory: (dataSource: DataSource, kafka: any) =>
+            new (require('libs/persistence/src/lib/unit-of-work/typeorm.uow').TypeOrmUoW)(
+              dataSource,
+              kafka,
+            ),
+          inject: [DataSource, 'KAFKA_PUBLISHER'],
+        },
+      ],
+    }).compile();
+
+    orderRepo = moduleRef.get(OrderRepo);
+    requestRepo = moduleRef.get(RequestRepo);
+    uow = moduleRef.get(TypeOrmUoW);
+  });
+
+  afterAll(async () => {
+    await ds.destroy();
+    await container.stop();
+  });
+
+  it('insert: sets version=1 and links to order', async () => {
+    await inRollbackedTestTx(ds, async () => {
+      const order = makeOrder({ commissionerId: randomUUID(), version: 1 });
+      const req = makeRequest({
+        orderId: order.orderId,
+        version: 1,
+      });
+
+      await uow.run({}, async () => {
+        await orderRepo.insert(order);
+        await requestRepo.insert(req);
+      });
+
+      const found = await requestRepo.findById(order.orderId);
+      expect(found).not.toBeNull();
+      expect(found!.version).toBe(1);
+      expect(req.version).toBe(1);
+      expect(found!.orderId).toBe(order.orderId);
+    });
+  });
+
+  it('update: bumps version and persists changes', async () => {
+    await inRollbackedTestTx(ds, async () => {
+      const order = makeOrder({ commissionerId: randomUUID(), version: 1 });
+      const req = makeRequest({
+        orderId: order.orderId,
+        title: 'A',
+        description: 'B',
+        budget: '50',
+        version: 1,
+      });
+
+      await uow.run({}, async () => {
+        await orderRepo.insert(order);
+        await requestRepo.insert(req);
+      });
+
+      const v1 = req.version;
+      req.title = 'A2';
+      req.budget = '60';
+
+      await uow.run({}, async () => {
+        await requestRepo.update(req);
+      });
+
+      const found = await requestRepo.findById(order.orderId);
+      expect(found!.title).toBe('A2');
+      expect(found!.budget).toBe('60');
+      expect(found!.version).toBe(v1 + 1);
+      expect(req.version).toBe(v1 + 1);
+    });
+  });
+
+  it('optimistic lock: stale update fails', async () => {
+    await inRollbackedTestTx(ds, async () => {
+      const order = makeOrder({ commissionerId: randomUUID(), version: 1 });
+      const req = makeRequest({
+        orderId: order.orderId,
+        title: 'C',
+        description: 'D',
+        budget: '77',
+        version: 1,
+      });
+
+      await uow.run({}, async () => {
+        await orderRepo.insert(order);
+        await requestRepo.insert(req);
+      });
+
+      req.description = 'First';
+      await uow.run({}, async () => {
+        await requestRepo.update(req);
+      });
+      const cur = req.version;
+
+      const stale = makeRequest({
+        orderId: req.orderId,
+        title: req.title,
+        description: 'Stale',
+        deadline: req.deadline,
+        budget: req.budget,
+        version: cur - 1,
+      });
+
+      await expect(
+        uow.run({}, async () => {
+          await requestRepo.update(stale);
+        }),
+      ).rejects.toThrow(InfraError);
+
+      const latest = await requestRepo.findById(order.orderId);
+      expect(latest!.description).toBe('First');
+      expect(latest!.version).toBe(cur);
+    });
+  });
+});
