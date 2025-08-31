@@ -1,0 +1,19 @@
+{
+  "name": "common-error-registry",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "error-handling/registries/common/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/error-handling/registries/common",
+        "main": "libs/error-handling/registries/common/src/index.ts",
+        "tsConfig": "libs/error-handling/registries/common/tsconfig.json",
+        "assets": ["libs/error-handling/registries/common/*.md"]
+      }
+    }
+  }
+}

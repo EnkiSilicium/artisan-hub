@@ -19,12 +19,13 @@ if (swcJestConfig.swcrc === undefined) {
 // swcJestConfig.module.noInterop = false;
 
 export default {
-  displayName: 'error-handling',
-  preset: '../../jest.preset',
+  displayName: 'commissioner',
+  preset: '../../../../jest.preset.js',
   transform: {
     '^.+\\.[tj]s$': ['@swc/jest', swcJestConfig],
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   testEnvironment: 'node',
-  coverageDirectory: '../../coverage/error-handling',
+  coverageDirectory:
+    '../../../../coverage/error-handling/registries/commissioner',
 };
