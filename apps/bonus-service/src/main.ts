@@ -1,21 +1,109 @@
-/**
- * This is not a production server yet!
- * This is only a minimal backend to get started.
- */
-
-import { Logger } from '@nestjs/common';
+import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app/app.module';
+import { INestApplication } from '@nestjs/common';
+import { Transport, MicroserviceOptions } from '@nestjs/microservices';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { bonusProcessorKafkaConfig } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/config/kafka.config';
+import { BonusProcessorModule } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/di/bonus-processor.module'
+import { BonusReadModule } from 'apps/bonus-service/src/app/modules/read-projection/infra/di/bonus-read.module';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { HttpErrorInterceptor, KafkaErrorInterceptor } from 'error-handling/interceptor';
+import { LoggingInterceptor } from 'observability';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  const globalPrefix = 'api';
-  app.setGlobalPrefix(globalPrefix);
-  const port = process.env.PORT || 3000;
-  await app.listen(port);
-  Logger.log(
-    `🚀 Application is running on: http://localhost:${port}/${globalPrefix}`,
-  );
+
+function setupSwagger(app: INestApplication, {
+  title,
+  version = '1.0.0',
+  path = '../docs',
+}: { title: string; version?: string; path?: string; }) {
+  const config = new DocumentBuilder()
+    .setTitle(title)
+    .setVersion(version)
+    .build();
+  const doc = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup(path, app, doc, { customSiteTitle: title });
 }
 
-bootstrap();
+
+async function startBonusProcessorApp() {
+  const httpPort = Number(process.env.BONUS_PROC_HTTP_PORT ?? 3001);
+
+  const app = await NestFactory.create(BonusProcessorModule, { bufferLogs: true });
+  //app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
+  app.enableShutdownHooks();
+  app.setGlobalPrefix(process.env.HTTP_PREFIX ?? 'api');
+  app.useGlobalInterceptors(
+    app.get(KafkaErrorInterceptor),
+    app.get(HttpErrorInterceptor),
+    app.get(LoggingInterceptor),
+  );
+
+
+
+
+  const microservice = app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.KAFKA,
+    options: {
+      client: bonusProcessorKafkaConfig.client,
+      consumer: bonusProcessorKafkaConfig.consumer,
+      producer: bonusProcessorKafkaConfig.producer,
+      run: bonusProcessorKafkaConfig.run,
+    },
+  });
+  microservice.useGlobalInterceptors(app.get(KafkaErrorInterceptor), app.get(LoggingInterceptor),);
+
+  await app.startAllMicroservices();
+
+  setupSwagger(app, { title: 'Bonus Processor API', path: 'docs', version: '1.0' });
+
+  await app.listen(httpPort);
+  const url = await app.getUrl();
+  console.log(`[BonusReadModule] HTTP listening: ${url}  |  Swagger: ${url}/docs`);
+}
+
+async function startBonusReadApp() {
+  const httpPort = Number(process.env.BONUS_READ_HTTP_PORT ?? 3002);
+
+  const app = await NestFactory.create(BonusReadModule, { bufferLogs: true });
+  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
+  app.enableShutdownHooks();
+  app.setGlobalPrefix(process.env.HTTP_PREFIX ?? 'api');
+  app.useGlobalInterceptors(
+    app.get(HttpErrorInterceptor),
+    app.get(LoggingInterceptor),
+  );
+
+
+
+  setupSwagger(app, { title: 'Bonus Read API', path: 'docs', version: '1.0' });
+
+  await app.listen(httpPort);
+  const url = await app.getUrl();
+
+  console.log(`[BonusReadModule] HTTP listening: ${url}  |  Swagger: ${url}/docs`);
+}
+
+
+async function bootstrap() {
+  //  await otelSDK.start();
+
+
+  await startBonusProcessorApp()
+  //read depends on processor
+  await startBonusReadApp()
+
+  // Graceful shutdown on signals
+  const shutdown = async (signal: string) => {
+
+    console.log(`\nReceived ${signal}. Shutting down...`)
+    process.exit(0);
+  };
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+}
+
+bootstrap().catch((err) => {
+  // eslint-disable-next-line no-console
+  console.error('Fatal on bootstrap:', err);
+  process.exit(1);
+});
