@@ -2,8 +2,8 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "../../dist/out-tsc",
-    "module": "commonjs",
-    "moduleResolution": "node10",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "types": ["jest", "node"]
   },
   "include": [
@@ -11,5 +11,5 @@
     "src/**/*.test.ts",
     "src/**/*.spec.ts",
     "src/**/*.d.ts"
-  ]
+, "src/app/order-workflow/infra/persistence/repositories/workshop-invitation/workshop-invitation.mock-factory.ts", "src/app/order-workflow/infra/persistence/repositories/stage/stage.mock-factory.ts", "src/app/order-workflow/infra/persistence/repositories/request/request.mock-factory.ts", "src/app/order-workflow/infra/persistence/repositories/order/order.mock-factory.ts"  ]
 }

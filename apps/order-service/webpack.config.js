@@ -13,12 +13,28 @@ module.exports = {
       target: 'node',
       compiler: 'tsc',
       main: './src/main.ts',
-      tsConfig: './tsconfig.app.json',
+      tsConfig: './tsconfig.json',
       assets: ['./src/assets'],
       optimization: false,
       outputHashing: 'none',
       generatePackageJson: true,
       sourceMaps: true,
+      module: {
+        rules: [
+                {
+        test: /\.ts$/,
+        loader: 'ts-loader',
+        options: {
+          configFile: join(__dirname, 'tsconfig.json'),
+          transpileOnly: false
+        }
+      }
+        ]
+        
+        
+      }
     }),
   ],
 };
+
+
