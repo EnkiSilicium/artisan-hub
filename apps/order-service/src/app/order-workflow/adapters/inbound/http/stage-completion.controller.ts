@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Post,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -11,12 +12,15 @@ import {
   ApiBadRequestResponse,
 } from '@nestjs/swagger';
 import { StageCompletionService } from 'apps/order-service/src/app/order-workflow/application/services/stage/stage-completion.service';
+import { HttpErrorInterceptor } from 'error-handling/interceptor';
+import { LoggingInterceptor } from 'observability';
 import {
   MarkStageCompletionDtoV1,
   ConfirmStageCompletionDtoV1,
 } from 'contracts';
 
 @ApiTags('Order workflow')
+@UseInterceptors(HttpErrorInterceptor, LoggingInterceptor)
 @Controller({ path: 'stage-completion', version: '1' })
 export class StageCompletionController {
   constructor(

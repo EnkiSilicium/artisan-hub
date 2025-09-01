@@ -7,10 +7,6 @@ import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { OrderWorkflowModule } from 'apps/order-service/src/app/order-workflow/infra/di/order-workflow.module';
 import { orderWorkflowKafkaConfig } from 'apps/order-service/src/app/order-workflow/infra/config/kafka.config';
 import { OrderReadModule } from 'apps/order-service/src/app/read-model/infra/di/order-read.module';
-import { HttpErrorInterceptor, KafkaErrorInterceptor } from 'error-handling/interceptor';
-import { LoggingInterceptor } from 'observability';
-
-
 
 function setupSwagger(app: INestApplication, {
   title,
@@ -25,7 +21,6 @@ function setupSwagger(app: INestApplication, {
   SwaggerModule.setup(path, app, doc, { customSiteTitle: title });
 }
 
-
 async function startOrderWorkflowApp() {
   const httpPort = Number(process.env.ORDER_WRKFLOW_HTTP_PORT ?? 3001);
 
@@ -33,13 +28,6 @@ async function startOrderWorkflowApp() {
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   app.enableShutdownHooks();
   app.setGlobalPrefix(process.env.HTTP_PREFIX ?? 'api');
-  app.useGlobalInterceptors(
-    app.get(KafkaErrorInterceptor),
-    app.get(HttpErrorInterceptor),
-    app.get(LoggingInterceptor),
-  );
-
-
 
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.KAFKA,
@@ -66,35 +54,23 @@ async function startOrderReadApp() {
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   app.enableShutdownHooks();
   app.setGlobalPrefix(process.env.HTTP_PREFIX ?? 'api');
-  app.useGlobalInterceptors(
-
-    app.get(HttpErrorInterceptor),
-    app.get(LoggingInterceptor),
-  );
-
-
 
   setupSwagger(app, { title: 'Order Read API', path: 'docs', version: '1.0' });
 
   await app.listen(httpPort);
   const url = await app.getUrl();
-
 }
-
 
 async function bootstrap() {
   //await otelSDK.start();
 
-
-
-  await startOrderWorkflowApp()
+  await startOrderWorkflowApp();
   //read assumes entities defined in DB
-  await startOrderReadApp()
+  await startOrderReadApp();
 
   // Graceful shutdown on signals
   const shutdown = async (signal: string) => {
-
-    console.log(`\nReceived ${signal}. Shutting down...`)
+    console.log(`\nReceived ${signal}. Shutting down...`);
     process.exit(0);
   };
   process.on('SIGINT', () => shutdown('SIGINT'));
@@ -106,3 +82,4 @@ bootstrap().catch((err) => {
   console.error('Fatal on bootstrap:', err);
   process.exit(1);
 });
+

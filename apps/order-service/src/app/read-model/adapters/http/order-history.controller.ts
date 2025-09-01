@@ -6,6 +6,7 @@ import {
   Query,
   UsePipes,
   ValidationPipe,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -15,12 +16,15 @@ import {
   ApiAcceptedResponse,
 } from '@nestjs/swagger';
 import { OrderStagesReadService } from 'apps/order-service/src/app/read-model/application/query-handlers/history.query-handler';
+import { HttpErrorInterceptor } from 'error-handling/interceptor';
+import { LoggingInterceptor } from 'observability';
 import {
   OrderHistoryQueryResultDto,
   ReadOrderStagesQueryDto,
 } from 'contracts';
 
 @ApiTags('Orders read')
+@UseInterceptors(HttpErrorInterceptor, LoggingInterceptor)
 @Controller('orders/stages')
 export class OrderHistoryController {
   constructor(private readonly svc: OrderStagesReadService) {}

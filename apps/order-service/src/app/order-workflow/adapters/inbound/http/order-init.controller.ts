@@ -3,6 +3,7 @@ import {
   Controller,
   Post,
   HttpCode,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -12,10 +13,13 @@ import {
   ApiBadRequestResponse,
 } from '@nestjs/swagger';
 import { OrderInitService } from 'apps/order-service/src/app/order-workflow/application/services/order/order-init.service';
+import { HttpErrorInterceptor } from 'error-handling/interceptor';
+import { LoggingInterceptor } from 'observability';
   // Re-exported DTO from libs/contracts
 import { OrderInitDtoV1 } from 'contracts';
 
 @ApiTags('Order workflow')
+@UseInterceptors(HttpErrorInterceptor, LoggingInterceptor)
 @Controller({ path: 'order', version: '1' })
 export class OrderInitController {
   constructor(private readonly orderInitService: OrderInitService) {}

@@ -14,12 +14,13 @@ import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
 import { isoNow } from 'shared-kernel';
 import { ProgrammerError } from 'error-handling/error-core';
 import { KafkaErrorInterceptor } from 'error-handling/interceptor';
+import { LoggingInterceptor } from 'observability';
 
+@UseInterceptors(KafkaErrorInterceptor, LoggingInterceptor)
 @Controller()
 export class BonusEventsConsumer {
   constructor(private readonly bonusService: BonusEventService) {}
 
-  @UseInterceptors(KafkaErrorInterceptor)
   @EventPattern(KafkaTopics.OrderTransitions)
   async onOrderTransitions(
     @Payload() payload: unknown,
