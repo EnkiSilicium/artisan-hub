@@ -19,6 +19,8 @@ import { makeOrder } from 'apps/order-service/src/app/order-workflow/domain/enti
 import { OrderRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/order/order.repo';
 import { makeRequest } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/request/request.mock-factory';
 import { RequestRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/request/request.repo';
+import { makeWorkshopInvitation } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.entity.mock-factory';
+import { WorkshopInvitationRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/workshop-invitation/workshop-invitation.repo';
 import { InfraError } from 'error-handling/error-core';
 
 describe('RequestRepo (integration)', () => {
@@ -26,6 +28,7 @@ describe('RequestRepo (integration)', () => {
   let ds: DataSource;
   let orderRepo: OrderRepo;
   let requestRepo: RequestRepo;
+  let invitationRepo: WorkshopInvitationRepo;
   let uow: TypeOrmUoW;
   let container: StartedPostgreSqlContainer;
 
@@ -54,6 +57,7 @@ describe('RequestRepo (integration)', () => {
       providers: [
         OrderRepo,
         RequestRepo,
+        WorkshopInvitationRepo,
         { provide: DataSource, useValue: ds },
         { provide: 'KAFKA_PUBLISHER', useValue: kafkaMock },
         {
@@ -70,6 +74,7 @@ describe('RequestRepo (integration)', () => {
 
     orderRepo = moduleRef.get(OrderRepo);
     requestRepo = moduleRef.get(RequestRepo);
+    invitationRepo = moduleRef.get(WorkshopInvitationRepo);
     uow = moduleRef.get(TypeOrmUoW);
   });
 
@@ -96,6 +101,39 @@ describe('RequestRepo (integration)', () => {
         expect(found!.version).toBe(1);
         expect(req.version).toBe(1);
         expect(found!.orderId).toBe(order.orderId);
+      });
+    });
+  });
+
+  describe('findById', () => {
+    it('loads all workshop invitations', async () => {
+      await inRollbackedTestTx(ds, async () => {
+        const order = makeOrder({ commissionerId: randomUUID(), version: 1 });
+        const req = makeRequest({ orderId: order.orderId, version: 1 });
+        const i1 = makeWorkshopInvitation({
+          orderId: order.orderId,
+          workshopId: randomUUID(),
+          version: 1,
+        });
+        const i2 = makeWorkshopInvitation({
+          orderId: order.orderId,
+          workshopId: randomUUID(),
+          version: 1,
+        });
+
+        await uow.run({}, async () => {
+          await orderRepo.insert(order);
+          await requestRepo.insert(req);
+          await invitationRepo.insertMany([i1, i2]);
+        });
+
+        const found = await requestRepo.findById(order.orderId);
+        expect(found).not.toBeNull();
+        expect(found!.workshopInvitations).toHaveLength(2);
+        const ids = found!.workshopInvitations
+          .map((i) => i.workshopId)
+          .sort();
+        expect(ids).toEqual([i1.workshopId, i2.workshopId].sort());
       });
     });
   });

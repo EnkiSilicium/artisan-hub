@@ -14,7 +14,10 @@ export class RequestRepo {
   ): Promise<RequestEntity | null> {
     const manager = requireTxManager(this.ds);
     try {
-      const row = await manager.findOne(RequestEntity, { where: { orderId } });
+      const row = await manager.findOne(RequestEntity, {
+        where: { orderId },
+        relations: { workshopInvitations: true },
+      });
       return row;
     } catch (error) {
       remapTypeOrmPgErrorToInfra(error);
