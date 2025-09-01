@@ -9,7 +9,8 @@ export enum KafkaTopics {
     InvitationDeclined = "invitation_declined",
     RequestEdited = "request_edited",
     VipStatusUpdates = "vip_status_updates",
-    GradeUpdates = "grade_updates"
+    GradeUpdates = "grade_updates",
+    AllInvitationsDeclined = "all_invitations_declined"
 
 }
 
