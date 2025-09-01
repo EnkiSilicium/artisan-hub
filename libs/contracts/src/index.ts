@@ -24,6 +24,7 @@ export * from './order-service/events/order-placed.event';
 export * from './order-service/events/request-edeited.event';
 export * from './order-service/events/stage-confirmation-marked.event';
 export * from './order-service/events/stage-confirmed.event';
+export * from './order-service/events/all-invitations-declined.event';
 export * from './order-service/events/_union.types';
 export * from './_common/base-event.event';
 export * from './_common/contracts';

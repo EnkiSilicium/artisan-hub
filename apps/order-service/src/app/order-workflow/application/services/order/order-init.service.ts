@@ -53,6 +53,7 @@ export class OrderInitService {
       const amountOfInvitations = workshopInvitations.length;
       await this.workshopTrackerPort.initializeTracker(
         order.orderId,
+        cmd.payload.commissionerId,
         amountOfInvitations,
       );
 

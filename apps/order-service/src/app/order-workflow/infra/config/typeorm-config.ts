@@ -3,6 +3,7 @@ import { RequestEntity } from 'apps/order-service/src/app/order-workflow/domain/
 import { Stage } from 'apps/order-service/src/app/order-workflow/domain/entities/stage/stage.entity';
 import { WorkshopInvitation } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.entity';
 import { OutboxMessage } from 'persistence';
+import { InvitationResponseTracker } from 'apps/order-service/src/app/order-workflow/infra/persistence/entities/invitation-response-tracker.entity';
 import { DataSourceOptions } from 'typeorm';
 
 export const OrderWorkflowTypeOrmOptions: DataSourceOptions = {
@@ -23,7 +24,7 @@ export const OrderWorkflowTypeOrmOptions: DataSourceOptions = {
         ssl:
           process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : false,
       }),
-  entities: [Order, RequestEntity, WorkshopInvitation, Stage, OutboxMessage],
+  entities: [Order, RequestEntity, WorkshopInvitation, Stage, OutboxMessage, InvitationResponseTracker],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
   entitySkipConstructor: true,
   // toggles

@@ -26,6 +26,9 @@ import { OrderEventDispatcher } from 'apps/order-service/src/app/order-workflow/
 import { KafkaProducerPort } from 'adapter';
 import { WorkshopMockAdapter } from 'apps/order-service/src/app/order-workflow/adapters/outbound/http-clients/workshop.adapter';
 import { WorkshopPort } from 'apps/order-service/src/app/order-workflow/application/ports/workshop.port';
+import { WorkshopInvitationTracker } from 'apps/order-service/src/app/order-workflow/infra/workshop-invitation-tracker/workshop-invitation-tracker.service';
+import { WorkshopInvitationTrackerAdapter } from 'apps/order-service/src/app/order-workflow/adapters/outbound/workshop-invitation-tracker.adapter';
+import { WorkshopInvitationTrackerKafkaController } from 'apps/order-service/src/app/order-workflow/adapters/inbound/workshop-invitation-tracker.kafka';
 
 import { LoggingInterceptor } from 'observability'
 import { HttpErrorInterceptor, HttpErrorInterceptorOptions, KafkaErrorInterceptor, KafkaErrorInterceptorOptions } from 'error-handling/interceptor'
@@ -61,7 +64,8 @@ import { HttpErrorInterceptor, HttpErrorInterceptorOptions, KafkaErrorIntercepto
     controllers: [
         WorkshopInvitationResponseController,
         OrderInitController,
-        StageCompletionController
+        StageCompletionController,
+        WorkshopInvitationTrackerKafkaController,
 
     ],
     providers: [
@@ -78,7 +82,8 @@ import { HttpErrorInterceptor, HttpErrorInterceptorOptions, KafkaErrorIntercepto
         StagesAggregateRepo,
         WorkshopInvitationRepo,
 
-        { provide: WorkshopInvitationTrackerPort, useClass: WorkshopMockAdapter },
+        WorkshopInvitationTracker,
+        { provide: WorkshopInvitationTrackerPort, useClass: WorkshopInvitationTrackerAdapter },
         { provide: KafkaProducerPort, useClass: OrderEventDispatcher },
         { provide: WorkshopPort, useClass: WorkshopMockAdapter },
 
