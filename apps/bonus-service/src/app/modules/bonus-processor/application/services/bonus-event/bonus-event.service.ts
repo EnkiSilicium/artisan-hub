@@ -1,4 +1,5 @@
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { logInfo } from 'observability';
 import { BonusEventProcessCommand } from 'apps/bonus-service/src/app/modules/bonus-processor/application/services/bonus-event/bonus-event.command';
 import { BonusEventEntity } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity';
 import { VipProfile } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.entity';
@@ -24,6 +25,19 @@ export class BonusEventService {
     private readonly vipProfileRepo: VipProfileRepo,
   ) {}
   async process(cmd: BonusEventProcessCommand) {
+    logInfo(
+      {
+        msg: 'Processing bonus event',
+        controller: BonusEventService.name,
+        method: this.process.name,
+      },
+      {
+        commissionerId: cmd.commissionerId,
+        eventName: cmd.eventName,
+        eventId: cmd.eventId,
+      },
+    );
+
     return this.uow.runWithRetry({}, async () => {
       const event = new BonusEventEntity({
         eventId: cmd.eventId,

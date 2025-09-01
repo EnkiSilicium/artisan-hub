@@ -4,12 +4,12 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
-  Logger,
   Inject,
 } from '@nestjs/common';
 import { ClientKafka, KafkaContext } from '@nestjs/microservices';
-import { Observable, EMPTY, from, throwError, lastValueFrom, firstValueFrom } from 'rxjs';
+import { Observable, from, throwError, firstValueFrom } from 'rxjs';
 import { catchError, mergeMap, map, ignoreElements, defaultIfEmpty } from 'rxjs/operators';
+import { logInfo, logError } from 'observability';
 
 // Your error base + concrete types
 import { AppError } from 'error-handling/error-core';
@@ -55,8 +55,6 @@ export class KafkaErrorInterceptor implements NestInterceptor {
   }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-
-    Logger.log({ message: "KafkaErrorInterceptor active" })
     // Only handle Kafka (RPC) traffic; let HTTP go through the HTTP pipeline.
     if (context.getType() !== 'rpc') return next.handle();
 
@@ -70,6 +68,10 @@ export class KafkaErrorInterceptor implements NestInterceptor {
 
     const currentOffset = BigInt(msg.offset);
     const nextOffset = (currentOffset + 1n).toString();
+    const attempts = this.getAttempts(msg);
+    const baseLog = { topic, partition, offset: msg.offset, attempts };
+
+    logInfo({ msg: 'Kafka message received', ...baseLog }, {}, { transport: 'kafka' });
 
     return next.handle().pipe(
       // Success path: commit then return the controller result.
@@ -79,15 +81,6 @@ export class KafkaErrorInterceptor implements NestInterceptor {
         ),
       ),
       catchError((error: unknown) => {
-        // Log raw error object for ops.
-        Logger.error(
-          { ...(error as any) },
-          undefined,
-          KafkaErrorInterceptor.name,
-        );
-        Logger.log({ message: "KafkaErrorInterceptor handling" })
-
-        const attempts = this.getAttempts(msg);
         const max = this.opts.maxRetries ?? 5;
         const isOurError =
           error instanceof DomainError ||
@@ -98,34 +91,41 @@ export class KafkaErrorInterceptor implements NestInterceptor {
           ? (error as AppError)
           : undefined;
 
+        logError(
+          {
+            msg: 'Kafka handler failure',
+            ...baseLog,
+            maxRetries: max,
+            retryable: appErr?.retryable ?? false,
+            kind: appErr?.kind,
+            service: appErr?.service,
+            code: appErr?.code,
+            v: appErr?.v,
+            details: appErr?.details,
+            error: this.toPlain(error),
+          },
+          {},
+          { transport: 'kafka' },
+        );
+
         // Retryable and within limit → do not commit; redelivery will happen.
         if (appErr?.retryable && attempts < max) {
           return throwError(() => error);
         }
 
         // Not retryable, or we exhausted attempts → DLQ then commit.
-        const act = async () => {
-          try {
-            await this.sendToDlq(topic, msg, appErr, error);
-          } catch (dlqErr) {
-            // If DLQ publishing fails, DO NOT commit; let redelivery retry DLQ.
-            Logger.error(
-              { ...(dlqErr as any) },
-              undefined,
-              'KafkaErrorInterceptor.DLQ',
-            );
-            throw error; // propagate so message remains uncommitted
-          }
-          await this.commit(consumer, topic, partition, nextOffset);
-        };
-
         return from(this.sendToDlq(topic, msg, appErr, error)).pipe(
           // emit a single value so lastValueFrom has something to resolve
           map(() => undefined as void),
           catchError((dlqErr) => {
-            Logger.error({ dlqErr }, undefined, 'KafkaErrorInterceptor.DLQ');
-            return throwError(() => error);       // DLQ failed → keep uncommitted
+            logError(
+              { msg: 'DLQ publish failed', ...baseLog, error: this.toPlain(dlqErr) },
+              {},
+              { transport: 'kafka' },
+            );
+            return throwError(() => error); // DLQ failed → keep uncommitted
           }),
+          mergeMap(() => from(this.commit(consumer, topic, partition, nextOffset)).pipe(map(() => undefined))),
         );
       }),
     );
@@ -241,5 +241,15 @@ export class KafkaErrorInterceptor implements NestInterceptor {
       }
     }
     return value;
+  }
+
+  private toPlain(error: any) {
+    try {
+      return JSON.parse(
+        JSON.stringify(error, Object.getOwnPropertyNames(error)),
+      );
+    } catch {
+      return { name: error?.name, message: error?.message, stack: error?.stack };
+    }
   }
 }

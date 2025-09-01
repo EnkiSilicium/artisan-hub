@@ -5,10 +5,10 @@ import {
   ExecutionContext,
   CallHandler,
   HttpStatus,
-  Logger,
 } from '@nestjs/common';
 import { Observable, EMPTY } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { logError } from 'observability';
 
 import { AppError } from 'error-handling/error-core';
 import { DomainError } from 'error-handling/error-core';
@@ -43,11 +43,16 @@ export class HttpErrorInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       catchError((err: unknown) => {
-        // Log full object; your logger/formatter can redact secrets.
-        Logger.error({ ...(err as any) }, undefined, 'HttpErrorInterceptor');
-
         const http = context.switchToHttp();
+        const req = http.getRequest<any>();
         const res = http.getResponse<any>();
+        const attempts = this.getAttempts(req);
+
+        const baseLog: Record<string, unknown> = {
+          path: req?.originalUrl ?? req?.url,
+          httpMethod: req?.method,
+        };
+        if (attempts !== undefined) baseLog.attempts = attempts;
 
         // If headers are already sent, we can’t safely write a response; rethrow and let Nest’s default handler scream.
         if (this.headersSent(res)) {
@@ -60,6 +65,12 @@ export class HttpErrorInterceptor implements NestInterceptor {
           err instanceof ProgrammerError;
 
         if (!isAppError) {
+          logError({
+            msg: 'HTTP handler failure',
+            ...baseLog,
+            retryable: false,
+            error: this.toPlain(err),
+          });
           // Unknown exception → 500 with a succinct body. Do not leak stack.
           this.maybeNoStore(res);
           this.setContentTypeJson(res);
@@ -72,6 +83,18 @@ export class HttpErrorInterceptor implements NestInterceptor {
         }
 
         const e = err as AppError;
+
+        logError({
+          msg: 'HTTP handler failure',
+          ...baseLog,
+          retryable: e.retryable,
+          kind: e.kind,
+          service: e.service,
+          code: e.code,
+          v: e.v,
+          details: e.details,
+          error: this.toPlain(e),
+        });
 
         // Status precedence: explicit httpStatus on the error, otherwise sensible defaults by error class.
         const status =
@@ -147,5 +170,30 @@ export class HttpErrorInterceptor implements NestInterceptor {
     // Express: res.json; Fastify: res.send
     if (typeof res.json === 'function') return res.json(body);
     if (typeof res.send === 'function') return res.send(body);
+  }
+
+  private getAttempts(req: any): number | undefined {
+    const h =
+      req?.headers?.['x-attempts'] ??
+      req?.headers?.['X-Attempts'] ??
+      req?.headers?.['x-attempt'] ??
+      req?.headers?.['X-Attempt'];
+    if (h === undefined) return undefined;
+    const num = Number(Array.isArray(h) ? h[0] : h);
+    return isNaN(num) ? undefined : num;
+  }
+
+  private toPlain(error: any) {
+    try {
+      return JSON.parse(
+        JSON.stringify(error, Object.getOwnPropertyNames(error)),
+      );
+    } catch {
+      return {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack,
+      };
+    }
   }
 }
