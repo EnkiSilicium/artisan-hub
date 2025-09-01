@@ -22,6 +22,7 @@ import {
   requireTxManager,
 } from 'persistence';
 import { makeAdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity.mock-factory';
+import { makeBonusEvent } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity.mock-factory';
 
 class KafkaMock {
   published: any[] = [];
@@ -91,6 +92,29 @@ describe('AdditiveBonusRepo (integration)', () => {
         expect(found).not.toBeNull();
         expect(found!.commissionerId).toBe(ab.commissionerId);
         expect(found!.version).toBe(1);
+      });
+    });
+  });
+
+  describe('findByCommissionerId', () => {
+    it('loads all events', async () => {
+      await inRollbackedTestTx(ds, async () => {
+        const ab = makeAdditiveBonus({ version: 1 });
+        const e1 = makeBonusEvent({ commissionerId: ab.commissionerId });
+        const e2 = makeBonusEvent({ commissionerId: ab.commissionerId });
+
+        await uow.run({}, async () => {
+          await repo.insert(ab);
+          const manager = requireTxManager(ds);
+          await manager.insert(BonusEventEntity, e1);
+          await manager.insert(BonusEventEntity, e2);
+        });
+
+        const found = await repo.findByCommissionerId(ab.commissionerId);
+        expect(found).not.toBeNull();
+        expect(found!.events).toHaveLength(2);
+        const ids = found!.events.map((e) => e.eventId).sort();
+        expect(ids).toEqual([e1.eventId, e2.eventId].sort());
       });
     });
   });
