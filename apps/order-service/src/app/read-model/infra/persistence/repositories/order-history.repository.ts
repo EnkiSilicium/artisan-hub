@@ -84,6 +84,9 @@ export class OrderStageFlatRepo {
       await this.ds.query(
         'REFRESH MATERIALIZED VIEW CONCURRENTLY mv_order_history_projection',
       );
+      await this.ds.query(
+        'UPDATE mv_order_history_projection SET last_refreshed_at = now()',
+      );
     } catch (error) {
       remapTypeOrmPgErrorToInfra(error);
     }
