@@ -23,7 +23,7 @@ export class StageCompletionService {
     public readonly uow: TypeOrmUoW,
     private readonly ordersRepo: OrderRepo,
     private readonly stagesAggregateRepo: StagesAggregateRepo,
-  ) {}
+  ) { }
   async acceptCompletionMarked(cmd: AcceptCompletionMarkedCommand) {
     return this.uow.runWithRetry({}, async () => {
       const stages = await this.stagesAggregateRepo.findByWorkshopInvitation({
@@ -37,26 +37,43 @@ export class StageCompletionService {
         workshopId: cmd.workshopId,
       });
 
+      const order = await this.ordersRepo.findById(cmd.orderId);
+
+      assertIsFound(order, Order, {
+        orderId: cmd.orderId,
+        commissionerId: cmd.commissionerId,
+        workshopId: cmd.workshopId,
+      });
+
       const { allCompleted, stageCompleted } = stages.acceptCompletionMarked({
         stageName: cmd.payload.stageName,
       });
 
       this.stagesAggregateRepo.save(stages);
 
-      if (allCompleted) {
-        const order = await this.ordersRepo.findById(cmd.orderId);
-        assertIsFound(order, Order, {
-          orderId: cmd.orderId,
-          commissionerId: cmd.commissionerId,
-          workshopId: cmd.workshopId,
-        });
+      const stageMarkedEventPayload: StageConfirmationMarkedEventV1 = {
+        commissionerID: order.commissionerId,
+        confirmedAt: isoNow(),
+        eventName: 'StageConfirmationMarked',
+        orderID: order.orderId,
+        schemaV: 1,
+        stageName: cmd.payload.stageName,
+        workshopID: cmd.workshopId,
+      };
+      enqueueOutbox({
+        id: randomUUID(),
+        createdAt: isoNow(),
+        payload: {
+          ...stageMarkedEventPayload,
+        },
+      });
 
-        order.complete();
 
-        const stageMarkedEventPayload: StageConfirmationMarkedEventV1 = {
+      if (stageCompleted) {
+        const stageConfirmedEventPayload: StageConfirmedEventV1 = {
           commissionerID: order.commissionerId,
           confirmedAt: isoNow(),
-          eventName: 'StageConfirmationMarked',
+          eventName: 'StageConfirmed',
           orderID: order.orderId,
           schemaV: 1,
           stageName: cmd.payload.stageName,
@@ -66,48 +83,31 @@ export class StageCompletionService {
           id: randomUUID(),
           createdAt: isoNow(),
           payload: {
-            ...stageMarkedEventPayload,
+            ...stageConfirmedEventPayload,
           },
         });
-
-        if (stageCompleted) {
-          const stageConfirmedEventPayload: StageConfirmedEventV1 = {
-            commissionerID: order.commissionerId,
-            confirmedAt: isoNow(),
-            eventName: 'StageConfirmed',
-            orderID: order.orderId,
-            schemaV: 1,
-            stageName: cmd.payload.stageName,
-            workshopID: cmd.workshopId,
-          };
-          enqueueOutbox({
-            id: randomUUID(),
-            createdAt: isoNow(),
-            payload: {
-              ...stageConfirmedEventPayload,
-            },
-          });
-        }
-
-        if (allCompleted) {
-          const allStageConfirmedEventPayload: AllStagesCompletedEventV1 = {
-            commissionerID: order.commissionerId,
-            completedAt: isoNow(),
-            eventName: 'AllStagesCompleted',
-            orderID: order.orderId,
-            schemaV: 1,
-            workshopID: cmd.workshopId,
-          };
-          enqueueOutbox({
-            id: randomUUID(),
-            createdAt: isoNow(),
-            payload: {
-              ...allStageConfirmedEventPayload,
-            },
-          });
-        }
       }
-    });
+
+      if (allCompleted) {
+        order.complete();
+        const allStageConfirmedEventPayload: AllStagesCompletedEventV1 = {
+          commissionerID: order.commissionerId,
+          completedAt: isoNow(),
+          eventName: 'AllStagesCompleted',
+          orderID: order.orderId,
+          schemaV: 1,
+          workshopID: cmd.workshopId,
+        };
+        enqueueOutbox({
+          id: randomUUID(),
+          createdAt: isoNow(),
+          payload: {
+            ...allStageConfirmedEventPayload,
+          },
+        });
+      }
+    }
+    );
   }
 
   async confirmCompletion(cmd: ConfirmStageCompletionCommand) {
