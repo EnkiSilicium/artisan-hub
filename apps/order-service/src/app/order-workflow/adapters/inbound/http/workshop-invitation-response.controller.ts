@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Post,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -11,12 +12,15 @@ import {
   ApiBadRequestResponse,
 } from '@nestjs/swagger';
 import { WorkshopInvitationResponseService } from 'apps/order-service/src/app/order-workflow/application/services/workshop/workshop-invitation-response.service';
+import { HttpErrorInterceptor } from 'error-handling/interceptor';
+import { LoggingInterceptor } from 'observability';
 import {
   AcceptWorkshopInvitationDtoV1,
   DeclineWorkshopInvitationDtoV1,
 } from 'contracts';
 
 @ApiTags('Order workflow')
+@UseInterceptors(HttpErrorInterceptor, LoggingInterceptor)
 @Controller({ path: 'workshop-invitaion', version: '1' })
 export class WorkshopInvitationResponseController {
   constructor(

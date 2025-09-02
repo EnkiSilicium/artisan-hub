@@ -4,12 +4,9 @@ import { INestApplication } from '@nestjs/common';
 import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { bonusProcessorKafkaConfig } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/config/kafka.config';
-import { BonusProcessorModule } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/di/bonus-processor.module'
+import { BonusProcessorModule } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/di/bonus-processor.module';
 import { BonusReadModule } from 'apps/bonus-service/src/app/modules/read-projection/infra/di/bonus-read.module';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
-import { HttpErrorInterceptor, KafkaErrorInterceptor } from 'error-handling/interceptor';
-import { LoggingInterceptor } from 'observability';
-
 
 function setupSwagger(app: INestApplication, {
   title,
@@ -24,7 +21,6 @@ function setupSwagger(app: INestApplication, {
   SwaggerModule.setup(path, app, doc, { customSiteTitle: title });
 }
 
-
 async function startBonusProcessorApp() {
   const httpPort = Number(process.env.BONUS_PROC_HTTP_PORT ?? 3001);
 
@@ -32,14 +28,6 @@ async function startBonusProcessorApp() {
   //app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   app.enableShutdownHooks();
   app.setGlobalPrefix(process.env.HTTP_PREFIX ?? 'api');
-  app.useGlobalInterceptors(
-    app.get(KafkaErrorInterceptor),
-    app.get(HttpErrorInterceptor),
-    app.get(LoggingInterceptor),
-  );
-
-
-
 
   const microservice = app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.KAFKA,
@@ -50,7 +38,6 @@ async function startBonusProcessorApp() {
       run: bonusProcessorKafkaConfig.run,
     },
   });
-  microservice.useGlobalInterceptors(app.get(KafkaErrorInterceptor), app.get(LoggingInterceptor),);
 
   await app.startAllMicroservices();
 
@@ -68,12 +55,6 @@ async function startBonusReadApp() {
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   app.enableShutdownHooks();
   app.setGlobalPrefix(process.env.HTTP_PREFIX ?? 'api');
-  app.useGlobalInterceptors(
-    app.get(HttpErrorInterceptor),
-    app.get(LoggingInterceptor),
-  );
-
-
 
   setupSwagger(app, { title: 'Bonus Read API', path: 'docs', version: '1.0' });
 
@@ -83,19 +64,16 @@ async function startBonusReadApp() {
   console.log(`[BonusReadModule] HTTP listening: ${url}  |  Swagger: ${url}/docs`);
 }
 
-
 async function bootstrap() {
   //  await otelSDK.start();
 
-
-  await startBonusProcessorApp()
+  await startBonusProcessorApp();
   //read depends on processor
-  await startBonusReadApp()
+  await startBonusReadApp();
 
   // Graceful shutdown on signals
   const shutdown = async (signal: string) => {
-
-    console.log(`\nReceived ${signal}. Shutting down...`)
+    console.log(`\nReceived ${signal}. Shutting down...`);
     process.exit(0);
   };
   process.on('SIGINT', () => shutdown('SIGINT'));
@@ -107,3 +85,4 @@ bootstrap().catch((err) => {
   console.error('Fatal on bootstrap:', err);
   process.exit(1);
 });
+

@@ -6,6 +6,7 @@ import {
   Query,
   UsePipes,
   ValidationPipe,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -14,12 +15,15 @@ import {
   ApiAcceptedResponse,
 } from '@nestjs/swagger';
 import { BonusReadHandler } from 'apps/bonus-service/src/app/modules/read-projection/application/bonus-read/bonus-read.query-handler';
+import { HttpErrorInterceptor } from 'error-handling/interceptor';
+import { LoggingInterceptor } from 'observability';
 import {
   BonusReadresultDto,
   BonusReadQueryDto,
 } from 'contracts';
 
 @ApiTags('Bonus read')
+@UseInterceptors(HttpErrorInterceptor, LoggingInterceptor)
 @Controller('bonus-read')
 export class BonusReadController {
   constructor(private readonly svc: BonusReadHandler) {}
