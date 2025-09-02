@@ -20,7 +20,7 @@ export class OrderInitRequestPayload {
 export class OrderInitRequestedEvent {
   @IsString()
   @IsNotEmpty()
-  commissionerID!: string;
+  commissionerId!: string;
 
   @IsArray()
   @ArrayNotEmpty()

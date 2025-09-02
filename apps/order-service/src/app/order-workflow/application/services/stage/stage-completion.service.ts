@@ -54,7 +54,7 @@ export class StageCompletionService {
         order.complete();
 
         const stageMarkedEventPayload: StageConfirmationMarkedEventV1 = {
-          commissionerID: order.commissionerId,
+          commissionerId: order.commissionerId,
           confirmedAt: isoNow(),
           eventName: 'StageConfirmationMarked',
           orderID: order.orderId,
@@ -72,7 +72,7 @@ export class StageCompletionService {
 
         if (stageCompleted) {
           const stageConfirmedEventPayload: StageConfirmedEventV1 = {
-            commissionerID: order.commissionerId,
+            commissionerId: order.commissionerId,
             confirmedAt: isoNow(),
             eventName: 'StageConfirmed',
             orderID: order.orderId,
@@ -91,7 +91,7 @@ export class StageCompletionService {
 
         if (allCompleted) {
           const allStageConfirmedEventPayload: AllStagesCompletedEventV1 = {
-            commissionerID: order.commissionerId,
+            commissionerId: order.commissionerId,
             completedAt: isoNow(),
             eventName: 'AllStagesCompleted',
             orderID: order.orderId,
@@ -137,7 +137,7 @@ export class StageCompletionService {
       this.stagesAggregateRepo.save(stages);
 
       const stageConfirmedEventPayload: StageConfirmedEventV1 = {
-        commissionerID: order.commissionerId,
+        commissionerId: order.commissionerId,
         confirmedAt: isoNow(),
         eventName: 'StageConfirmed',
         orderID: order.orderId,
@@ -155,7 +155,7 @@ export class StageCompletionService {
 
       if (allCompleted) {
         const stageConfirmedEventPayload: AllStagesCompletedEventV1 = {
-          commissionerID: order.commissionerId,
+          commissionerId: order.commissionerId,
           completedAt: isoNow(),
           eventName: 'AllStagesCompleted',
           orderID: order.orderId,

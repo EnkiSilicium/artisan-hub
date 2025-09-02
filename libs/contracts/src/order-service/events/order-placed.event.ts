@@ -14,7 +14,7 @@ export class OrderPlacedEventV1 implements BaseEvent<'OrderPlaced'> {
 
   @IsString()
   @IsNotEmpty()
-  commissionerID!: string;
+  commissionerId!: string;
 
   @IsArray()
   @ArrayNotEmpty()

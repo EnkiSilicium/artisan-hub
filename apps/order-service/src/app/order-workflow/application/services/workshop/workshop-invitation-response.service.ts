@@ -62,7 +62,7 @@ export class WorkshopInvitationResponseService {
       await this.ordersRepo.update(order);
 
       const eventPayload: InvitationAcceptedEventV1 = {
-        commissionerID: order.commissionerId,
+        commissionerId: order.commissionerId,
         eventName: 'InvitationAccepted',
         acceptedAt: isoNow(),
         orderID: order.orderId,
@@ -102,7 +102,7 @@ export class WorkshopInvitationResponseService {
       await this.ordersRepo.update(order);
 
       const eventPayload: InvitationDeclinedEventV1 = {
-        commissionerID: order.commissionerId,
+        commissionerId: order.commissionerId,
         eventName: 'InvitationDeclined',
         declinedAt: isoNow(),
         orderID: order.orderId,

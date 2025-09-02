@@ -1,3 +1,3 @@
-export abstract class KafkaProducerPort<MSG> {
+export abstract class KafkaProducerPort<MSG extends { eventName: string } > {
   abstract dispatch(events: Array<MSG> | undefined): Promise<void>;
 }

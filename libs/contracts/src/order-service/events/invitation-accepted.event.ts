@@ -9,7 +9,7 @@ export class InvitationAcceptedEventV1 implements BaseEvent<'InvitationAccepted'
 
   @IsString()
   @IsNotEmpty()
-  commissionerID!: string;
+  commissionerId!: string;
 
   @IsString()
   @IsNotEmpty()

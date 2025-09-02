@@ -31,7 +31,7 @@ export class OrderInitController {
   async postOrderInit(@Body() body: OrderInitDtoV1) {
     return await this.orderInitService.orderInit({
       payload: {
-        commissionerId: body.commissionerID,
+        commissionerId: body.commissionerId,
         selectedWorkshops: body.selectedWorkshops,
         request: body.request,
       },

@@ -12,7 +12,7 @@ export class AllResponsesReceivedEventV1 implements BaseEvent<'AllResponsesRecei
 
   @IsString()
   @IsNotEmpty()
-  commissionerID!: string;
+  commissionerId!: string;
 
   @Equals(1)
   schemaV!: 1;

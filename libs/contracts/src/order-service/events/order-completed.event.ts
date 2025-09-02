@@ -15,7 +15,7 @@ export class OrderCompletedV1 {
 
   @IsString()
   @IsNotEmpty()
-  commissionerID!: string;
+  commissionerId!: string;
 
   @IsISO8601()
   confirmedAt!: string;

@@ -16,7 +16,7 @@ export class AllInvitationsDeclinedEventV1 implements BaseEvent<'AllInvitationsD
   @ApiProperty({ type: String })
   @IsString()
   @IsNotEmpty()
-  commissionerID!: string;
+  commissionerId!: string;
 
   @ApiProperty({ enum: [1] })
   @Equals(1)

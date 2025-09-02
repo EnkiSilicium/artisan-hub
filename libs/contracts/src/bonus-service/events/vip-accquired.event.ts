@@ -8,7 +8,7 @@ export class VipAccquiredEventV1 implements BaseEvent<'VipAccquired'> {
 
   @IsString()  
   @IsNotEmpty()
-  commissionerID!: string;
+  commissionerId!: string;
 
   @Equals(1)
   schemaV!: 1;

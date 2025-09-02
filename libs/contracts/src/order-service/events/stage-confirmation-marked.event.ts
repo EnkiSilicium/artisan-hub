@@ -16,7 +16,7 @@ export class StageConfirmationMarkedEventV1 implements BaseEvent<'StageConfirmat
 
   @IsString()
   @IsNotEmpty()
-  commissionerID!: string;
+  commissionerId!: string;
 
   @IsString()
   @IsNotEmpty()

@@ -63,7 +63,7 @@ export class OrderInitService {
 
       const eventPayload: OrderPlacedEventV1 = {
         eventName: 'OrderPlaced',
-        commissionerID: cmd.payload.commissionerId,
+        commissionerId: cmd.payload.commissionerId,
         orderID: order.orderId,
         placedAt: order.createdAt,
         request: {

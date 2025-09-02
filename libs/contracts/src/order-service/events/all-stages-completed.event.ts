@@ -16,7 +16,7 @@ export class AllStagesCompletedEventV1 implements BaseEvent<'AllStagesCompleted'
 
   @IsString()
   @IsNotEmpty()
-  commissionerID!: string;
+  commissionerId!: string;
 
   @Equals(1)
   schemaV!: 1;

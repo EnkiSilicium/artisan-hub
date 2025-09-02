@@ -54,7 +54,7 @@ export class WorkshopInvitationTracker {
       const allRes: AllResponsesReceivedEventV1 = {
         eventName: 'AllResponsesReceived',
         orderID: orderId,
-        commissionerID: tracker.commissionerId,
+        commissionerId: tracker.commissionerId,
         schemaV: 1,
         receivedAt: isoNow(),
       };
@@ -64,7 +64,7 @@ export class WorkshopInvitationTracker {
         const allDecl: AllInvitationsDeclinedEventV1 = {
           eventName: 'AllInvitationsDeclined',
           orderID: orderId,
-          commissionerID: tracker.commissionerId,
+          commissionerId: tracker.commissionerId,
           schemaV: 1,
           declinedAt: isoNow(),
         };

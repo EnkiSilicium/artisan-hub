@@ -48,7 +48,7 @@ export class OrderInitDtoV1 {
   })
   @IsString()
   @IsNotEmpty()
-  commissionerID!: string;
+  commissionerId!: string;
 
   @ApiProperty({
     type: String,
