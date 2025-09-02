@@ -18,6 +18,7 @@ import { InfraError } from 'error-handling/error-core';
 import { ProgrammerError } from 'error-handling/error-core';
 
 import { KAFKA_PRODUCER } from 'persistence';
+import { inspect } from 'util';
 
 
 export class KafkaErrorInterceptorOptions {
@@ -62,6 +63,7 @@ export class KafkaErrorInterceptor implements NestInterceptor {
 
     const kafkaCtx = context.switchToRpc().getContext<KafkaContext>();
     const msg = kafkaCtx.getMessage();
+    //Logger.log({ event: inspect(msg) })
     const topic = kafkaCtx.getTopic();
     const partition = kafkaCtx.getPartition();
     // Nest versions differ: prefer method, fallback to property.
