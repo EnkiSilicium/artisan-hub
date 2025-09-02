@@ -2,9 +2,9 @@ import { AsyncLocalStorage } from 'async_hooks';
 import { EntityManager } from 'typeorm';
 import { Ambient } from 'libs/persistence/src/lib/interfaces/transaction-context.type';
 import { OutboxMessage } from 'libs/persistence/src/lib/outbox/outbox-message.entity';
-import { ProgrammerError} from 'error-handling/error-core';
-import {ProgrammerErrorRegistry} from 'error-handling/registries/common'
-
+import { ProgrammerError } from 'error-handling/error-core';
+import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
+import { BaseEvent } from 'libs/contracts/src/_common/base-event.event.js';
 
 export const als = new AsyncLocalStorage<Ambient>();
 /**
@@ -95,7 +95,9 @@ export function registerAfterCommit(cb: () => Promise<void> | void) {
  *
  * @param msg what to put in outbox
  */
-export function enqueueOutbox(msg: OutboxMessage) {
+export function enqueueOutbox<e extends BaseEvent<string>>(
+  msg: OutboxMessage<e>,
+) {
   const s = getAmbient();
   if (!s?.outboxBuffer) {
     throw new ProgrammerError({
@@ -107,13 +109,24 @@ export function enqueueOutbox(msg: OutboxMessage) {
   }
   //assertImplementsEntityTechnicals(msg.payload);
 
-  if (msg?.payload?.createdAt instanceof Date) {
-    msg.payload.createdAt = msg.payload.createdAt.toISOString();
-  }
-
-  if (msg?.payload?.lastUpdatedAt instanceof Date) {
-    msg.payload.lastUpdatedAt = msg.payload.lastUpdatedAt.toISOString();
+  if (hasTimeMarkers(msg.payload)) {
+    // recasting annoying typeorm date objects into ISO strings
+    msg.payload.createdAt = <Date><unknown>msg.payload.createdAt.toISOString();
+    msg.payload.lastUpdatedAt = <Date><unknown>msg.payload.lastUpdatedAt.toISOString();
   }
 
   s.outboxBuffer.push(msg);
+}
+
+function hasTimeMarkers(
+  obj: any,
+): obj is { createdAt: Date; lastUpdatedAt: Date } {
+  return (
+    obj &&
+    typeof obj === 'object' &&
+    'createdAt' in obj &&
+    'lastUpdatedAt' in obj &&
+    obj.createdAt instanceof Date &&
+    obj.lastUpdatedAt instanceof Date
+  );
 }

@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, In } from 'typeorm';
+import { DataSource, In, InsertResult } from 'typeorm';
 
 
 import { IsolationLevel } from 'typeorm/driver/types/IsolationLevel';
 import { Ambient, Propagation } from 'libs/persistence/src/lib/interfaces/transaction-context.type';
 import { getAmbient, als } from 'libs/persistence/src/lib/helpers/transaction.helper';
 import { OutboxMessage } from 'libs/persistence/src/lib/outbox/outbox-message.entity';
-import {KafkaProducerPort} from 'adapter'
+import { KafkaProducerPort } from 'adapter'
 
-import { InfraError} from 'error-handling/error-core';
+import { InfraError } from 'error-handling/error-core';
+import { BaseEvent } from 'libs/contracts/src/_common/base-event.event.js';
 
 
 
@@ -17,8 +18,8 @@ import { InfraError} from 'error-handling/error-core';
 export class TypeOrmUoW {
   constructor(
     private readonly ds: DataSource,
-    private readonly kafka: KafkaProducerPort<OutboxMessage>,
-  ) {}
+    private readonly kafka: KafkaProducerPort<OutboxMessage<BaseEvent<string>>['payload']>,
+  ) { }
 
   async run<T>(
     context: Partial<
@@ -62,51 +63,49 @@ export class TypeOrmUoW {
       const result = await als.run(store, async () => {
         return await fn();
       });
-      
+
       //  beforeCommit hooks
       for (const cb of store.beforeCommit!) await cb();
 
 
       // persist staged outbox messages inside the tx
       if (store.outboxBuffer!.length) {
-        const rows: OutboxMessage[] = store.outboxBuffer!.map((message) => ({
+        const rows: OutboxMessage<BaseEvent<string>>[] = store.outboxBuffer!.map((message) => ({
           id: message.id,
           payload: message.payload,
           createdAt: message.createdAt,
         }));
 
-        await qr.manager.insert(
+
+        const insertResult: InsertResult = await qr.manager.insert(
           OutboxMessage,
           rows as any,
         ); // typeORM types broken
       }
 
-
-
-
-
-
       await qr.commitTransaction();
 
-      //  afterCommit hooks (publish staged messages)
-      if (store.outboxBuffer!.length) {
-        await this.kafka.dispatch(store.outboxBuffer!);
 
-        const messageIds = store.outboxBuffer!.map((e) => e.id)
-        // delete the events after they have been sent.
-        // if crashes before that, the startup sequence will try to publish-delete 
-        // all unpublished
-        await this.ds.manager.delete(OutboxMessage, {id: In(messageIds)})
-
-
-      }
-      for (const cb of store.afterCommit!) await cb();
 
       return result;
     } catch (event) {
       await qr.rollbackTransaction();
       throw event;
     } finally {
+      
+      //  afterCommit hooks (publish staged messages)
+      if (store.outboxBuffer!.length) {
+        await this.kafka.dispatch(store.outboxBuffer!.map((e) => e.payload));
+
+        const messageIds = store.outboxBuffer!.map((e) => e.id)
+        // delete the events after they have been sent.
+        // if crashes before that, the startup sequence will try to publish-delete 
+        // all unpublished
+        await this.ds.manager.delete(OutboxMessage, { id: In(messageIds) })
+
+
+      }
+      for (const cb of store.afterCommit!) await cb();
       await qr.release();
     }
   }

@@ -1,3 +1,4 @@
+import { BaseEvent } from 'libs/contracts/src/_common/base-event.event.js';
 import { OutboxMessage } from 'libs/persistence/src/lib/outbox/outbox-message.entity';
 import { EntityManager } from 'typeorm';
 
@@ -14,7 +15,7 @@ export type Ambient = {
   manager?: EntityManager;
   beforeCommit?: Array<() => Promise<void> | void>;
   afterCommit?: Array<() => Promise<void> | void>;
-  outboxBuffer?: OutboxMessage[]; // staged messages to persist+publish
+  outboxBuffer?: OutboxMessage<BaseEvent<string>>[]; // staged messages to persist+publish
 };
 
 export type Propagation = 'REQUIRED' | 'REQUIRES_NEW';
