@@ -230,7 +230,7 @@ export class AdditiveBonus implements EntityTechnicalsInterface {
         throw new DomainError({
           errorObject: BonusDomainErrorRegistry.byCode.POLICY_VERSION_CONFLICT,
           details: {
-            description: `Grade event policy version expected ${this.bonusPolicyVersion}, is ${policy.version}`,
+            description: `Grade event policy version expected ${this.gradePolicyVersion}, is ${policy.version}`,
           },
         });
       }
