@@ -90,6 +90,9 @@ export class BonusReadRepo {
       await this.ds.query(
         'REFRESH MATERIALIZED VIEW mv_bonus_profile',
       );
+      await this.ds.query(
+        'UPDATE mv_bonus_profile SET last_refreshed_at = now()',
+      );
     } catch (error) {
       remapTypeOrmPgErrorToInfra(error);
 

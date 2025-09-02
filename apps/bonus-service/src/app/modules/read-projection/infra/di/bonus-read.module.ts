@@ -1,22 +1,34 @@
-import { Module } from "@nestjs/common";
-import { TypeOrmModule } from "@nestjs/typeorm";
-import { BonusReadController } from "apps/bonus-service/src/app/modules/read-projection/adapters/inbound/http/bonus-read.controller";
-import { BonusReadHandler } from "apps/bonus-service/src/app/modules/read-projection/application/bonus-read/bonus-read.query-handler";
-import { bonusReadOtelConfig } from "apps/bonus-service/src/app/modules/read-projection/infra/config/otel.config";
-import { bonusReadTypeOrmOptions } from "apps/bonus-service/src/app/modules/read-projection/infra/config/typeorm-config";
-import { bonusReadWinstonConfig } from "apps/bonus-service/src/app/modules/read-projection/infra/config/winston.config";
-import { BonusReadProjection } from "apps/bonus-service/src/app/modules/read-projection/infra/persistence/projections/bonus-read.projection";
-import { BonusReadRepo } from "apps/bonus-service/src/app/modules/read-projection/infra/persistence/repositories/bonus-read.repository";
-import { HttpErrorInterceptor, KafkaErrorInterceptor, HttpErrorInterceptorOptions, KafkaErrorInterceptorOptions } from "error-handling/interceptor";
-import { WinstonModule } from "nest-winston";
-import { OpenTelemetryModule } from "nestjs-otel";
-import { LoggingInterceptor } from "observability";
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { BullModule } from '@nestjs/bullmq';
+import { BonusReadController } from 'apps/bonus-service/src/app/modules/read-projection/adapters/inbound/http/bonus-read.controller';
+import { BonusReadHandler } from 'apps/bonus-service/src/app/modules/read-projection/application/bonus-read/bonus-read.query-handler';
+import { bonusReadOtelConfig } from 'apps/bonus-service/src/app/modules/read-projection/infra/config/otel.config';
+import { bonusReadTypeOrmOptions } from 'apps/bonus-service/src/app/modules/read-projection/infra/config/typeorm-config';
+import { bonusReadWinstonConfig } from 'apps/bonus-service/src/app/modules/read-projection/infra/config/winston.config';
+import { BonusReadProjection } from 'apps/bonus-service/src/app/modules/read-projection/infra/persistence/projections/bonus-read.projection';
+import { BonusReadRepo } from 'apps/bonus-service/src/app/modules/read-projection/infra/persistence/repositories/bonus-read.repository';
+import { BonusReadRefreshJob } from 'apps/bonus-service/src/app/modules/read-projection/infra/jobs/bonus-read-refresh.job';
+import { HttpErrorInterceptor, KafkaErrorInterceptor, HttpErrorInterceptorOptions, KafkaErrorInterceptorOptions } from 'error-handling/interceptor';
+import { WinstonModule } from 'nest-winston';
+import { OpenTelemetryModule } from 'nestjs-otel';
+import { LoggingInterceptor } from 'observability';
 
 @Module({
     imports: [
         TypeOrmModule.forRoot(bonusReadTypeOrmOptions),
 
         OpenTelemetryModule.forRoot(bonusReadOtelConfig),
+
+        BullModule.forRoot({
+            connection: {
+                host: process.env.REDIS_HOST || 'localhost',
+                port: Number(process.env.REDIS_PORT || 6379),
+            },
+        }),
+        BullModule.registerQueue({
+            name: 'bonus-read-refresh',
+        }),
         // ClientsModule.register([
         //     {
         //         name: KAFKA_PRODUCER,
@@ -43,12 +55,12 @@ import { LoggingInterceptor } from "observability";
 
 
 
-
     ],
     providers: [
         BonusReadHandler,
         BonusReadProjection,
         BonusReadRepo,
+        BonusReadRefreshJob,
 
         LoggingInterceptor,
         HttpErrorInterceptor,
@@ -63,11 +75,7 @@ import { LoggingInterceptor } from "observability";
 
 
 
-    ]
+    ],
 
 })
 export class BonusReadModule { }
-
-
-
-

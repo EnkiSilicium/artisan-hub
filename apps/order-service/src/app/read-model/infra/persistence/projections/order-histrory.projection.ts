@@ -34,7 +34,9 @@ import { ViewEntity, ViewColumn } from 'typeorm';
       s.approximate_length     AS approximate_length,
       s.needs_confirmation     AS needs_confirmation,
       s.created_at             AS stage_created_at,
-      s.last_updated_at        AS stage_last_updated_at
+      s.last_updated_at        AS stage_last_updated_at,
+
+      null::timestamptz        AS last_refreshed_at
     FROM public."order" o
     INNER JOIN public.request r
       ON r.order_id = o.order_id
@@ -79,4 +81,6 @@ export class OrderHistoryProjection {
   @ViewColumn() needsConfirmation!: boolean | null;
   @ViewColumn() stageCreatedAt!: string | null;
   @ViewColumn() stageLastUpdatedAt!: string | null;
+
+  @ViewColumn({ name: 'last_refreshed_at' }) lastRefreshedAt!: string | null;
 }
