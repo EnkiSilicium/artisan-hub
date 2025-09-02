@@ -1,16 +1,90 @@
-import { waitForPortOpen } from '@nx/node/utils';
-
 /* eslint-disable */
-var __TEARDOWN_MESSAGE__: string;
+import { waitForPortOpen } from '@nx/node/utils';
+import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import { KafkaContainer, StartedKafkaContainer } from '@testcontainers/kafka';
+import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
+import * as path from 'path';
+import * as fs from 'fs';
+
+type Stack = {
+  pg: StartedPostgreSqlContainer;
+  kafka: StartedKafkaContainer;
+  app: ChildProcessWithoutNullStreams;
+};
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __E2E_STACK__: Stack;
+}
 
 module.exports = async function () {
-  // Start services that that the app needs to run (e.g. database, docker-compose, etc.).
-  console.log('\nSetting up...\n');
+  console.log('\n[E2E] Setting up Postgres, Kafka, and app (Option B)...\n');
 
-  const host = process.env.HOST ?? 'localhost';
-  const port = process.env.PORT ? Number(process.env.PORT) : 3000;
-  await waitForPortOpen(port, { host });
+  // 1) Infra containers
+  const pg = await new PostgreSqlContainer('postgres:16-alpine').start();
 
-  // Hint: Use `globalThis` to pass variables to global teardown.
-  globalThis.__TEARDOWN_MESSAGE__ = '\nTearing down...\n';
+  // Confluent image required by KafkaContainer typings in your version
+  const KAFKA_IMAGE = process.env.KAFKA_IMAGE ?? 'confluentinc/cp-kafka:7.5.3';
+  const kafka = await new KafkaContainer(KAFKA_IMAGE)
+    .withStartupTimeout(120_000)
+    .start();
+
+  // Prefer getBootstrapServers if available, else use mapped 9093
+  const anyKafka = kafka as any;
+  const bootstrap: string =
+    typeof anyKafka.getBootstrapServers === 'function'
+      ? anyKafka.getBootstrapServers()
+      : `${kafka.getHost()}:${kafka.getMappedPort(9093)}`;
+
+  // 2) App ports
+  const PROC_PORT = Number(process.env.BONUS_PROC_HTTP_PORT ?? 3001);
+  const READ_PORT = Number(process.env.BONUS_READ_HTTP_PORT ?? 3002);
+
+  // 3) Environment for the spawned app and for tests
+  const env = {
+    ...process.env,
+    // DB
+    PG_HOST: pg.getHost(),
+    PG_PORT: String(pg.getMappedPort(5432)),
+    PG_USER: pg.getUsername(),
+    PG_PASSWORD: pg.getPassword(),
+    PG_DB: pg.getDatabase(),
+    DB_SCHEMA: 'public',
+    // Kafka
+    KAFKA_BOOTSTRAP: bootstrap,
+    KAFKA_BROKER_HOSTNAME: bootstrap.split(':')[0],
+    KAFKA_BROKER_PORT: bootstrap.split(':')[1],
+    // HTTP
+    BONUS_PROC_HTTP_PORT: String(PROC_PORT),
+    BONUS_READ_HTTP_PORT: String(READ_PORT),
+    HTTP_PREFIX: 'api',
+    READ_BASE_URL: `http://127.0.0.1:${READ_PORT}`,
+  };
+
+  // 4) Spawn the built app (dist/apps/bonus-service/main.js)
+  const entry = path.join(process.cwd(), 'dist', 'apps', 'bonus-service', 'main.js');
+  if (!fs.existsSync(entry)) {
+    throw new Error(
+      `[E2E] Built entry not found at ${entry}. Ensure "bonus-service:build" ran before e2e.`,
+    );
+  }
+
+  const app = spawn('node', [entry], {
+    env,
+    stdio: 'inherit',
+    shell: true, // Windows-friendly
+  });
+
+  // 5) Wait for HTTP surfaces
+  await waitForPortOpen(PROC_PORT, { host: '127.0.0.1' });
+  await waitForPortOpen(READ_PORT, { host: '127.0.0.1' });
+
+  // 6) Keep only live handles for teardown
+  (globalThis as any).__E2E_STACK__ = { pg, kafka, app };
+
+  process.env.KAFKA_BOOTSTRAP = env.KAFKA_BOOTSTRAP;
+  process.env.READ_BASE_URL = env.READ_BASE_URL;
+
+  console.log(`[E2E] Kafka bootstrap: ${env.KAFKA_BOOTSTRAP}`);
+  console.log(`[E2E] Read base URL: ${env.READ_BASE_URL}\n`);
 };

@@ -71,7 +71,7 @@ describe('Order workflow integration', () => {
     const workshops = ['wd1', 'wd2'];
 
     await axios.post(`${baseUrl}/api/order`, {
-      commissionerID: commissionerId,
+      commissionerId: commissionerId,
       selectedWorkshops: workshops,
       request: {
         title: 'req',
@@ -124,7 +124,7 @@ describe('Order workflow integration', () => {
     const workshops = ['wa1', 'wa2'];
 
     await axios.post(`${baseUrl}/api/order`, {
-      commissionerID: commissionerId,
+      commissionerId: commissionerId,
       selectedWorkshops: workshops,
       request: {
         title: 'req',
