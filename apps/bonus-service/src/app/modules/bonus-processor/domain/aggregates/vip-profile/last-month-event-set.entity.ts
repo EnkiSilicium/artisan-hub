@@ -37,7 +37,6 @@ import type { BonusEventName } from 'apps/bonus-service/src/app/modules/bonus-pr
 @Check(`"bucket" >= 0`)
 @Entity({ name: 'last_month_event_set' })
 export class LastMonthEventSet implements EntityTechnicalsInterface {
-  @IsUUID()
   @PrimaryColumn('uuid', { name: 'event_id' })
   eventId!: string;
 

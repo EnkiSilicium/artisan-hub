@@ -11,7 +11,7 @@ import { BonusEventRepo } from 'apps/bonus-service/src/app/modules/bonus-process
 import { VipProfileRepo } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/persistence/repositories/vip-profile/vip-profile.repo';
 import { enqueueOutbox, TypeOrmUoW } from 'persistence';
 import { GradeAttainedEventV1, VipAccquiredEventV1 } from 'contracts';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { AdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity';
 import { isoNow } from 'shared-kernel';
 
@@ -22,25 +22,12 @@ export class BonusEventService {
     private readonly additiveBonusRepo: AdditiveBonusRepo,
     private readonly bonusEventRepo: BonusEventRepo,
     private readonly vipProfileRepo: VipProfileRepo,
-  ) {}
+  ) { }
   async process(cmd: BonusEventProcessCommand) {
     return this.uow.runWithRetry({}, async () => {
-      const event = new BonusEventEntity({
-        eventId: cmd.eventId,
-        commissionerId: cmd.commissionerId,
-        injestedAt: cmd.injestedAt,
-        eventName: cmd.eventName,
-      });
 
-      // "Already processed" guard
-      try {
-        await this.bonusEventRepo.insert(event);
-      } catch (error) {
-        //TODO: process the DB error
-        throw Error('Event already exists');
-      }
+      
 
-      let additiveBonusExisted: boolean;
       let additiveBonusProfile: AdditiveBonus | null =
         await this.additiveBonusRepo.findByCommissionerId(cmd.commissionerId);
       if (!additiveBonusProfile) {
@@ -49,12 +36,20 @@ export class BonusEventService {
           gradePolicy: GradePolicy,
           bonusRegistry: BonusEventRegistry,
         });
-        additiveBonusExisted = false;
-      } else {
-        additiveBonusExisted = true;
-      }
+        this.additiveBonusRepo.insert(additiveBonusProfile);
+      } 
 
-      let vipProfileExisted: boolean;
+      const event = new BonusEventEntity({
+        eventId: cmd.eventId,
+        commissionerId: cmd.commissionerId,
+        injestedAt: cmd.injestedAt,
+        eventName: cmd.eventName,
+      });
+
+      await this.bonusEventRepo.insert(event);
+
+
+
       let vipProfile: VipProfile | null =
         await this.vipProfileRepo.findByCommissionerId(cmd.commissionerId);
       if (!vipProfile) {
@@ -64,10 +59,9 @@ export class BonusEventService {
           vipProfileRegistry: VipProfileRegistry,
           bonusRegistry: BonusEventRegistry,
         });
-        vipProfileExisted = false;
-      } else {
-        vipProfileExisted = true;
-      }
+
+        await this.vipProfileRepo.insert(vipProfile);
+      } 
 
       const { gradeChanged } = additiveBonusProfile.processBonusEvent(
         event.eventName,
@@ -86,23 +80,18 @@ export class BonusEventService {
         BonusEventRegistry,
       );
 
-      if (vipProfileExisted) {
-        await this.vipProfileRepo.update(vipProfile);
-      } else {
-        await this.vipProfileRepo.insert(vipProfile);
-      }
 
-      if (additiveBonusExisted) {
+        await this.vipProfileRepo.update(vipProfile);
+
+
         await this.additiveBonusRepo.update(additiveBonusProfile);
-      } else {
-        await this.additiveBonusRepo.insert(additiveBonusProfile);
-      }
+
 
       if (vipGained) {
         const vipGainedPayload: VipAccquiredEventV1 = {
           eventName: 'VipAccquired',
           accquiredAt: isoNow(),
-          commissionerID: vipProfile.commissionerId,
+          commissionerId: vipProfile.commissionerId,
           schemaV: 1,
         };
         enqueueOutbox({
@@ -118,7 +107,7 @@ export class BonusEventService {
         const gradeAttainedPayload: GradeAttainedEventV1 = {
           eventName: 'GradeAttained',
           attainedAt: isoNow(),
-          commissionerID: vipProfile.commissionerId,
+          commissionerId: vipProfile.commissionerId,
           schemaV: 1,
           grade: additiveBonusProfile.grade,
         };

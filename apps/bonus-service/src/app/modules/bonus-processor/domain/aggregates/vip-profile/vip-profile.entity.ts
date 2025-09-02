@@ -115,7 +115,7 @@ export class VipProfile implements EntityTechnicalsInterface {
 
   @OneToMany(() => LastMonthEventSet, (s: LastMonthEventSet) => s.vipProfile, {
     cascade: false,
-    eager: false,
+    eager: true,
   })
   lastMonthEvents!: LastMonthEventSet[];
 

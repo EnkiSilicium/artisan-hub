@@ -18,6 +18,7 @@ import { BonusEventDispatcher } from 'apps/bonus-service/src/app/modules/bonus-p
 
 import { LoggingInterceptor } from 'observability'
 import { HttpErrorInterceptor, HttpErrorInterceptorOptions, KafkaErrorInterceptor, KafkaErrorInterceptorOptions } from 'error-handling/interceptor'
+import { MockController } from 'apps/bonus-service/src/app/modules/bonus-processor/adapters/inbound/http/mock-controller';
 
 
 @Module({
@@ -47,7 +48,8 @@ import { HttpErrorInterceptor, HttpErrorInterceptorOptions, KafkaErrorIntercepto
         }),
     ],
     controllers: [
-        BonusEventsConsumer
+        BonusEventsConsumer,
+        MockController
 
 
 

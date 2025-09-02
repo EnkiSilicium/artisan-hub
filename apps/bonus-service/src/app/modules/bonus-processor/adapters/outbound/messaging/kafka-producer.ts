@@ -1,73 +1,83 @@
-// order-event-dispatcher.ts
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { Producer, Message } from 'kafkajs';
-import { BonusEventInstanceUnion, KafkaTopics } from 'contracts';
-import { OrderServiceTopicMap } from 'apps/order-service/src/app/order-workflow/adapters/outbound/messaging/kafka.topic-map';
-import { KAFKA_PRODUCER } from 'persistence';
+// bonus-event-dispatcher.clientkafka.ts
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { ClientKafka } from '@nestjs/microservices';
+import { lastValueFrom } from 'rxjs';
+import { defaultIfEmpty } from 'rxjs/operators';
+
+import { KAFKA_PRODUCER } from 'persistence'; // token bound to ClientKafka
 import { KafkaProducerPort } from 'adapter';
+import { BonusEventInstanceUnion, KafkaTopics } from 'contracts';
 import { BonusServiceTopicMap } from 'apps/bonus-service/src/app/modules/bonus-processor/adapters/outbound/messaging/kafka.topic-map';
 
-
-type PerTopicBuckets = Map<KafkaTopics, Message[]>;
-
 @Injectable()
-export class BonusEventDispatcher implements KafkaProducerPort<BonusEventInstanceUnion> {
+export class BonusEventDispatcher
+  implements KafkaProducerPort<BonusEventInstanceUnion>, OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(BonusEventDispatcher.name);
 
-  constructor(@Inject(KAFKA_PRODUCER) private readonly producer: Producer) {}
+  constructor(@Inject(KAFKA_PRODUCER) private readonly client: ClientKafka) {}
 
-  /**
-   * Dispatch a mixed bag of events. Each event's eventName selects the topic.
-   * Batches by topic for efficiency; preserves per-key order within each topic/partition.
-   */
-  async dispatch(events: Array<BonusEventInstanceUnion>): Promise<void> {
+  async onModuleInit() {
+    // ClientKafka needs an explicit connect in app code (Nest won't auto-connect producers)
+    await this.client.connect();
+    this.logger.log('ClientKafka connected');
+  }
+
+  async onModuleDestroy() {
+    try {
+      await this.client.close();
+    } catch (e) {
+      this.logger.warn(`ClientKafka close error: ${(e as Error).message}`);
+    }
+  }
+
+  async dispatch(events: BonusEventInstanceUnion[]): Promise<void> {
     if (!events.length) return;
 
-    const buckets: PerTopicBuckets = new Map();
+    // Emit each event. ClientKafka expects: emit(topic: string, data: { key, value, headers? })
+    // It returns an Observable we must subscribe to (convert to Promise).
+    const ops = events.map(async (evt) => {
+      const topic = this.topicFor(evt);               // validated string topic
+      const key = this.keyFor(evt);                   // stable key => ordered per key
 
-    for (const evt of events) {
-      const topic = BonusServiceTopicMap[evt.eventName];
-      if (!topic) {
-        // Should be impossible if the map is typed as Record<Union['eventName'], …>
-        this.logger.error(`No topic mapping for eventName=${evt.eventName}`);
-        continue;
-      }
-
-      const key = pickKey(evt); // stable per-workflow/aggregate key for partitioning
-      if (!key) {
-        // You want deterministic partitioning; warn if we’re flying blind
-        this.logger.warn(`No stable key on event ${evt.eventName}. Consider adding workflowId/orderId.`);
-      }
-
-      const msg: Message = {
-        key: key ?? undefined,
-        value: Buffer.from(JSON.stringify(evt)),
-        headers: {
-          'x-event-name': Buffer.from(evt.eventName),
-        },
+      const record = {
+        key,                                          // string | Buffer
+        value: evt,                                   // your BaseEvent payload (plus any extra fields)
+        headers: { 'x-event-name': evt.eventName },   // strings are fine; Buffers also OK
+        // partition: 0,                               // optional: force a partition (not recommended in prod)
+        // timestamp: Date.now().toString(),           // optional
       };
 
-      const list = buckets.get(topic);
-      if (list) list.push(msg);
-      else buckets.set(topic, [msg]);
-    }
+      const obs = this.client.emit(topic, record);
+      await lastValueFrom(obs.pipe(defaultIfEmpty(undefined)));
+    });
 
-    // Send each topic's messages as a batch.
-    await Promise.all(
-      Array.from(buckets.entries()).map(([topic, messages]) =>
-        this.producer.send({ topic, messages }),
-      ),
+    await Promise.all(ops);
+    this.logger.log(`Emitted ${events.length} event(s) via ClientKafka`);
+  }
+
+  private topicFor(evt: BonusEventInstanceUnion): string {
+    // Make bad mappings fail fast and loudly
+    const topic = BonusServiceTopicMap[evt.eventName as keyof typeof BonusServiceTopicMap];
+    if (!topic) {
+      const known = Object.keys(BonusServiceTopicMap).join(', ');
+      throw new Error(`No topic mapping for eventName="${evt.eventName}". Known: [${known}]`);
+    }
+    return String(topic); // ensure string pattern
+  }
+
+  private keyFor(evt: any): string | undefined {
+    // Tolerate old casings so partitioning doesn't silently degrade
+    return (
+      evt.orderId ??
+      evt.orderID ??
+      evt.commissionerId ??
+      evt.commissionerID ??
+      evt.workshopId ??
+      evt.workshopID ??
+      evt.eventId ??
+      evt.eventID ??
+      undefined
     );
   }
-}
-
-
-function pickKey(evt: BonusEventInstanceUnion): string | undefined {
-  return (
-    (evt as any).orderId ??
-    (evt as any).commissionerId ??
-    (evt as any).workshopId ??
-    (evt as any).eventId ??
-    undefined
-  );
 }

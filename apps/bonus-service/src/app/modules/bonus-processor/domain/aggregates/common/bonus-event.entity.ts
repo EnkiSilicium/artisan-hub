@@ -30,7 +30,7 @@ import type {BonusEventName} from 'apps/bonus-service/src/app/modules/bonus-proc
 @Check(`char_length("event_name") >= 1`)
 @Entity({ name: 'bonus_event' })
 export class BonusEventEntity implements EntityTechnicalsInterface {
-  @PrimaryColumn('uuid', { name: 'event_id' })
+  @PrimaryColumn('varchar', { name: 'event_id' })
   eventId!: string;
 
   @IsUUID()
@@ -77,6 +77,7 @@ export class BonusEventEntity implements EntityTechnicalsInterface {
     onDelete: 'CASCADE',
     eager: false,
   })
+
   @JoinColumn({
     name: 'commissioner_id',
     referencedColumnName: 'commissionerId',
