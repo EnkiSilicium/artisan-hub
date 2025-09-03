@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { WorkshopInvitationTrackerPort } from '../../application/ports/initialize-tracker.port';
-import { WorkshopInvitationTracker } from '../../infra/workshop-invitation-tracker/workshop-invitation-tracker.service';
+import { WorkshopInvitationTrackerPort } from '../../../application/ports/initialize-tracker.port';
+import { WorkshopInvitationTracker } from '../../../infra/workshop-invitation-tracker/workshop-invitation-tracker.service';
 
 @Injectable()
 export class WorkshopInvitationTrackerAdapter implements WorkshopInvitationTrackerPort {
