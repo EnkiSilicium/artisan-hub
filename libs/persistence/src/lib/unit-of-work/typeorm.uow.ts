@@ -1,24 +1,29 @@
-import { Injectable } from '@nestjs/common';
-import { DataSource, In, InsertResult } from 'typeorm';
-
+import { Injectable, Logger } from '@nestjs/common';
+import { DataSource, In, InsertResult, QueryRunner } from 'typeorm';
 
 import { IsolationLevel } from 'typeorm/driver/types/IsolationLevel';
-import { Ambient, Propagation } from 'libs/persistence/src/lib/interfaces/transaction-context.type';
-import { getAmbient, als } from 'libs/persistence/src/lib/helpers/transaction.helper';
+import {
+  Ambient,
+  Propagation,
+} from 'libs/persistence/src/lib/interfaces/transaction-context.type';
+import {
+  getAmbient,
+  als,
+} from 'libs/persistence/src/lib/helpers/transaction.helper';
 import { OutboxMessage } from 'libs/persistence/src/lib/outbox/outbox-message.entity';
-import { KafkaProducerPort } from 'adapter'
+import { KafkaProducerPort } from 'adapter';
 
 import { InfraError } from 'error-handling/error-core';
 import { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
-
-
-
+import { remapTypeOrmPgErrorToInfra } from 'error-handling/remapper/typeorm-postgres';
 
 @Injectable()
 export class TypeOrmUoW {
   constructor(
     private readonly ds: DataSource,
-    private readonly kafka: KafkaProducerPort<OutboxMessage<BaseEvent<string>>['payload']>,
+    private readonly kafka: KafkaProducerPort<
+      OutboxMessage<BaseEvent<string>>['payload']
+    >,
   ) { }
 
   async run<T>(
@@ -46,9 +51,15 @@ export class TypeOrmUoW {
     }
 
     // Otherwise, open a new transaction (outermost or REQUIRES_NEW)
-    const qr = this.ds.createQueryRunner();
-    await qr.connect();
-    await qr.startTransaction(opts?.isolation ?? 'READ COMMITTED');
+    let qr: QueryRunner;
+    try {
+      //connection
+      qr = this.ds.createQueryRunner();
+      await qr.connect();
+      await qr.startTransaction(opts?.isolation ?? 'READ COMMITTED');
+    } catch (error) {
+      remapTypeOrmPgErrorToInfra(error);
+    }
 
     const store: Ambient = {
       ...(parent ?? {}),
@@ -60,6 +71,7 @@ export class TypeOrmUoW {
     };
 
     try {
+      //happy path
       const result = await als.run(store, async () => {
         return await fn();
       });
@@ -67,15 +79,14 @@ export class TypeOrmUoW {
       //  beforeCommit hooks
       for (const cb of store.beforeCommit!) await cb();
 
-
       // persist staged outbox messages inside the tx
       if (store.outboxBuffer!.length) {
-        const rows: OutboxMessage<BaseEvent<string>>[] = store.outboxBuffer!.map((message) => ({
-          id: message.id,
-          payload: message.payload,
-          createdAt: message.createdAt,
-        }));
-
+        const rows: OutboxMessage<BaseEvent<string>>[] =
+          store.outboxBuffer!.map((message) => ({
+            id: message.id,
+            payload: message.payload,
+            createdAt: message.createdAt,
+          }));
 
         const insertResult: InsertResult = await qr.manager.insert(
           OutboxMessage,
@@ -85,28 +96,32 @@ export class TypeOrmUoW {
 
       await qr.commitTransaction();
 
-
-
-      return result;
-    } catch (event) {
-      await qr.rollbackTransaction();
-      throw event;
-    } finally {
-      
       //  afterCommit hooks (publish staged messages)
       if (store.outboxBuffer!.length) {
         await this.kafka.dispatch(store.outboxBuffer!.map((e) => e.payload));
 
-        const messageIds = store.outboxBuffer!.map((e) => e.id)
+        const messageIds = store.outboxBuffer!.map((e) => e.id);
         // delete the events after they have been sent.
-        // if crashes before that, the startup sequence will try to publish-delete 
+        // if crashes before that, the startup sequence will try to publish-delete
         // all unpublished
-        await this.ds.manager.delete(OutboxMessage, { id: In(messageIds) })
-
-
+        await this.ds.manager.delete(OutboxMessage, { id: In(messageIds) });
       }
+
       for (const cb of store.afterCommit!) await cb();
-      await qr.release();
+
+      return result;
+
+    } catch (error) {
+      //unhappy path
+      await qr.rollbackTransaction().catch(() => {
+        Logger.warn({ message: `Transaction rollback failed!` });
+      });
+      remapTypeOrmPgErrorToInfra(error);
+    } finally {
+      // todo: should consider restart mechanism for the service, or at least datasource.
+      await qr.release().catch(() => {
+        Logger.warn({ message: `Transaction release failed!` });
+      });
     }
   }
 
@@ -123,11 +138,14 @@ export class TypeOrmUoW {
   ): Promise<T> {
     try {
       return await this.run(context, fn, opts);
-    } catch (event) {
-      if ((event instanceof InfraError && (event as InfraError).retryable === true)) {
+    } catch (error) {
+      if (
+        error instanceof InfraError &&
+        (error as InfraError).retryable === true
+      ) {
         return await this.run(context, fn, opts);
       }
-      throw event;
+      remapTypeOrmPgErrorToInfra(error);
     }
   }
 }
