@@ -12,7 +12,7 @@ import { Type } from 'class-transformer';
 /**
  * Payload for creating a new order request.
  */
-export class RequestOrderInitPayload {
+export class RequestOrderInitPayloadV1 {
   @ApiProperty({ type: String, description: 'Human‑readable title of the order' })
   @IsString()
   @IsNotEmpty()
@@ -51,7 +51,16 @@ export class OrderInitDtoV1 {
   commissionerId!: string;
 
   @ApiProperty({
+    type: () => RequestOrderInitPayloadV1,
+    description: 'Payload describing the order request',
+  })
+  @ValidateNested()
+  @Type(() => RequestOrderInitPayloadV1)
+  request!: RequestOrderInitPayloadV1;
+
+    @ApiProperty({
     type: String,
+    format: 'uuid',
     isArray: true,
     description: 'IDs of the selected workshops',
   })
@@ -59,12 +68,4 @@ export class OrderInitDtoV1 {
   @ArrayNotEmpty()
   @IsString({ each: true })
   selectedWorkshops!: string[];
-
-  @ApiProperty({
-    type: () => RequestOrderInitPayload,
-    description: 'Payload describing the order request',
-  })
-  @ValidateNested()
-  @Type(() => RequestOrderInitPayload)
-  request!: RequestOrderInitPayload;
 }

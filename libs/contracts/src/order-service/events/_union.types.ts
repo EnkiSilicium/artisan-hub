@@ -10,6 +10,7 @@ export type OrderEventNameToCtor = {
     : never;
 };
 
+//todo: implement properly
 export type OrderEventNameToInstance = GetInstanceType<
   OrderEventNameToCtor[keyof OrderEventNameToCtor]
 >;

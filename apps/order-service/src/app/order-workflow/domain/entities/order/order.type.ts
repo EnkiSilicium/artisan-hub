@@ -20,7 +20,7 @@ export type StateById = {
   [K in OrderStates]: InstanceType<(typeof StateRegistry)[K]>;
 };
 
-export type StateUnion = StateById[OrderStates];
+export type StateClassUnion = StateById[OrderStates];
 
 
 //Important business-logic types

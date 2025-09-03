@@ -9,6 +9,7 @@ export type BonusEventNameToCtor = {
     ? (typeof event)[K]
     : never;
 };
+//todo: implement properly
 export type BonusEventNameToInstance = GetInstanceType<
   BonusEventNameToCtor[keyof BonusEventNameToCtor]
 >;

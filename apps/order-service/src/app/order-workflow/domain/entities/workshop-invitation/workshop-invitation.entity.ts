@@ -55,7 +55,7 @@ import { OrderDomainErrorRegistry } from 'error-handling/registries/order';
 )
 @Index('ix_workshopInvitation_order_status', ['orderId', 'status'])
 @Index('ix_workshopInvitation_workshop', ['workshopId'])
-@Entity({ name: 'workshopInvitation' })
+@Entity({ name: 'workshop_invitation' })
 export class WorkshopInvitation implements EntityTechnicalsInterface {
   // composite PK: one workshopInvitation per (order, workshop)
   @IsUUID(4, {

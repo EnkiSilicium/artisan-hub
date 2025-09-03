@@ -5,7 +5,6 @@ import {
   OneToOne,
   JoinColumn,
   Check,
-  Index,
   UpdateDateColumn,
   OneToMany,
   VersionColumn,
@@ -16,8 +15,8 @@ import {
   IsString,
   IsNotEmpty,
   Length,
-  IsISO8601,
   IsInt,
+  IsOptional,
 } from 'class-validator';
 
 import {
@@ -87,6 +86,8 @@ export class RequestEntity implements EntityTechnicalsInterface {
   })
   createdAt!: string;
 
+
+  @IsOptional()
   @IsInt()
   @VersionColumn({ name: 'version', type: 'int' })
   version!: number;
