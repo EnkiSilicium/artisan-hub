@@ -14,7 +14,12 @@ import { StageCompletionService } from 'apps/order-service/src/app/order-workflo
 import {
   MarkStageCompletionDtoV1,
   ConfirmStageCompletionDtoV1,
+
+  StageCompletionMarkResultDto,
+  StageCompletionConfirmResultDto,
+
   StageCompletionPaths,
+
 } from 'contracts';
 
 @ApiTags('Order workflow')
@@ -30,7 +35,10 @@ export class StageCompletionController {
     description: 'Marks a specific stage as completed for an order.',
   })
   @ApiBody({ type: MarkStageCompletionDtoV1 })
-  @ApiCreatedResponse({ description: 'Stage marked for completion' })
+  @ApiCreatedResponse({
+    description: 'Stage marked for completion',
+    type: StageCompletionMarkResultDto,
+  })
   @ApiBadRequestResponse({ description: 'Validation failed' })
   async mark(
     @Body() body: MarkStageCompletionDtoV1,
@@ -51,7 +59,10 @@ export class StageCompletionController {
     description: 'Confirms that a previously completed stage is accepted.',
   })
   @ApiBody({ type: ConfirmStageCompletionDtoV1 })
-  @ApiCreatedResponse({ description: 'Stage confirmed' })
+  @ApiCreatedResponse({
+    description: 'Stage confirmed',
+    type: StageCompletionConfirmResultDto,
+  })
   @ApiBadRequestResponse({ description: 'Validation failed' })
   async confirm(
     @Body() body: ConfirmStageCompletionDtoV1,

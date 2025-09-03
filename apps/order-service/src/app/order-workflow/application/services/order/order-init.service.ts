@@ -9,7 +9,7 @@ import { OrderRepo } from 'apps/order-service/src/app/order-workflow/infra/persi
 import { RequestRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/request/request.repo';
 import { WorkshopInvitationRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/workshop-invitation/workshop-invitation.repo';
 import { TypeOrmUoW, enqueueOutbox } from 'persistence';
-import { OrderPlacedEventV1 } from 'contracts';
+import { OrderInitResultDto, OrderPlacedEventV1 } from 'contracts';
 import { randomUUID } from 'crypto';
 import { isoNow } from 'shared-kernel';
 
@@ -23,7 +23,7 @@ export class OrderInitService {
     private readonly workshopPort: WorkshopPort,
     private readonly workshopTrackerPort: WorkshopInvitationTrackerPort,
   ) {}
-  async orderInit(cmd: OrderInitCommand) {
+  async orderInit(cmd: OrderInitCommand): Promise<OrderInitResultDto> {
     return this.uow.runWithRetry({}, async () => {
       const payload = cmd.payload;
 
@@ -84,6 +84,7 @@ export class OrderInitService {
           ...eventPayload,
         },
       });
+      return { orderId: order.orderId };
     });
   }
 }
