@@ -1,7 +1,7 @@
 export abstract class WorkshopInvitationTrackerPort {
-  abstract initializeTracker(orderId: string, total: number): Promise<void>;
-  abstract recordDeclinedInvitation(
+  abstract initializeTracker(
     orderId: string,
-    workshopId: string,
+    commissionerId: string,
+    total: number,
   ): Promise<void>;
 }

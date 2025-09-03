@@ -29,18 +29,20 @@ import { isoNow } from 'shared-kernel';
 export class WorkshopInvitationResponseService {
   constructor(
     public readonly uow: TypeOrmUoW,
-    private readonly ordersRepo: OrderRepo,
+    private readonly orderRepo: OrderRepo,
     private readonly workshopInvitationsRepo: WorkshopInvitationRepo,
     private readonly stagesAggregateRepo: StagesAggregateRepo,
   ) {}
+  
+  
   async acceptWorkshopInvitation(
     cmd: AcceptWorkshopInvitationCommand,
   ): Promise<WorkshopInvitationAcceptResultDto> {
     return this.uow.runWithRetry({}, async () => {
-      const order = await this.ordersRepo.findById(cmd.orderId);
+      const order = cmd.order ?? await this.orderRepo.findById(cmd.orderId);
+
       assertIsFound(order, Order, {
         orderId: cmd.orderId,
-        workshopId: cmd.workshopId,
       });
 
       const workshopInvitation = await this.workshopInvitationsRepo.findById(
@@ -52,6 +54,7 @@ export class WorkshopInvitationResponseService {
         workshopId: cmd.workshopId,
       });
 
+
       const stageDefault: constructStageData =
         stagesTemplateFactory.produceDefault(cmd.orderId, cmd.workshopId);
       const stages = cmd.payload.stages
@@ -61,12 +64,13 @@ export class WorkshopInvitationResponseService {
       workshopInvitation.accept(cmd.payload);
       order.transitionToPendingCompletion();
 
+
       await this.stagesAggregateRepo.save(stages);
       await this.workshopInvitationsRepo.update(workshopInvitation);
-      await this.ordersRepo.update(order);
+      await this.orderRepo.update(order);
 
       const eventPayload: InvitationAcceptedEventV1 = {
-        commissionerID: order.commissionerId,
+        commissionerId: order.commissionerId,
         eventName: 'InvitationAccepted',
         acceptedAt: isoNow(),
         orderID: order.orderId,
@@ -88,7 +92,7 @@ export class WorkshopInvitationResponseService {
     cmd: DeclineWorkshopInvitationCommand,
   ): Promise<WorkshopInvitationDeclineResultDto> {
     return this.uow.runWithRetry({}, async () => {
-      const order = await this.ordersRepo.findById(cmd.orderId);
+      const order = cmd.order ?? await this.orderRepo.findById(cmd.orderId);
       assertIsFound(order, Order, {
         orderId: cmd.orderId,
         workshopId: cmd.workshopId,
@@ -104,13 +108,15 @@ export class WorkshopInvitationResponseService {
       });
 
       workshopInvitation.decline();
-      order.cancelOrder();
+
+
+      //order.cancelOrder();
 
       await this.workshopInvitationsRepo.update(workshopInvitation);
-      await this.ordersRepo.update(order);
+      await this.orderRepo.update(order);
 
       const eventPayload: InvitationDeclinedEventV1 = {
-        commissionerID: order.commissionerId,
+        commissionerId: order.commissionerId,
         eventName: 'InvitationDeclined',
         declinedAt: isoNow(),
         orderID: order.orderId,

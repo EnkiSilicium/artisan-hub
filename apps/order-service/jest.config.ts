@@ -9,6 +9,6 @@ export default {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../coverage/apps/order-service',
-  reporters: ['default', '<rootDir>/full-error-reporter.cjs'], // keep Jest’s default dots/summary
+  reporters: ['default', '<rootDir>/full-error-reporter.cjs'],
   testTimeout: 60000,
 };

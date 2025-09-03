@@ -28,13 +28,4 @@ export class DeclineWorkshopInvitationDtoV1 {
   @IsNotEmpty()
   orderId!: string;
 
-  @ApiProperty({
-    type: String,
-    isArray: true,
-    description: 'IDs of the selected workshops',
-  })
-  @IsArray()
-  @ArrayNotEmpty()
-  @IsString({ each: true })
-  selectedWorkshops!: string[];
 }

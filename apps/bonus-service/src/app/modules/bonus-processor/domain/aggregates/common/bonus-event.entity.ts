@@ -10,7 +10,7 @@ import {
   UpdateDateColumn,
   CreateDateColumn,
 } from 'typeorm';
-import { IsUUID, IsISO8601, IsString, Length, IsEnum } from 'class-validator';
+import { IsUUID, IsISO8601, IsString, Length, IsEnum, IsInt, IsOptional } from 'class-validator';
 import {
   EntityTechnicalsInterface,
 } from 'persistence';
@@ -19,7 +19,7 @@ import { BonusEventNameEnum } from 'apps/bonus-service/src/app/modules/bonus-pro
 import { AdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity';
 import { assertValid, isoNow } from 'shared-kernel';
 import { BonusDomainErrorRegistry } from 'error-handling/registries/bonus';
-import type {BonusEventName} from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.registy'
+import type { BonusEventName } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.registy'
 
 //Index for per-user temporal queries
 @Index('ix_bonus_event_comm_created', ['commissionerId', 'createdAt'])
@@ -30,7 +30,7 @@ import type {BonusEventName} from 'apps/bonus-service/src/app/modules/bonus-proc
 @Check(`char_length("event_name") >= 1`)
 @Entity({ name: 'bonus_event' })
 export class BonusEventEntity implements EntityTechnicalsInterface {
-  @PrimaryColumn('uuid', { name: 'event_id' })
+  @PrimaryColumn('varchar', { name: 'event_id' })
   eventId!: string;
 
   @IsUUID()
@@ -70,6 +70,8 @@ export class BonusEventEntity implements EntityTechnicalsInterface {
   })
   createdAt!: string;
 
+  @IsOptional()
+  @IsInt()
   @VersionColumn({ name: 'version', type: 'int' })
   version!: number;
 
@@ -77,6 +79,7 @@ export class BonusEventEntity implements EntityTechnicalsInterface {
     onDelete: 'CASCADE',
     eager: false,
   })
+
   @JoinColumn({
     name: 'commissioner_id',
     referencedColumnName: 'commissionerId',

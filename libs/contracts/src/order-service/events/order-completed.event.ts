@@ -21,7 +21,7 @@ export class OrderCompletedV1 {
 
   @IsString()
   @IsNotEmpty()
-  commissionerID!: string;
+  commissionerId!: string;
 
   @IsInt()
   aggregateVersion!: number;

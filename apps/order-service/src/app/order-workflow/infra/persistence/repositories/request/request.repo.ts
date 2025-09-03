@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { RequestEntity } from 'apps/order-service/src/app/order-workflow/domain/entities/request/request.entity';
-import { requireTxManager, updateWithVersionGuard } from 'persistence';
+import { requireTxManager, setNewTimeAndVersion, updateWithVersionGuard } from 'persistence';
 import { remapTypeOrmPgErrorToInfra } from 'error-handling/remapper/typeorm-postgres';
 import { DataSource } from 'typeorm';
+import { isoNow } from 'shared-kernel';
 
 @Injectable()
 export class RequestRepo {
-  constructor(private readonly ds: DataSource) {}
+  constructor(private readonly ds: DataSource) { }
 
   async findById(
     orderId: string,
@@ -27,6 +28,8 @@ export class RequestRepo {
   async insert(request: RequestEntity): Promise<void> {
     const manager = requireTxManager(this.ds);
     try {
+      const now = isoNow();
+      setNewTimeAndVersion(1, request, true, now);
       await manager.insert(RequestEntity, request);
     } catch (error) {
       remapTypeOrmPgErrorToInfra(error);

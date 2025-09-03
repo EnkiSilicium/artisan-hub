@@ -55,9 +55,13 @@ pids
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
-
+# Generated Jest config files
+**/jest.config.js
+**/jest.config.js.map
+**/jest.config.d.ts
 
 .nx/cache
 .nx/workspace-data
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
+.jscpd.json

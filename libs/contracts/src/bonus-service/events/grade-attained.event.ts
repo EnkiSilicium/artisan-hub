@@ -9,7 +9,7 @@ export class GradeAttainedEventV1 implements BaseEvent<'GradeAttained'> {
 
   @IsString()
   @IsNotEmpty()
-  commissionerID!: string;
+  commissionerId!: string;
 
   @IsString()
   @IsNotEmpty()

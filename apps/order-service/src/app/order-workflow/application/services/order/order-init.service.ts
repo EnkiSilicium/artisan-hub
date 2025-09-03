@@ -55,6 +55,7 @@ export class OrderInitService {
       const amountOfInvitations = workshopInvitations.length;
       await this.workshopTrackerPort.initializeTracker(
         order.orderId,
+        cmd.payload.commissionerId,
         amountOfInvitations,
       );
 
@@ -64,7 +65,7 @@ export class OrderInitService {
 
       const eventPayload: OrderPlacedEventV1 = {
         eventName: 'OrderPlaced',
-        commissionerID: cmd.payload.commissionerId,
+        commissionerId: cmd.payload.commissionerId,
         orderID: order.orderId,
         placedAt: order.createdAt,
         request: {

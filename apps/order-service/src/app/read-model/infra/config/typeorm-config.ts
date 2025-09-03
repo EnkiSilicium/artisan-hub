@@ -1,4 +1,5 @@
 import { OrderHistoryProjection } from 'apps/order-service/src/app/read-model/infra/persistence/projections/order-histrory.projection';
+import { OutboxMessage } from 'persistence';
 import { DataSourceOptions } from 'typeorm';
 
 export const OrderReadTypeOrmOptions: DataSourceOptions = {
@@ -19,13 +20,13 @@ export const OrderReadTypeOrmOptions: DataSourceOptions = {
       ssl:
         process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : false,
     }),
-  entities: [OrderHistoryProjection],
+  entities: [OrderHistoryProjection, OutboxMessage],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
   entitySkipConstructor: true,
   
   // toggles
-  synchronize: process.env.TYPEORM_SYNC === 'true', // dev only
-  migrationsRun: process.env.TYPEORM_MIGRATIONS_RUN === 'true', 
+  synchronize: true, // dev only
+  migrationsRun: true, 
   logging: process.env.TYPEORM_LOGGING
     ? (process.env.TYPEORM_LOGGING.split(',') as DataSourceOptions['logging'])
     : ['error', 'warn'],

@@ -22,6 +22,7 @@ import {
   Min,
   IsInt,
   IsISO8601,
+  IsOptional,
 } from 'class-validator';
 
 import {
@@ -92,6 +93,8 @@ export class AdditiveBonus implements EntityTechnicalsInterface {
   })
   createdAt!: string;
 
+  @IsOptional()
+  @IsInt()
   @VersionColumn({ name: 'version', type: 'int' })
   version!: number;
 
@@ -230,7 +233,7 @@ export class AdditiveBonus implements EntityTechnicalsInterface {
         throw new DomainError({
           errorObject: BonusDomainErrorRegistry.byCode.POLICY_VERSION_CONFLICT,
           details: {
-            description: `Grade event policy version expected ${this.bonusPolicyVersion}, is ${policy.version}`,
+            description: `Grade event policy version expected ${this.gradePolicyVersion}, is ${policy.version}`,
           },
         });
       }

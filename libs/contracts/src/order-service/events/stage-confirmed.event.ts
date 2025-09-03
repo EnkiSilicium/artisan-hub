@@ -16,7 +16,7 @@ export class StageConfirmedEventV1 implements BaseEvent<'StageConfirmed'> {
 
   @IsString()
   @IsNotEmpty()
-  commissionerID!: string;
+  commissionerId!: string;
 
   @IsString()
   @IsNotEmpty()

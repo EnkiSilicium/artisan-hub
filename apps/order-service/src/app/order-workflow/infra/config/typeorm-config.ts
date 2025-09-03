@@ -3,32 +3,33 @@ import { RequestEntity } from 'apps/order-service/src/app/order-workflow/domain/
 import { Stage } from 'apps/order-service/src/app/order-workflow/domain/entities/stage/stage.entity';
 import { WorkshopInvitation } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.entity';
 import { OutboxMessage } from 'persistence';
+import { InvitationResponseTracker } from 'apps/order-service/src/app/order-workflow/infra/workshop-invitation-tracker/invitation-response-tracker.entity';
 import { DataSourceOptions } from 'typeorm';
 
 export const OrderWorkflowTypeOrmOptions: DataSourceOptions = {
   type: 'postgres',
   ...(process.env.PG_URL
     ? {
-        url: process.env.PG_URL,
-        ssl:
-          process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : false,
-      }
+      url: process.env.PG_URL,
+      ssl:
+        process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : false,
+    }
     : {
-        host: process.env.PG_HOST ?? 'localhost',
-        port: parseInt(process.env.PG_PORT ?? '5432', 10),
-        username: process.env.PG_USER ?? 'app',
-        password: process.env.PG_PASSWORD ?? 'app',
-        database: process.env.PG_DB ?? 'app',
-        schema: process.env.DB_SCHEMA || 'order-service',
-        ssl:
-          process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : false,
-      }),
-  entities: [Order, RequestEntity, WorkshopInvitation, Stage, OutboxMessage],
+      host: process.env.PG_HOST ?? 'localhost',
+      port: parseInt(process.env.PG_PORT ?? '5432', 10),
+      username: process.env.PG_USER ?? 'app',
+      password: process.env.PG_PASSWORD ?? 'app',
+      database: process.env.PG_DB ?? 'app',
+      schema: process.env.DB_SCHEMA || 'public',
+      ssl:
+        process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : false,
+    }),
+  entities: [Order, RequestEntity, WorkshopInvitation, Stage, OutboxMessage, InvitationResponseTracker, OutboxMessage],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
   entitySkipConstructor: true,
   // toggles
-  synchronize: process.env.TYPEORM_SYNC === 'true', // dev only
-  migrationsRun: process.env.TYPEORM_MIGRATIONS_RUN === 'true', // prod friendly
+  synchronize: true, // dev only
+  migrationsRun: true, 
   logging: process.env.TYPEORM_LOGGING
     ? (process.env.TYPEORM_LOGGING.split(',') as DataSourceOptions['logging'])
     : ['error', 'warn'],

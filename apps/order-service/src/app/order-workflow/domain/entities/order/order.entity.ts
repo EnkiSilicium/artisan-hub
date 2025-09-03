@@ -10,9 +10,10 @@ import {
 import {
   Outcome,
   LegalOutcome,
-  StateUnion,
   StateById,
+  BaseState,
 } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.type';
+import type { StateClassUnion } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.type';
 import { RequestEntity } from 'apps/order-service/src/app/order-workflow/domain/entities/request/request.entity';
 import {
   IsUUID,
@@ -21,6 +22,8 @@ import {
   IsISO8601,
   IsInt,
   IsBoolean,
+  IsObject,
+  IsOptional,
 } from 'class-validator';
 import {
   EntityTechnicalsInterface,
@@ -51,11 +54,10 @@ export class Order implements EntityTechnicalsInterface {
   @PrimaryColumn('uuid', { name: 'order_id' })
   orderId!: string;
 
-  @IsString()
-  @Length(1, 64)
+  @IsObject()
   @Index()
   @Column('varchar', { name: 'state', length: 64 })
-  state!: any;
+  state!: StateClassUnion;
 
   @IsUUID()
   @Column('uuid', { name: 'commissioner_id' })
@@ -77,6 +79,7 @@ export class Order implements EntityTechnicalsInterface {
   })
   createdAt!: string;
 
+  @IsOptional()
   @IsInt()
   @VersionColumn({ name: 'version', type: 'int' })
   version!: number;
@@ -173,7 +176,7 @@ export class Order implements EntityTechnicalsInterface {
    */
   private assertCurrentStateIs<S extends OrderStates>(
     assumed: S,
-    state: StateUnion,
+    state: StateClassUnion,
     action: OrderActions,
   ): asserts state is StateById[S] {
     if (state.stateName !== assumed) {
@@ -193,7 +196,7 @@ export class Order implements EntityTechnicalsInterface {
    */
   private assertCurrentStateIsOneOf<S extends OrderStates>(
     allowed: readonly S[],
-    state: StateUnion,
+    state: StateClassUnion,
     action: OrderActions,
   ): asserts state is StateById[S] {
     if (!allowed.includes(state.stateName as S)) {

@@ -9,7 +9,7 @@ export class InvitationDeclinedEventV1 implements BaseEvent<'InvitationDeclined'
 
   @IsString()
   @IsNotEmpty()
-  commissionerID!: string;
+  commissionerId!: string;
 
   @IsString()
   @IsNotEmpty()

@@ -13,7 +13,7 @@ export class WorkshopInvitationAcceptedEventV1 implements BaseEvent<'InvitationA
 
   @IsString()
   @IsNotEmpty()
-  commissionerID!: string;
+  commissionerId!: string;
 
   @IsString()
   @IsNotEmpty()

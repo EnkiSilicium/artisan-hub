@@ -2,17 +2,16 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsString,
   IsNotEmpty,
-  IsArray,
-  ArrayNotEmpty,
   ValidateNested,
   IsISO8601,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { Optional } from '@nestjs/common';
 
 /**
  * Acceptance payload data for a workshop invitation.
  */
-export class AcceptWorkshopInvitationPayload {
+export class AcceptWorkshopInvitationPayloadV1 {
   @ApiProperty({ type: String, description: 'Additional description supplied by the workshop' })
   @IsString()
   @IsNotEmpty()
@@ -32,10 +31,51 @@ export class AcceptWorkshopInvitationPayload {
   budget!: string;
 }
 
+
+export class StagesDataV1 {
+
+  @ApiProperty({ type: String, description: 'Name of the stage' })
+  @IsString()
+  @IsNotEmpty()
+  stageName!: string;
+  @ApiProperty({
+    type: String,
+    description: 'Approximate length of the stage in any format (e.g., "2 weeks")',
+  })
+  @IsString()
+  @IsNotEmpty()
+  approximateLength!: string;
+
+  @ApiProperty({ type: Boolean, description: 'Whether the stage needs confirmation' })
+  @IsNotEmpty()
+  @IsString()
+  needsConfirmation!: boolean;
+
+  @ApiProperty({ type: String, description: 'Description of the stage' })
+  @IsString()
+  @IsNotEmpty()
+  description!: string;
+
+  @ApiProperty({ type: Number, description: 'Order of the stage' })
+  @IsNotEmpty()
+  @IsString()
+  stageOrder!: number;
+};
+
 /**
  * DTO used to accept a workshop invitation.
  */
 export class AcceptWorkshopInvitationDtoV1 {
+
+  @ValidateNested()
+  @ApiProperty({
+    type: () => AcceptWorkshopInvitationPayloadV1,
+    description: 'Structured description of the proposal (deadline/budget)',
+  })
+  @Type(() => AcceptWorkshopInvitationPayloadV1)
+  invitationInfo!: AcceptWorkshopInvitationPayloadV1;
+
+
   @ApiProperty({
     type: String,
     format: 'uuid',
@@ -54,21 +94,14 @@ export class AcceptWorkshopInvitationDtoV1 {
   @IsNotEmpty()
   orderId!: string;
 
+  @ValidateNested({ each: true })
+  @Type(() => StagesDataV1)
   @ApiProperty({
-    type: String,
-    isArray: true,
-    description: 'IDs of the selected workshops',
+    type: [StagesDataV1],
+    description: 'Optional list of stages for the order',
+    required: false,
   })
-  @IsArray()
-  @ArrayNotEmpty()
-  @IsString({ each: true })
-  selectedWorkshops!: string[];
+  @Optional()
+  stages!: StagesDataV1[];
 
-  @ApiProperty({
-    type: () => AcceptWorkshopInvitationPayload,
-    description: 'Structured description of the proposal (deadline/budget)',
-  })
-  @ValidateNested()
-  @Type(() => AcceptWorkshopInvitationPayload)
-  request!: AcceptWorkshopInvitationPayload;
 }

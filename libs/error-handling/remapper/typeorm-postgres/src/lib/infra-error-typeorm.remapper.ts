@@ -4,7 +4,7 @@ import * as PG from '@drdgvhbh/postgres-error-codes';
 import { ErrorRegistryInterface } from 'error-handling/error-core';
 import { InfraError } from 'error-handling/error-core'
 import { ProgrammerError } from 'error-handling/error-core';
-import {InfraErrorRegistry, ProgrammerErrorRegistry} from 'error-handling/registries/common'
+import {InfraErrorRegistry} from 'error-handling/registries/common'
 
 import { DomainError } from 'error-handling/error-core';
 
@@ -12,7 +12,7 @@ import { DomainError } from 'error-handling/error-core';
  * Takes in the driver/connection/custom-infra error and rethrows a remapped version of it
  * (of Infra domain error type).
  *
- * @param error
+ * @param error any. If already mapped, rethrows. 
  * @param context event.g., { dependency:'postgres', operation:'updateGuarded', table:'orders' }
  * @returns never - always throws
  */
@@ -32,13 +32,9 @@ export function remapTypeOrmPgErrorToInfra(
   if (error instanceof ProgrammerError) {
     throw error;
   }
-  // domain errors are never to be caught here
+
   if (error instanceof DomainError) {
-    throw new ProgrammerError({
-      errorObject: ProgrammerErrorRegistry.byCode.BUG,
-      details: { ...error },
-      cause: { message: 'domain error caught by an infra error remapper' },
-    });
+    throw error
   }
 
   const throwInfra = (

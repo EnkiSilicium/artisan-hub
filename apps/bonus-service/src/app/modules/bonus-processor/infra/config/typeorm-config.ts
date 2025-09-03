@@ -2,6 +2,7 @@ import { AdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processo
 import { BonusEventEntity } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity';
 import { LastMonthEventSet } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/last-month-event-set.entity';
 import { VipProfile } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.entity';
+import { OutboxMessage } from 'persistence';
 import { DataSourceOptions } from 'typeorm';
 
 export const bonusProcessorTypeOrmOptions: DataSourceOptions = {
@@ -23,7 +24,7 @@ export const bonusProcessorTypeOrmOptions: DataSourceOptions = {
         ssl:
           process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : false,
       }),
-  entities: [AdditiveBonus, VipProfile, LastMonthEventSet, BonusEventEntity],
+  entities: [AdditiveBonus, VipProfile, LastMonthEventSet, BonusEventEntity, OutboxMessage],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
   entitySkipConstructor: true,
   // toggles

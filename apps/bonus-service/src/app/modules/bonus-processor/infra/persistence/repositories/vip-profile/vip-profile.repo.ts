@@ -20,7 +20,7 @@ export class VipProfileRepo {
     try {
       const entity: VipProfile | null = await currentManager(this.ds).findOne(
         VipProfile,
-        { where: { commissionerId }, relations: { lastMonthEvents: true } },
+        { where: { commissionerId }, loadEagerRelations: true },
       );
       return entity;
     } catch (error) {

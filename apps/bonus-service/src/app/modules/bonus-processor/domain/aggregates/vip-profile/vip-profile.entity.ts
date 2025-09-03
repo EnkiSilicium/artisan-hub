@@ -13,7 +13,8 @@ import {
   IsUUID,
   IsBoolean, IsNumber,
   Min,
-  IsInt
+  IsInt,
+  IsOptional
 } from 'class-validator';
 import {
   EntityTechnicalsInterface,
@@ -110,12 +111,14 @@ export class VipProfile implements EntityTechnicalsInterface {
   })
   createdAt!: string;
 
+  @IsOptional()
+  @IsInt()
   @VersionColumn({ name: 'version', type: 'int' })
   version!: number;
 
   @OneToMany(() => LastMonthEventSet, (s: LastMonthEventSet) => s.vipProfile, {
     cascade: false,
-    eager: false,
+    eager: true,
   })
   lastMonthEvents!: LastMonthEventSet[];
 

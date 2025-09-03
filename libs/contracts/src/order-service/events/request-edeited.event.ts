@@ -9,7 +9,7 @@ export class RequestEditedEventV1 implements BaseEvent<'RequestEdited'> {
 
   @IsString()
   @IsNotEmpty()
-  commissionerID!: string;
+  commissionerId!: string;
 
   @IsString()
   @IsNotEmpty()

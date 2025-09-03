@@ -1,2 +1,2 @@
-export const extractBoolEnv = (v: any, d = false) =>
-  v == null ? d : `${v}`.toLowerCase() === 'true';
+export const extractBoolEnv = (value: any, def = false) =>
+  value == null ? def : `${value}`.toLowerCase() === 'true';

@@ -9,28 +9,31 @@ import {
 
 import { KafkaTopics } from 'contracts';
 import { BonusEventService } from 'apps/bonus-service/src/app/modules/bonus-processor/application/services/bonus-event/bonus-event.service';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
 import { isoNow } from 'shared-kernel';
 import { ProgrammerError } from 'error-handling/error-core';
 import { KafkaErrorInterceptor } from 'error-handling/interceptor';
+import { LoggingInterceptor } from 'observability';
 
 @Controller()
 export class BonusEventsConsumer {
   constructor(private readonly bonusService: BonusEventService) {}
 
-  @UseInterceptors(KafkaErrorInterceptor)
+
+  @UseInterceptors(KafkaErrorInterceptor, LoggingInterceptor)
   @EventPattern(KafkaTopics.OrderTransitions)
   async onOrderTransitions(
-    @Payload() payload: unknown,
+    @Payload() payload: object,
     @Ctx() ctx: KafkaContext,
   ) {
-    await this.route(payload, ctx);
+    const eventId = getHashId(payload);
+    await this.route({...payload, eventId}, ctx);
   }
 
   @EventPattern(KafkaTopics.StageTransitions)
   async onStageTransitions(
-    @Payload() payload: unknown,
+    @Payload() payload: object,
     @Ctx() ctx: KafkaContext,
   ) {
     await this.route(payload, ctx);
@@ -39,7 +42,7 @@ export class BonusEventsConsumer {
 
   // If event is invalid, it's detected at the application/domain layer.
   private async route(event: any, ctx: KafkaContext): Promise<void> {
-    const eventId = event?.eventId ?? randomUUID();
+    const eventId = event?.eventId ?? getHashId(event);
     const commissionerId = event?.commissionerId;
     if (!commissionerId) {
       throw new ProgrammerError({
@@ -66,3 +69,10 @@ export class BonusEventsConsumer {
     });
   }
 }
+
+
+
+export function getHashId(payload: unknown): string {
+  return createHash('sha256').update(JSON.stringify({ payload })).digest('base64url').slice(0, 10);
+}
+

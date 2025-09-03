@@ -56,7 +56,7 @@ export function makeWinstonOptions(
     return {
         transports: { consoleTransport, fileTransport },
         exceptionHandlers: {
-            consoleTransport: new winston.transports.Console({ format: prodFormat }),
+            consoleTransport: new winston.transports.Console({ format: production ? prodFormat : devFormat }),
             fileTransport: new winston.transports.File({ filename: 'exceptions.log', format: fileJson }),
         }
     } as const;

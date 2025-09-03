@@ -1,10 +1,11 @@
-import { killPort } from '@nx/node/utils';
 /* eslint-disable */
-
 module.exports = async function () {
-  // Put clean up logic here (e.g. stopping services, docker-compose, etc.).
-  // Hint: `globalThis` is shared between setup and teardown.
-  const port = process.env.PORT ? Number(process.env.PORT) : 3000;
-  await killPort(port);
-  console.log(globalThis.__TEARDOWN_MESSAGE__);
+  const stack = (globalThis as any).__E2E_STACK__;
+  console.log('\n[E2E] Tearing down...\n');
+
+  try { stack?.app?.kill('SIGTERM'); } catch {}
+  try { await stack?.pg?.stop(); } catch {}
+  try { await stack?.kafka?.stop(); } catch {}
+
+  console.log('[E2E] Done.');
 };

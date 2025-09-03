@@ -82,7 +82,7 @@ export class OrderStageFlatRepo {
   async refresh(): Promise<void> {
     try {
       await this.ds.query(
-        'REFRESH MATERIALIZED VIEW CONCURRENTLY mv_order_history_projection',
+        'REFRESH MATERIALIZED VIEW mv_order_history_projection',
       );
       await this.ds.query(
         'UPDATE mv_order_history_projection SET last_refreshed_at = now()',

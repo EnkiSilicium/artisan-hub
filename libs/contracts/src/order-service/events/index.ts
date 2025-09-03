@@ -9,3 +9,4 @@ export * from './order-placed.event';
 export * from './request-edeited.event';
 export * from './stage-confirmation-marked.event';
 export * from './stage-confirmed.event';
+export * from './all-invitations-declined.event';

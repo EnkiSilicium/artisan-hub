@@ -16,6 +16,7 @@ import {
   IsEnum,
   Min,
   IsInt,
+  IsOptional,
 } from 'class-validator';
 import { BonusEventEntity } from '../common/bonus-event.entity';
 import {
@@ -37,7 +38,6 @@ import type { BonusEventName } from 'apps/bonus-service/src/app/modules/bonus-pr
 @Check(`"bucket" >= 0`)
 @Entity({ name: 'last_month_event_set' })
 export class LastMonthEventSet implements EntityTechnicalsInterface {
-  @IsUUID()
   @PrimaryColumn('uuid', { name: 'event_id' })
   eventId!: string;
 
@@ -94,6 +94,8 @@ export class LastMonthEventSet implements EntityTechnicalsInterface {
   })
   createdAt!: string;
 
+  @IsOptional()
+  @IsInt()
   @VersionColumn({ name: 'version', type: 'int' })
   version!: number;
 

@@ -9,9 +9,9 @@
       "outputs": ["{workspaceRoot}/coverage/{e2eProjectRoot}"],
       "options": {
         "jestConfig": "apps/bonus-service-e2e/jest.config.ts",
-        "passWithNoTests": true
+        "passWithNoTests": false
       },
-      "dependsOn": ["bonus-service:build", "bonus-service:serve"]
+      "dependsOn": ["bonus-service:build"]
     }
   }
 }
