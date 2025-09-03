@@ -3,7 +3,7 @@ import { RequestEntity } from 'apps/order-service/src/app/order-workflow/domain/
 import { Stage } from 'apps/order-service/src/app/order-workflow/domain/entities/stage/stage.entity';
 import { WorkshopInvitation } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.entity';
 import { OutboxMessage } from 'persistence';
-import { InvitationResponseTracker } from 'apps/order-service/src/app/order-workflow/infra/persistence/entities/invitation-response-tracker.entity';
+import { InvitationResponseTracker } from 'apps/order-service/src/app/order-workflow/infra/workshop-invitation-tracker/invitation-response-tracker.entity';
 import { DataSourceOptions } from 'typeorm';
 
 export const OrderWorkflowTypeOrmOptions: DataSourceOptions = {
@@ -20,7 +20,7 @@ export const OrderWorkflowTypeOrmOptions: DataSourceOptions = {
       username: process.env.PG_USER ?? 'app',
       password: process.env.PG_PASSWORD ?? 'app',
       database: process.env.PG_DB ?? 'app',
-      schema: process.env.DB_SCHEMA || 'order-service',
+      schema: process.env.DB_SCHEMA || 'public',
       ssl:
         process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : false,
     }),
@@ -28,8 +28,8 @@ export const OrderWorkflowTypeOrmOptions: DataSourceOptions = {
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
   entitySkipConstructor: true,
   // toggles
-  synchronize: process.env.TYPEORM_SYNC === 'true', // dev only
-  migrationsRun: process.env.TYPEORM_MIGRATIONS_RUN === 'true', // prod friendly
+  synchronize: true, // dev only
+  migrationsRun: true, 
   logging: process.env.TYPEORM_LOGGING
     ? (process.env.TYPEORM_LOGGING.split(',') as DataSourceOptions['logging'])
     : ['error', 'warn'],
