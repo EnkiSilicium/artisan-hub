@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   AcceptCompletionMarkedCommand,
   ConfirmStageCompletionCommand,
-} from 'apps/order-service/src/app/order-workflow/application/services/workshop/workshop-invitation-edit.command';
+} from 'apps/order-service/src/app/order-workflow/application/services/stage/stage-completion.command';
 import { assertIsFound } from 'apps/order-service/src/app/order-workflow/domain/entities/common/assert-is-found.assertion';
 import { Order } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.entity';
 import { StagesAggregate } from 'apps/order-service/src/app/order-workflow/domain/entities/stage/stage.entity';
@@ -23,17 +23,22 @@ export class StageCompletionService {
     public readonly uow: TypeOrmUoW,
     private readonly ordersRepo: OrderRepo,
     private readonly stagesAggregateRepo: StagesAggregateRepo,
-  ) {}
+  ) { }
   async acceptCompletionMarked(cmd: AcceptCompletionMarkedCommand) {
     return this.uow.runWithRetry({}, async () => {
-      const stages = await this.stagesAggregateRepo.findByWorkshopInvitation({
+      const order = cmd.order ?? await this.ordersRepo.findById(cmd.orderId);
+      assertIsFound(order, Order, {
         orderId: cmd.orderId,
+      });
+
+      const stages = await this.stagesAggregateRepo.findByWorkshopInvitation({
+        orderId: order.orderId,
         workshopId: cmd.workshopId,
       });
 
       assertIsFound(stages, StagesAggregate, {
-        orderId: cmd.orderId,
-        commissionerId: cmd.commissionerId,
+        orderId: order.orderId,
+        commissionerId: order.commissionerId,
         workshopId: cmd.workshopId,
       });
 
@@ -43,15 +48,30 @@ export class StageCompletionService {
 
       this.stagesAggregateRepo.save(stages);
 
-      if (allCompleted) {
-        const order = await this.ordersRepo.findById(cmd.orderId);
-        assertIsFound(order, Order, {
-          orderId: cmd.orderId,
-          commissionerId: cmd.commissionerId,
-          workshopId: cmd.workshopId,
-        });
 
+      if (stageCompleted) {
+        const stageConfirmedEventPayload: StageConfirmedEventV1 = {
+          commissionerId: order.commissionerId,
+          confirmedAt: isoNow(),
+          eventName: 'StageConfirmed',
+          orderID: order.orderId,
+          schemaV: 1,
+          stageName: cmd.payload.stageName,
+          workshopID: cmd.workshopId,
+        };
+        enqueueOutbox({
+          id: randomUUID(),
+          createdAt: isoNow(),
+          payload: {
+            ...stageConfirmedEventPayload,
+          },
+        });
+      }
+
+
+      if (allCompleted) {
         order.complete();
+        await this.ordersRepo.update(order);
 
         const stageMarkedEventPayload: StageConfirmationMarkedEventV1 = {
           commissionerId: order.commissionerId,
@@ -70,54 +90,30 @@ export class StageCompletionService {
           },
         });
 
-        if (stageCompleted) {
-          const stageConfirmedEventPayload: StageConfirmedEventV1 = {
-            commissionerId: order.commissionerId,
-            confirmedAt: isoNow(),
-            eventName: 'StageConfirmed',
-            orderID: order.orderId,
-            schemaV: 1,
-            stageName: cmd.payload.stageName,
-            workshopID: cmd.workshopId,
-          };
-          enqueueOutbox({
-            id: randomUUID(),
-            createdAt: isoNow(),
-            payload: {
-              ...stageConfirmedEventPayload,
-            },
-          });
-        }
-
-        if (allCompleted) {
-          const allStageConfirmedEventPayload: AllStagesCompletedEventV1 = {
-            commissionerId: order.commissionerId,
-            completedAt: isoNow(),
-            eventName: 'AllStagesCompleted',
-            orderID: order.orderId,
-            schemaV: 1,
-            workshopID: cmd.workshopId,
-          };
-          enqueueOutbox({
-            id: randomUUID(),
-            createdAt: isoNow(),
-            payload: {
-              ...allStageConfirmedEventPayload,
-            },
-          });
-        }
+        const allStageConfirmedEventPayload: AllStagesCompletedEventV1 = {
+          commissionerId: order.commissionerId,
+          completedAt: isoNow(),
+          eventName: 'AllStagesCompleted',
+          orderID: order.orderId,
+          schemaV: 1,
+          workshopID: cmd.workshopId,
+        };
+        enqueueOutbox({
+          id: randomUUID(),
+          createdAt: isoNow(),
+          payload: {
+            ...allStageConfirmedEventPayload,
+          },
+        });
       }
     });
   }
 
   async confirmCompletion(cmd: ConfirmStageCompletionCommand) {
     return this.uow.runWithRetry({}, async () => {
-      const order = await this.ordersRepo.findById(cmd.orderId);
-
+      const order = cmd.order ?? await this.ordersRepo.findById(cmd.orderId);
       assertIsFound(order, Order, {
         orderId: cmd.orderId,
-        commissionerId: cmd.commissionerId,
-        workshopId: cmd.workshopId,
       });
 
       const stages = await this.stagesAggregateRepo.findByWorkshopInvitation({
@@ -126,15 +122,17 @@ export class StageCompletionService {
       });
       assertIsFound(stages, StagesAggregate, {
         orderId: cmd.orderId,
-        commissionerId: cmd.commissionerId,
+        commissionerId: order.commissionerId,
         workshopId: cmd.workshopId,
       });
+
 
       const { allCompleted } = stages.confirmStage({
         stageName: cmd.payload.stageName,
       });
 
       this.stagesAggregateRepo.save(stages);
+
 
       const stageConfirmedEventPayload: StageConfirmedEventV1 = {
         commissionerId: order.commissionerId,
@@ -154,19 +152,23 @@ export class StageCompletionService {
       });
 
       if (allCompleted) {
-        const stageConfirmedEventPayload: AllStagesCompletedEventV1 = {
+        order.complete();
+
+        await this.ordersRepo.update(order);
+
+        const allStagedCompletedEventPayload: AllStagesCompletedEventV1 = {
           commissionerId: order.commissionerId,
           completedAt: isoNow(),
+          schemaV: 1,
           eventName: 'AllStagesCompleted',
           orderID: order.orderId,
-          schemaV: 1,
           workshopID: cmd.workshopId,
         };
         enqueueOutbox({
           id: randomUUID(),
           createdAt: isoNow(),
           payload: {
-            ...stageConfirmedEventPayload,
+            ...allStagedCompletedEventPayload,
           },
         });
       }
