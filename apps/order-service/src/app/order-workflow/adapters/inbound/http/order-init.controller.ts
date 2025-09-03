@@ -13,7 +13,7 @@ import {
 } from '@nestjs/swagger';
 import { OrderInitService } from 'apps/order-service/src/app/order-workflow/application/services/order/order-init.service';
   // Re-exported DTO from libs/contracts
-import { OrderInitDtoV1 } from 'contracts';
+import { OrderInitDtoV1, OrderInitResultDto } from 'contracts';
 
 @ApiTags('Order workflow')
 @Controller({ path: 'order', version: '1' })
@@ -26,7 +26,10 @@ export class OrderInitController {
     description: 'Creates a new order with an initial request and selected workshops.',
   })
   @ApiBody({ type: OrderInitDtoV1 })
-  @ApiCreatedResponse({ description: 'Order created successfully' })
+  @ApiCreatedResponse({
+    description: 'Order created successfully',
+    type: OrderInitResultDto,
+  })
   @ApiBadRequestResponse({ description: 'Validation failed' })
   async postOrderInit(@Body() body: OrderInitDtoV1) {
     return await this.orderInitService.orderInit({

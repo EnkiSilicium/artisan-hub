@@ -10,6 +10,8 @@ import { OrderRepo } from 'apps/order-service/src/app/order-workflow/infra/persi
 import { StagesAggregateRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/stage/stage.repo';
 import { TypeOrmUoW, enqueueOutbox } from 'persistence';
 import {
+  StageCompletionMarkResultDto,
+  StageCompletionConfirmResultDto,
   StageConfirmationMarkedEventV1,
   StageConfirmedEventV1,
   AllStagesCompletedEventV1,
@@ -24,7 +26,9 @@ export class StageCompletionService {
     private readonly ordersRepo: OrderRepo,
     private readonly stagesAggregateRepo: StagesAggregateRepo,
   ) {}
-  async acceptCompletionMarked(cmd: AcceptCompletionMarkedCommand) {
+  async acceptCompletionMarked(
+    cmd: AcceptCompletionMarkedCommand,
+  ): Promise<StageCompletionMarkResultDto> {
     return this.uow.runWithRetry({}, async () => {
       const stages = await this.stagesAggregateRepo.findByWorkshopInvitation({
         orderId: cmd.orderId,
@@ -107,10 +111,19 @@ export class StageCompletionService {
           });
         }
       }
+      return {
+        orderId: cmd.orderId,
+        workshopId: cmd.workshopId,
+        stageName: cmd.payload.stageName,
+        stageCompleted,
+        allStagesCompleted: allCompleted,
+      };
     });
   }
 
-  async confirmCompletion(cmd: ConfirmStageCompletionCommand) {
+  async confirmCompletion(
+    cmd: ConfirmStageCompletionCommand,
+  ): Promise<StageCompletionConfirmResultDto> {
     return this.uow.runWithRetry({}, async () => {
       const order = await this.ordersRepo.findById(cmd.orderId);
 
@@ -170,6 +183,12 @@ export class StageCompletionService {
           },
         });
       }
+      return {
+        orderId: cmd.orderId,
+        workshopId: cmd.workshopId,
+        stageName: cmd.payload.stageName,
+        allStagesCompleted: allCompleted,
+      };
     });
   }
 }
