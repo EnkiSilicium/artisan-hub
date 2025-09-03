@@ -27,7 +27,9 @@ export class OrderInitService {
     return this.uow.runWithRetry({}, async () => {
       const payload = cmd.payload;
 
-      await this.workshopPort.checkWorkshopExistsMany(payload.selectedWorkshops)
+      await this.workshopPort.checkWorkshopExistsMany(
+        payload.selectedWorkshops,
+      );
 
       const order = new Order({
         commissionerId: payload.commissionerId,
@@ -41,7 +43,7 @@ export class OrderInitService {
         description: payload.request.description,
       });
 
-      let workshopInvitations: WorkshopInvitation[] = [];
+      const workshopInvitations: WorkshopInvitation[] = [];
       for (const workshopId of payload.selectedWorkshops) {
         const invitation = new WorkshopInvitation({
           orderId: order.orderId,
@@ -71,6 +73,7 @@ export class OrderInitService {
           deadline: request.deadline,
           budget: request.budget,
         },
+        aggregateVersion: order.version,
         schemaV: 1,
         selectedWorkshops: cmd.payload.selectedWorkshops,
       };

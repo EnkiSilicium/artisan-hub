@@ -131,6 +131,40 @@ describe('VipProfileRepo (integration) — save semantics with rollback isolatio
     if (ds.isInitialized) await ds.destroy();
     await container.stop();
   });
+
+  describe('findByCommissionerId', () => {
+    it('loads all the LastMonthEvents', async () => {
+      await inRollbackedTestTx(ds, async () => {
+        const commissionerId = randomUUID();
+
+        const event1 = makeLMEvent({ commissionerId });
+        const event2 = makeLMEvent({ commissionerId, bucket: 1 });
+        const vp = makeVipProfile({
+          commissionerId,
+          lastMonthEvents: [event1, event2],
+        });
+
+        await uow.run({}, async () => {
+          await repo.insert(vp);
+        });
+
+        await seedBonusParentsAndBundles(ds, uow, commissionerId, [
+          event1,
+          event2,
+        ]);
+
+        await uow.run({}, async () => {
+          await repo.update(vp);
+        });
+
+        const found = await repo.findByCommissionerId(commissionerId);
+        expect(found).not.toBeNull();
+        expect(found!.lastMonthEvents).toHaveLength(2);
+        const ids = found!.lastMonthEvents.map((e) => e.eventId).sort();
+        expect(ids).toEqual([event1.eventId, event2.eventId].sort());
+      });
+    });
+  });
   describe('update', () => {
     it('inserts missing events', async () => {
       await inRollbackedTestTx(ds, async () => {

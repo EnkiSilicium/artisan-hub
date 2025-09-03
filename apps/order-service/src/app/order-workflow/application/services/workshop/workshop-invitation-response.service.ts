@@ -70,6 +70,7 @@ export class WorkshopInvitationResponseService {
         eventName: 'InvitationAccepted',
         acceptedAt: isoNow(),
         orderID: order.orderId,
+        aggregateVersion: order.version,
         schemaV: 1,
         workshopID: cmd.workshopId,
       };

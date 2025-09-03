@@ -14,18 +14,22 @@ import { WorkshopInvitationResponseService } from 'apps/order-service/src/app/or
 import {
   AcceptWorkshopInvitationDtoV1,
   DeclineWorkshopInvitationDtoV1,
+
   WorkshopInvitationAcceptResultDto,
   WorkshopInvitationDeclineResultDto,
+
+  WorkshopInvitationResponsePaths,
+
 } from 'contracts';
 
 @ApiTags('Order workflow')
-@Controller({ path: 'workshop-invitaion', version: '1' })
+@Controller({ path: WorkshopInvitationResponsePaths.Root, version: '1' })
 export class WorkshopInvitationResponseController {
   constructor(
     private readonly workshopInvitationResponseService: WorkshopInvitationResponseService,
   ) {}
 
-  @Post('accept')
+  @Post(WorkshopInvitationResponsePaths.Accept)
   @ApiOperation({
     summary: 'Accept a workshop invitation',
     description:
@@ -51,7 +55,7 @@ export class WorkshopInvitationResponseController {
     );
   }
 
-  @Post('decline')
+  @Post(WorkshopInvitationResponsePaths.Decline)
   @ApiOperation({
     summary: 'Decline a workshop invitation',
     description:

@@ -14,18 +14,22 @@ import { StageCompletionService } from 'apps/order-service/src/app/order-workflo
 import {
   MarkStageCompletionDtoV1,
   ConfirmStageCompletionDtoV1,
+
   StageCompletionMarkResultDto,
   StageCompletionConfirmResultDto,
+
+  StageCompletionPaths,
+
 } from 'contracts';
 
 @ApiTags('Order workflow')
-@Controller({ path: 'stage-completion', version: '1' })
+@Controller({ path: StageCompletionPaths.Root, version: '1' })
 export class StageCompletionController {
   constructor(
     private readonly stageCompletionService: StageCompletionService,
   ) {}
 
-  @Post('mark')
+  @Post(StageCompletionPaths.Mark)
   @ApiOperation({
     summary: 'Mark a stage as completed',
     description: 'Marks a specific stage as completed for an order.',
@@ -49,7 +53,7 @@ export class StageCompletionController {
     });
   }
 
-  @Post('confirm')
+  @Post(StageCompletionPaths.Confirm)
   @ApiOperation({
     summary: 'Confirm a completed stage',
     description: 'Confirms that a previously completed stage is accepted.',

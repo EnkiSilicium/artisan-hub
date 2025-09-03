@@ -13,10 +13,14 @@ import {
 } from '@nestjs/swagger';
 import { OrderInitService } from 'apps/order-service/src/app/order-workflow/application/services/order/order-init.service';
   // Re-exported DTO from libs/contracts
-import { OrderInitDtoV1, OrderInitResultDto } from 'contracts';
+
+import { OrderInitResultDto } from 'contracts';
+
+import { OrderInitDtoV1, OrderInitPaths } from 'contracts';
+
 
 @ApiTags('Order workflow')
-@Controller({ path: 'order', version: '1' })
+@Controller({ path: OrderInitPaths.Root, version: '1' })
 export class OrderInitController {
   constructor(private readonly orderInitService: OrderInitService) {}
 
