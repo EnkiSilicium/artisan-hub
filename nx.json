@@ -19,31 +19,18 @@
       "options": {
         "targetName": "eslint:lint"
       }
-    },
-    {
-      "plugin": "@nx/jest/plugin",
-      "options": {
-        "targetName": "test"
-      },
-      "exclude": [
-        "apps/order-service-e2e/**/*",
-        "apps/workshop-service-e2e/**/*",
-        "apps/bonus-service-e2e/**/*",
-        "apps/commissioner-service-e2e/**/*",
-        "apps/admin-service-e2e/**/*",
-        "apps/review-service-e2e/**/*",
-        "apps/report-service-e2e/**/*",
-        "apps/web-bff-e2e/**/*",
-        "apps/admin-bff-e2e/**/*",
-        "apps/workshop-mobile-bff-e2e/**/*"
-      ]
     }
   ],
   "targetDefaults": {
     "@nx/js:tsc": {
       "cache": true,
-      "dependsOn": ["^build"],
-      "inputs": ["default", "^default"]
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "default",
+        "^default"
+      ]
     }
   }
 }
