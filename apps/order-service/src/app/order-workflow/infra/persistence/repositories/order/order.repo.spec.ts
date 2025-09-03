@@ -89,6 +89,21 @@ describe('OrderRepo (integration)', () => {
     });
   });
 
+  describe('findById', () => {
+    it('returns the persisted order', async () => {
+      await inRollbackedTestTx(ds, async () => {
+        const order = makeOrder({ commissionerId: randomUUID(), version: 1 });
+        await uow.run({}, async () => {
+          await repo.insert(order);
+        });
+
+        const found = await repo.findById(order.orderId);
+        expect(found).not.toBeNull();
+        expect(found!.orderId).toBe(order.orderId);
+      });
+    });
+  });
+
   describe('update', () => {
     it('bumps version and persists fields', async () => {
       await inRollbackedTestTx(ds, async () => {

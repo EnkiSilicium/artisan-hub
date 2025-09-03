@@ -16,9 +16,7 @@ import {
 import { RequestEntity } from 'apps/order-service/src/app/order-workflow/domain/entities/request/request.entity';
 import {
   IsUUID,
-  IsString,
-  Length,
-  IsISO8601,
+  IsOptional,
   IsInt,
   IsBoolean,
 } from 'class-validator';
@@ -51,8 +49,6 @@ export class Order implements EntityTechnicalsInterface {
   @PrimaryColumn('uuid', { name: 'order_id' })
   orderId!: string;
 
-  @IsString()
-  @Length(1, 64)
   @Index()
   @Column('varchar', { name: 'state', length: 64 })
   state!: any;
@@ -77,6 +73,7 @@ export class Order implements EntityTechnicalsInterface {
   })
   createdAt!: string;
 
+  @IsOptional()
   @IsInt()
   @VersionColumn({ name: 'version', type: 'int' })
   version!: number;

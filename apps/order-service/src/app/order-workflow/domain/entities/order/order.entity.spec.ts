@@ -14,6 +14,7 @@ import {
   CancelDisputeOpened,
 } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.state';
 import { makeOrder } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.entity.mock-factory';
+import { randomUUID } from 'crypto';
 
 const T0 = '2025-01-01T00:00:00.000Z';
 
@@ -35,6 +36,17 @@ function makeOrderIn(initial: OrderStates): Order {
     state: map[initial],
   });
 }
+
+describe('Order constructor', () => {
+  it('initializes with defaults', () => {
+    const commissionerId = randomUUID();
+    const order = new Order({ commissionerId });
+    expect(order.orderId).toBeDefined();
+    expect(order.commissionerId).toBe(commissionerId);
+    expect(order.state).toBeInstanceOf(PendingWorkshopInvitations);
+    expect(order.isTerminated).toBe(false);
+  });
+});
 
 describe('Order state machine', () => {
   describe('[Initial: PendingWorkshopInvitations]', () => {
