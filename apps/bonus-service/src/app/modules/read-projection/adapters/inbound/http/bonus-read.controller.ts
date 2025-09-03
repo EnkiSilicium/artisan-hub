@@ -17,10 +17,11 @@ import { BonusReadHandler } from 'apps/bonus-service/src/app/modules/read-projec
 import {
   BonusReadresultDto,
   BonusReadQueryDto,
+  BonusReadPaths,
 } from 'contracts';
 
 @ApiTags('Bonus read')
-@Controller('bonus-read')
+@Controller(BonusReadPaths.Root)
 export class BonusReadController {
   constructor(private readonly svc: BonusReadHandler) {}
 
@@ -50,7 +51,7 @@ export class BonusReadController {
     });
   }
 
-  @Post('refresh')
+  @Post(BonusReadPaths.Refresh)
   @HttpCode(202)
   @ApiOperation({
     summary: 'Refresh the bonus read projection',
