@@ -13,7 +13,8 @@ import {
   IsUUID,
   IsBoolean, IsNumber,
   Min,
-  IsInt
+  IsInt,
+  IsOptional
 } from 'class-validator';
 import {
   EntityTechnicalsInterface,
@@ -110,6 +111,8 @@ export class VipProfile implements EntityTechnicalsInterface {
   })
   createdAt!: string;
 
+  @IsOptional()
+  @IsInt()
   @VersionColumn({ name: 'version', type: 'int' })
   version!: number;
 

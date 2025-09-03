@@ -16,6 +16,7 @@ import {
   IsEnum,
   Min,
   IsInt,
+  IsOptional,
 } from 'class-validator';
 import { BonusEventEntity } from '../common/bonus-event.entity';
 import {
@@ -93,6 +94,8 @@ export class LastMonthEventSet implements EntityTechnicalsInterface {
   })
   createdAt!: string;
 
+  @IsOptional()
+  @IsInt()
   @VersionColumn({ name: 'version', type: 'int' })
   version!: number;
 

@@ -22,6 +22,7 @@ import {
   Min,
   IsInt,
   IsISO8601,
+  IsOptional,
 } from 'class-validator';
 
 import {
@@ -92,6 +93,8 @@ export class AdditiveBonus implements EntityTechnicalsInterface {
   })
   createdAt!: string;
 
+  @IsOptional()
+  @IsInt()
   @VersionColumn({ name: 'version', type: 'int' })
   version!: number;
 
