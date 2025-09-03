@@ -1,12 +1,20 @@
-import { ArrayNotEmpty, Equals, IsArray, IsISO8601, IsNotEmpty, IsString, ValidateNested } from "class-validator";
-import { OrderInitRequestPayload } from "libs/contracts/src/commissioner/events/order-init-requested.event";
-import { BaseEvent } from "libs/contracts/src/_common/base-event.event";
+import {
+  ArrayNotEmpty,
+  Equals,
+  IsArray,
+  IsISO8601,
+  IsInt,
+  IsNotEmpty,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
+import { OrderInitRequestPayload } from 'libs/contracts/src/commissioner/events/order-init-requested.event';
+import { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
 
 export class OrderPlacedEventV1 implements BaseEvent<'OrderPlaced'> {
-  
   @IsString()
   @IsNotEmpty()
-  eventName!: 'OrderPlaced'
+  eventName!: 'OrderPlaced';
 
   @IsString()
   @IsNotEmpty()
@@ -23,6 +31,9 @@ export class OrderPlacedEventV1 implements BaseEvent<'OrderPlaced'> {
 
   @ValidateNested()
   request!: OrderInitRequestPayload;
+
+  @IsInt()
+  aggregateVersion!: number;
 
   @Equals(1)
   schemaV!: 1;

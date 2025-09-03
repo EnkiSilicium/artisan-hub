@@ -1,9 +1,15 @@
-import { IsString, IsNotEmpty, IsISO8601, Equals } from "class-validator";
+import {
+  IsString,
+  IsNotEmpty,
+  IsISO8601,
+  Equals,
+  IsInt,
+} from 'class-validator';
 
 export class OrderCompletedV1 {
   @IsString()
   @IsNotEmpty()
-  eventName!: 'OrderCompleted'
+  eventName!: 'OrderCompleted';
 
   @IsString()
   @IsNotEmpty()
@@ -17,11 +23,12 @@ export class OrderCompletedV1 {
   @IsNotEmpty()
   commissionerID!: string;
 
+  @IsInt()
+  aggregateVersion!: number;
+
   @IsISO8601()
   confirmedAt!: string;
 
   @Equals(1)
   schemaV!: 1;
 }
-
-
