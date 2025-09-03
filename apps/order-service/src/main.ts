@@ -9,6 +9,7 @@ import { orderWorkflowKafkaConfig } from 'apps/order-service/src/app/order-workf
 import { OrderReadModule } from 'apps/order-service/src/app/read-model/infra/di/order-read.module';
 import { HttpErrorInterceptor, KafkaErrorInterceptor } from 'error-handling/interceptor';
 import { LoggingInterceptor } from 'observability';
+import { ApiPaths } from 'contracts';
 
 
 
@@ -32,7 +33,7 @@ async function startOrderWorkflowApp() {
   const app = await NestFactory.create(OrderWorkflowModule, { bufferLogs: true });
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   app.enableShutdownHooks();
-  app.setGlobalPrefix(process.env.HTTP_PREFIX ?? 'api');
+  app.setGlobalPrefix(process.env.HTTP_PREFIX ?? ApiPaths.Root);
   app.useGlobalInterceptors(
     app.get(KafkaErrorInterceptor),
     app.get(HttpErrorInterceptor),
@@ -67,7 +68,7 @@ async function startOrderReadApp() {
   const app = await NestFactory.create(OrderReadModule, { bufferLogs: true });
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   app.enableShutdownHooks();
-  app.setGlobalPrefix(process.env.HTTP_PREFIX ?? 'api');
+  app.setGlobalPrefix(process.env.HTTP_PREFIX ?? ApiPaths.Root);
   app.useGlobalInterceptors(
 
     app.get(HttpErrorInterceptor),

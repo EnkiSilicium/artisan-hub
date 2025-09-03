@@ -4,11 +4,12 @@ import { INestApplication } from '@nestjs/common';
 import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { bonusProcessorKafkaConfig } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/config/kafka.config';
-import { BonusProcessorModule } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/di/bonus-processor.module'
+import { BonusProcessorModule } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/di/bonus-processor.module';
 import { BonusReadModule } from 'apps/bonus-service/src/app/modules/read-projection/infra/di/bonus-read.module';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { HttpErrorInterceptor, KafkaErrorInterceptor } from 'error-handling/interceptor';
 import { LoggingInterceptor } from 'observability';
+import { ApiPaths } from 'contracts';
 
 
 function setupSwagger(app: INestApplication, {
@@ -31,7 +32,7 @@ async function startBonusProcessorApp() {
   const app = await NestFactory.create(BonusProcessorModule, { bufferLogs: true });
   //app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   app.enableShutdownHooks();
-  app.setGlobalPrefix(process.env.HTTP_PREFIX ?? 'api');
+  app.setGlobalPrefix(process.env.HTTP_PREFIX ?? ApiPaths.Root);
   app.useGlobalInterceptors(
     app.get(KafkaErrorInterceptor),
     app.get(HttpErrorInterceptor),
@@ -67,7 +68,7 @@ async function startBonusReadApp() {
   const app = await NestFactory.create(BonusReadModule, { bufferLogs: true });
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   app.enableShutdownHooks();
-  app.setGlobalPrefix(process.env.HTTP_PREFIX ?? 'api');
+  app.setGlobalPrefix(process.env.HTTP_PREFIX ?? ApiPaths.Root);
   app.useGlobalInterceptors(
     app.get(HttpErrorInterceptor),
     app.get(LoggingInterceptor),

@@ -18,7 +18,10 @@ export class AdditiveBonusRepo {
     try {
       const entity: AdditiveBonus | null = await currentManager(
         this.ds,
-      ).findOne(AdditiveBonus, { where: { commissionerId } });
+      ).findOne(AdditiveBonus, {
+        where: { commissionerId },
+        relations: { events: true },
+      });
       return entity;
     } catch (error) {
       remapTypeOrmPgErrorToInfra(error);

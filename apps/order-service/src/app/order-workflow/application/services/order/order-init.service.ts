@@ -9,7 +9,7 @@ import { OrderRepo } from 'apps/order-service/src/app/order-workflow/infra/persi
 import { RequestRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/request/request.repo';
 import { WorkshopInvitationRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/workshop-invitation/workshop-invitation.repo';
 import { TypeOrmUoW, enqueueOutbox } from 'persistence';
-import { OrderPlacedEventV1 } from 'contracts';
+import { OrderInitResultDto, OrderPlacedEventV1 } from 'contracts';
 import { randomUUID } from 'crypto';
 import { isoNow } from 'shared-kernel';
 
@@ -23,11 +23,13 @@ export class OrderInitService {
     private readonly workshopPort: WorkshopPort,
     private readonly workshopTrackerPort: WorkshopInvitationTrackerPort,
   ) {}
-  async orderInit(cmd: OrderInitCommand) {
+  async orderInit(cmd: OrderInitCommand): Promise<OrderInitResultDto> {
     return this.uow.runWithRetry({}, async () => {
       const payload = cmd.payload;
 
-      await this.workshopPort.checkWorkshopExistsMany(payload.selectedWorkshops)
+      await this.workshopPort.checkWorkshopExistsMany(
+        payload.selectedWorkshops,
+      );
 
       const order = new Order({
         commissionerId: payload.commissionerId,
@@ -41,7 +43,7 @@ export class OrderInitService {
         description: payload.request.description,
       });
 
-      let workshopInvitations: WorkshopInvitation[] = [];
+      const workshopInvitations: WorkshopInvitation[] = [];
       for (const workshopId of payload.selectedWorkshops) {
         const invitation = new WorkshopInvitation({
           orderId: order.orderId,
@@ -72,6 +74,7 @@ export class OrderInitService {
           deadline: request.deadline,
           budget: request.budget,
         },
+        aggregateVersion: order.version,
         schemaV: 1,
         selectedWorkshops: cmd.payload.selectedWorkshops,
       };
@@ -82,6 +85,7 @@ export class OrderInitService {
           ...eventPayload,
         },
       });
+      return { orderId: order.orderId };
     });
   }
 }

@@ -17,6 +17,8 @@ import { WorkshopInvitationRepo } from 'apps/order-service/src/app/order-workflo
 import { TypeOrmUoW, enqueueOutbox } from 'persistence';
 
 import {
+  WorkshopInvitationAcceptResultDto,
+  WorkshopInvitationDeclineResultDto,
   InvitationAcceptedEventV1,
   InvitationDeclinedEventV1,
 } from 'contracts';
@@ -30,8 +32,12 @@ export class WorkshopInvitationResponseService {
     private readonly orderRepo: OrderRepo,
     private readonly workshopInvitationsRepo: WorkshopInvitationRepo,
     private readonly stagesAggregateRepo: StagesAggregateRepo,
-  ) { }
-  async acceptWorkshopInvitation(cmd: AcceptWorkshopInvitationCommand) {
+  ) {}
+  
+  
+  async acceptWorkshopInvitation(
+    cmd: AcceptWorkshopInvitationCommand,
+  ): Promise<WorkshopInvitationAcceptResultDto> {
     return this.uow.runWithRetry({}, async () => {
       const order = cmd.order ?? await this.orderRepo.findById(cmd.orderId);
 
@@ -68,6 +74,7 @@ export class WorkshopInvitationResponseService {
         eventName: 'InvitationAccepted',
         acceptedAt: isoNow(),
         orderID: order.orderId,
+        aggregateVersion: order.version,
         schemaV: 1,
         workshopID: cmd.workshopId,
       };
@@ -76,11 +83,14 @@ export class WorkshopInvitationResponseService {
         createdAt: isoNow(),
         payload: { ...eventPayload },
       });
+      return { orderId: cmd.orderId, workshopId: cmd.workshopId };
     });
   }
 
   //TODO: bundle N workshopInvitations
-  async declineWorkshopInvitation(cmd: DeclineWorkshopInvitationCommand) {
+  async declineWorkshopInvitation(
+    cmd: DeclineWorkshopInvitationCommand,
+  ): Promise<WorkshopInvitationDeclineResultDto> {
     return this.uow.runWithRetry({}, async () => {
       const order = cmd.order ?? await this.orderRepo.findById(cmd.orderId);
       assertIsFound(order, Order, {
@@ -119,6 +129,7 @@ export class WorkshopInvitationResponseService {
         createdAt: isoNow(),
         payload: { ...eventPayload },
       });
+      return { orderId: cmd.orderId, workshopId: cmd.workshopId };
     });
   }
 }

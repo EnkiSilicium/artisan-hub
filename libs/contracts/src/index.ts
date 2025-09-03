@@ -4,17 +4,26 @@ export * from './bonus-service/events/grade-attained.event';
 export * from './bonus-service/events/vip-accquired.event';
 export * from './bonus-service/events/vip-lost.event';
 export * from './bonus-service/events/_union.types';
+export * from './bonus-service/paths/bonus-read-paths.enum';
 export * from './commissioner/events/cancel-submitted.event';
 export * from './commissioner/events/order-init-requested.event';
 export * from './order-service/dtos/order-cancel.dto';
 export * from './order-service/dtos/order-history-query.dto';
 export * from './order-service/dtos/order-history-result.dto';
 export * from './order-service/dtos/order-init.dto';
+export * from './order-service/dtos/order-init-result.dto';
 export * from './order-service/dtos/stage-completion-confirm.dto';
+export * from './order-service/dtos/stage-completion-confirm-result.dto';
 export * from './order-service/dtos/stage-completion-mark.dto';
+export * from './order-service/dtos/stage-completion-mark-result.dto';
 export * from './order-service/dtos/workshop-invitation-accept.dto';
+export * from './order-service/dtos/workshop-invitation-accept-result.dto';
 export * from './order-service/dtos/workshop-invitation-decline.dto';
+
 export * from './order-service/events/all-invitations-declined.event';
+
+export * from './order-service/dtos/workshop-invitation-decline-result.dto';
+
 export * from './order-service/events/all-responses-received.event';
 export * from './order-service/events/all-stages-completed.event';
 export * from './order-service/events/cancelled.event';
@@ -28,6 +37,10 @@ export * from './order-service/events/request-edeited.event';
 export * from './order-service/events/stage-confirmation-marked.event';
 export * from './order-service/events/stage-confirmed.event';
 export * from './order-service/events/_union.types';
+export * from './order-service/paths/order-init-paths.enum';
+export * from './order-service/paths/stage-completion-paths.enum';
+export * from './order-service/paths/workshop-invitation-response-paths.enum';
 export * from './_common/base-event.event';
 export * from './_common/contracts';
 export * from './_common/kafka-topics.enum';
+export * from './_common/paths/api-paths.enum';

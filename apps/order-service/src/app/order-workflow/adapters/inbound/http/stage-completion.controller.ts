@@ -14,22 +14,31 @@ import { StageCompletionService } from 'apps/order-service/src/app/order-workflo
 import {
   MarkStageCompletionDtoV1,
   ConfirmStageCompletionDtoV1,
+
+  StageCompletionMarkResultDto,
+  StageCompletionConfirmResultDto,
+
+  StageCompletionPaths,
+
 } from 'contracts';
 
 @ApiTags('Order workflow')
-@Controller({ path: 'stage-completion', version: '1' })
+@Controller({ path: StageCompletionPaths.Root, version: '1' })
 export class StageCompletionController {
   constructor(
     private readonly stageCompletionService: StageCompletionService,
   ) {}
 
-  @Post('mark')
+  @Post(StageCompletionPaths.Mark)
   @ApiOperation({
     summary: 'Mark a stage as completed',
     description: 'Marks a specific stage as completed for an order.',
   })
   @ApiBody({ type: MarkStageCompletionDtoV1 })
-  @ApiCreatedResponse({ description: 'Stage marked for completion' })
+  @ApiCreatedResponse({
+    description: 'Stage marked for completion',
+    type: StageCompletionMarkResultDto,
+  })
   @ApiBadRequestResponse({ description: 'Validation failed' })
   async mark(
     @Body() body: MarkStageCompletionDtoV1,
@@ -44,13 +53,16 @@ export class StageCompletionController {
     });
   }
 
-  @Post('confirm')
+  @Post(StageCompletionPaths.Confirm)
   @ApiOperation({
     summary: 'Confirm a completed stage',
     description: 'Confirms that a previously completed stage is accepted.',
   })
   @ApiBody({ type: ConfirmStageCompletionDtoV1 })
-  @ApiCreatedResponse({ description: 'Stage confirmed' })
+  @ApiCreatedResponse({
+    description: 'Stage confirmed',
+    type: StageCompletionConfirmResultDto,
+  })
   @ApiBadRequestResponse({ description: 'Validation failed' })
   async confirm(
     @Body() body: ConfirmStageCompletionDtoV1,

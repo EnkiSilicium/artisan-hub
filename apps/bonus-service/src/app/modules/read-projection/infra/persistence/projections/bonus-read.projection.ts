@@ -24,7 +24,9 @@ import { Injectable } from '@nestjs/common';
         ab.bonus_algo_policy_version               AS "bonusPolicyVersion",
         ab.grade_policy_version                    AS "gradePolicyVersion",
         ab.created_at                              AS "bonusCreatedAt",
-        ab.last_updated_at                         AS "bonusLastUpdatedAt"
+        ab.last_updated_at                         AS "bonusLastUpdatedAt",
+
+        null::timestamptz                          AS last_refreshed_at
       FROM public.vip_profile      vp
       INNER JOIN public.additive_bonus ab
               ON ab.commissioner_id = vp.commissioner_id
@@ -51,4 +53,6 @@ export class BonusReadProjection {
   @ViewColumn() gradePolicyVersion!: number;
   @ViewColumn() bonusCreatedAt!: string;
   @ViewColumn() bonusLastUpdatedAt!: string;
+
+  @ViewColumn({ name: 'last_refreshed_at' }) lastRefreshedAt!: string | null;
 }
