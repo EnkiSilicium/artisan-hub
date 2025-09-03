@@ -9,7 +9,7 @@ import { OutboxMessage } from 'libs/persistence/src/lib/outbox/outbox-message.en
 import { KafkaProducerPort } from 'adapter'
 
 import { InfraError } from 'error-handling/error-core';
-import { BaseEvent } from 'libs/contracts/src/_common/base-event.event.js';
+import { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
 
 
 

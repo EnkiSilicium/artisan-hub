@@ -42,6 +42,14 @@ export const OrderDomainErrorDefs = [
     httpStatus: 410,
     v: 1,
   },
+  {
+    code: 'FORBIDDEN',
+    message: 'Action forbidden',
+    service: 'order-service',
+    retryable: false,
+    httpStatus: 403,
+    v: 1,
+  },
 ] as const satisfies readonly BaseDescriptor<string>[];
 
 
