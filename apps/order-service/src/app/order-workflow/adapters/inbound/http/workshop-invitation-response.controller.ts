@@ -14,6 +14,8 @@ import { WorkshopInvitationResponseService } from 'apps/order-service/src/app/or
 import {
   AcceptWorkshopInvitationDtoV1,
   DeclineWorkshopInvitationDtoV1,
+  WorkshopInvitationAcceptResultDto,
+  WorkshopInvitationDeclineResultDto,
 } from 'contracts';
 
 @ApiTags('Order workflow')
@@ -30,7 +32,10 @@ export class WorkshopInvitationResponseController {
       'Accepts a workshop invitation for an order and returns the updated state.',
   })
   @ApiBody({ type: AcceptWorkshopInvitationDtoV1 })
-  @ApiCreatedResponse({ description: 'Invitation accepted' })
+  @ApiCreatedResponse({
+    description: 'Invitation accepted',
+    type: WorkshopInvitationAcceptResultDto,
+  })
   @ApiBadRequestResponse({ description: 'Validation failed' })
   async accept(
     @Body() body: AcceptWorkshopInvitationDtoV1,
@@ -53,7 +58,10 @@ export class WorkshopInvitationResponseController {
       'Declines a workshop invitation for an order and returns the updated state.',
   })
   @ApiBody({ type: DeclineWorkshopInvitationDtoV1 })
-  @ApiCreatedResponse({ description: 'Invitation declined' })
+  @ApiCreatedResponse({
+    description: 'Invitation declined',
+    type: WorkshopInvitationDeclineResultDto,
+  })
   @ApiBadRequestResponse({ description: 'Validation failed' })
   async decline(
     @Body() body: DeclineWorkshopInvitationDtoV1,
