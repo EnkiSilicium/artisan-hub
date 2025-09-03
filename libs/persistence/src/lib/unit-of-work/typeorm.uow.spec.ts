@@ -20,7 +20,7 @@ import { OutboxMessage } from 'libs/persistence/src/lib/outbox/outbox-message.en
 import { isoNow } from 'shared-kernel';
 import { InfraError } from 'error-handling/error-core';
 import { InfraErrorRegistry } from 'error-handling/registries/common';
-import type { BaseEvent } from 'libs/contracts/src/_common/base-event.event.js';
+import type { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
 
 type KafkaProducerPort<T> = { dispatch(messages: T[]): Promise<void> };
 

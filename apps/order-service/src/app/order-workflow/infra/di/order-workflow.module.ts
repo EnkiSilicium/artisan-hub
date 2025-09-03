@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { CanActivate, Module, UseInterceptors } from '@nestjs/common';
 import { OpenTelemetryModule } from 'nestjs-otel';
 import { WinstonModule } from 'nest-winston';
 import { OrderInitService } from 'apps/order-service/src/app/order-workflow/application/services/order/order-init.service';
@@ -16,7 +16,7 @@ import { WorkshopInvitationRepo } from 'apps/order-service/src/app/order-workflo
 import { WorkshopInvitationTrackerPort } from 'apps/order-service/src/app/order-workflow/application/ports/initialize-tracker.port';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { OrderWorkflowTypeOrmOptions } from 'apps/order-service/src/app/order-workflow/infra/config/typeorm-config';
-import { TypeOrmUoW } from 'persistence'
+import { TypeOrmUoW } from 'persistence';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { orderWorkflowOtelConfig } from 'apps/order-service/src/app/order-workflow/infra/config/otel.config';
 import { orderWorkflowWinstonConfig } from 'apps/order-service/src/app/order-workflow/infra/config/winston.config';
@@ -27,13 +27,21 @@ import { KafkaProducerPort } from 'adapter';
 import { WorkshopMockAdapter } from 'apps/order-service/src/app/order-workflow/adapters/outbound/http-clients/workshop.adapter';
 import { WorkshopPort } from 'apps/order-service/src/app/order-workflow/application/ports/workshop.port';
 import { WorkshopInvitationTracker } from 'apps/order-service/src/app/order-workflow/infra/workshop-invitation-tracker/workshop-invitation-tracker.service';
-import { WorkshopInvitationTrackerAdapter } from 'apps/order-service/src/app/order-workflow/adapters/outbound/workshop-invitation-tracker.adapter';
-import { WorkshopInvitationTrackerKafkaController } from 'apps/order-service/src/app/order-workflow/adapters/inbound/workshop-invitation-tracker.kafka';
+import { WorkshopInvitationTrackerAdapter } from 'apps/order-service/src/app/order-workflow/adapters/outbound/internal/workshop-invitation-tracker.adapter';
+import { WorkshopInvitationTrackerKafkaController } from 'apps/order-service/src/app/order-workflow/adapters/inbound/messaging/workshop-invitation-tracker.kafka';
 
-import { LoggingInterceptor } from 'observability'
-import { HttpErrorInterceptor, HttpErrorInterceptorOptions, KafkaErrorInterceptor, KafkaErrorInterceptorOptions } from 'error-handling/interceptor'
-
-
+import { LoggingInterceptor } from 'observability';
+import {
+    HttpErrorInterceptor,
+    HttpErrorInterceptorOptions,
+    KafkaErrorInterceptor,
+    KafkaErrorInterceptorOptions,
+} from 'error-handling/interceptor';
+import { PassportModule } from '@nestjs/passport';
+import { OrderHttpJwtGuard } from 'apps/order-service/src/app/order-workflow/infra/auth/guards/order-http-jwt.guard';
+import { JwtStrategy } from 'apps/order-service/src/app/order-workflow/infra/auth/strategies/jwt.strategy';
+import { extractBoolEnv } from 'shared-kernel';
+import { MockAuthGuard } from 'apps/order-service/src/app/order-workflow/infra/auth/guards/mock-auth.guard';
 
 @Module({
     imports: [
@@ -48,26 +56,30 @@ import { HttpErrorInterceptor, HttpErrorInterceptorOptions, KafkaErrorIntercepto
                     client: orderWorkflowKafkaConfig.client,
                     producer: orderWorkflowKafkaConfig.producer,
                     run: orderWorkflowKafkaConfig.run,
-                    consumer: orderWorkflowKafkaConfig.consumer
+                    consumer: orderWorkflowKafkaConfig.consumer,
                 },
             },
         ]),
 
+
+        ...(extractBoolEnv(process.env.DISABLE_AUTH)
+            ? []
+            : [PassportModule.register({ defaultStrategy: 'jwt', session: false })]),
+
         WinstonModule.forRoot({
             transports: [
                 orderWorkflowWinstonConfig.transports.consoleTransport,
-                orderWorkflowWinstonConfig.transports.fileTransport
+                orderWorkflowWinstonConfig.transports.fileTransport,
             ],
-
         }),
     ],
     controllers: [
-        WorkshopInvitationResponseController,
         OrderInitController,
+        WorkshopInvitationResponseController,
         StageCompletionController,
         WorkshopInvitationTrackerKafkaController,
-
     ],
+
     providers: [
         OrderInitService,
         RequestEditService,
@@ -83,37 +95,45 @@ import { HttpErrorInterceptor, HttpErrorInterceptorOptions, KafkaErrorIntercepto
         WorkshopInvitationRepo,
 
         WorkshopInvitationTracker,
-        { provide: WorkshopInvitationTrackerPort, useClass: WorkshopInvitationTrackerAdapter },
+        {
+            provide: WorkshopInvitationTrackerPort,
+            useClass: WorkshopInvitationTrackerAdapter,
+        },
         { provide: KafkaProducerPort, useClass: OrderEventDispatcher },
         { provide: WorkshopPort, useClass: WorkshopMockAdapter },
-
 
         LoggingInterceptor,
         HttpErrorInterceptor,
         KafkaErrorInterceptor,
 
+
+
+        ...(extractBoolEnv(process.env.DISABLE_AUTH)
+            ? []
+            : [JwtStrategy]),
         {
-            provide: HttpErrorInterceptorOptions, useValue: {
+            provide: OrderHttpJwtGuard,
+            useClass: extractBoolEnv(process.env.DISABLE_AUTH)
+                ? MockAuthGuard
+                : OrderHttpJwtGuard,
+        },
+
+
+        
+        {
+            provide: HttpErrorInterceptorOptions,
+            useValue: {
                 includeTupleInBody: false,
                 retryAfterSeconds: 1,
                 addNoStoreHeaders: true,
-            }
+            },
         },
         {
-            provide: KafkaErrorInterceptorOptions, useValue: {
-                maxRetries: 5
-            }
+            provide: KafkaErrorInterceptorOptions,
+            useValue: {
+                maxRetries: 5,
+            },
         },
-
-
-
-
-
-    ]
-
+    ],
 })
 export class OrderWorkflowModule { }
-
-
-
-

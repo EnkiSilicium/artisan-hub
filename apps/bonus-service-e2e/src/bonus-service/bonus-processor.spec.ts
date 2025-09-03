@@ -21,14 +21,13 @@ async function pollUntil(
       if (await predicate()) return;
     } catch (e: any) {
       failures++;
-      // show one error periodically so you see what’s wrong instead of staring at nothing
-      if (failures === 1 || failures % 5 === 0) {
+      if (failures === 1 || failures % 3 === 0) {
         const msg = e?.response
           ? `HTTP ${e.response.status} ${e.response.statusText} body=${JSON.stringify(e.response.data)}`
           : e?.code
             ? `${e.code}: ${e.message}`
             : e?.message || String(e);
-        // eslint-disable-next-line no-console
+        
         console.warn(`[E2E] pollUntil error: ${msg}`);
       }
       await wait(intervalMs);

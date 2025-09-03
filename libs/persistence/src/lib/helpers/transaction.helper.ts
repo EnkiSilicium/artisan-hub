@@ -4,7 +4,7 @@ import { Ambient } from 'libs/persistence/src/lib/interfaces/transaction-context
 import { OutboxMessage } from 'libs/persistence/src/lib/outbox/outbox-message.entity';
 import { ProgrammerError } from 'error-handling/error-core';
 import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
-import { BaseEvent } from 'libs/contracts/src/_common/base-event.event.js';
+import { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
 
 export const als = new AsyncLocalStorage<Ambient>();
 /**

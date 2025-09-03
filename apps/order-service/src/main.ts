@@ -55,8 +55,10 @@ async function startOrderWorkflowApp() {
 
   setupSwagger(app, { title: 'Order workflow API', path: 'docs', version: '1.0' });
 
+
   await app.listen(httpPort);
   const url = await app.getUrl();
+  console.log(`[OrderWorkflowApp] HTTP listening: ${url}  |  Swagger: ${url}/docs`);
 }
 
 async function startOrderReadApp() {
@@ -70,6 +72,7 @@ async function startOrderReadApp() {
 
     app.get(HttpErrorInterceptor),
     app.get(LoggingInterceptor),
+    
   );
 
 
@@ -78,6 +81,7 @@ async function startOrderReadApp() {
 
   await app.listen(httpPort);
   const url = await app.getUrl();
+  console.log(`[OrderWorkflowApp] HTTP listening: ${url}  |  Swagger: ${url}/docs`);
 
 }
 

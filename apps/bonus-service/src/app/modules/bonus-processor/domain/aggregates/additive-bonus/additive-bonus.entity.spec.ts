@@ -10,6 +10,7 @@ import { AdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processo
 import { BonusEventEntity } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity';
 import { makeAdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity.mock-factory';
 import { makeBonusEvent } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity.mock-factory';
+import { DomainError } from 'error-handling/error-core';
 
 const uuid = (n = 1) =>
   `${String(n).padStart(8, '0')}-1111-4111-8111-11111111111${n}`;
@@ -113,6 +114,29 @@ describe('AdditiveBonus', () => {
           wrongGradePolicy,
         );
       }).toThrow();
+    });
+
+    it('includes correct expected version in error details for grade policy mismatch', () => {
+      const entity = makeAdditiveBonus({
+        bonusPolicyVersion: 1,
+        gradePolicyVersion: 2,
+      });
+      const event = makeBonusEvent({});
+      const wrongGradePolicy = mkGrade({ version: 3 });
+      const bonusRegistry = mkBonus({
+        registry: {
+          [event.eventName]: { bonusAmount: 1 },
+        } satisfies Record<string, EventBonusInfo> as any,
+      });
+
+      expect.assertions(2);
+      try {
+        entity.processBonusEvent(event.eventName, bonusRegistry, wrongGradePolicy);
+      } catch (err) {
+        const e = err as DomainError;
+        expect(e.details?.description).toContain(String(entity.gradePolicyVersion));
+        expect(e.details?.description).not.toContain(String(entity.bonusPolicyVersion));
+      }
     });
 
     it('throws if event not in registry', () => {

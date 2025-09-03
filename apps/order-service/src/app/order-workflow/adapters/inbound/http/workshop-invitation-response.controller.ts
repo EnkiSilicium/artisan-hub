@@ -17,7 +17,7 @@ import {
 } from 'contracts';
 
 @ApiTags('Order workflow')
-@Controller({ path: 'workshop-invitaion', version: '1' })
+@Controller({ path: 'workshop-invitation', version: '1' })
 export class WorkshopInvitationResponseController {
   constructor(
     private readonly workshopInvitationResponseService: WorkshopInvitationResponseService,
@@ -35,12 +35,19 @@ export class WorkshopInvitationResponseController {
   async accept(
     @Body() body: AcceptWorkshopInvitationDtoV1,
   ) {
+    
+    const orderId = body.orderId
+    const workshopId = body.workshopId
+    const stages = body.stages?.map(stage => ({...stage, ...{orderId, workshopId}}))
     return await this.workshopInvitationResponseService.acceptWorkshopInvitation(
       {
-        orderId: body.orderId,
-        workshopId: body.workshopId,
+        orderId: orderId,
+        workshopId: workshopId,
         payload: {
-          ...body.request,
+          description: body.invitationInfo.description,
+          deadline: body.invitationInfo.deadline,
+          budget: body.invitationInfo.budget,
+          stages: stages,
         },
       },
     );

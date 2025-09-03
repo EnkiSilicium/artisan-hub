@@ -82,7 +82,7 @@ export class OrderStageFlatRepo {
   async refresh(): Promise<void> {
     try {
       await this.ds.query(
-        'REFRESH MATERIALIZED VIEW CONCURRENTLY mv_order_history_projection',
+        'REFRESH MATERIALIZED VIEW mv_order_history_projection',
       );
     } catch (error) {
       remapTypeOrmPgErrorToInfra(error);

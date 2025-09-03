@@ -15,4 +15,5 @@ export default {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../coverage/order-service-e2e',
+  reporters: ['default', '<rootDir>/full-error-reporter.cjs'],
 };

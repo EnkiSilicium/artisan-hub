@@ -11,7 +11,7 @@
         "jestConfig": "apps/order-service-e2e/jest.config.ts",
         "passWithNoTests": true
       },
-      "dependsOn": ["order-service:build", "order-service:serve"]
+      "dependsOn": ["order-service:build"]
     }
   }
 }

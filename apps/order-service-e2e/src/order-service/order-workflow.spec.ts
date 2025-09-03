@@ -1,244 +1,749 @@
-import { INestApplication, MicroserviceOptions } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
-import { Kafka, Consumer } from 'kafkajs';
-import axios from 'axios';
-import { KafkaContainer, PostgreSqlContainer } from 'testcontainers';
-import { OrderWorkflowModule } from 'apps/order-service/src/app/order-workflow/infra/di/order-workflow.module';
-import { OrderReadModule } from 'apps/order-service/src/app/read-model/infra/di/order-read.module';
-import { orderWorkflowKafkaConfig } from 'apps/order-service/src/app/order-workflow/infra/config/kafka.config';
-import { KafkaTopics } from 'contracts';
+// apps/order-service/e2e/order.e2e.spec.ts
+import axios, { AxiosResponse } from 'axios';
+import { randomUUID } from 'crypto';
+import { Kafka, Consumer, logLevel } from 'kafkajs';
 import { isoNow } from 'shared-kernel';
+import { AcceptWorkshopInvitationDtoV1, ConfirmStageCompletionDtoV1, KafkaTopics, MarkStageCompletionDtoV1, OrderHistoryQueryResultDto, OrderHistoryQueryResultFlatDto, OrderInitDtoV1 } from 'contracts';
 
-describe('Order workflow integration', () => {
-  let app: INestApplication;
-  let readApp: INestApplication;
-  let kafka: Kafka;
-  let consumer: Consumer;
-  let pg: PostgreSqlContainer;
-  let kafkaContainer: KafkaContainer;
-  let baseUrl: string;
-  let readUrl: string;
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-  beforeAll(async () => {
-    pg = await new PostgreSqlContainer('postgres:16-alpine').start();
-    kafkaContainer = await new KafkaContainer().start();
+async function pollUntil(
+  predicate: () => Promise<boolean>,
+  { timeoutMs = 60_000, intervalMs = 500 } = {},
+  timeoutMessage: string = `Default timeout message: Timed out waiting for condition`,
+): Promise<void> {
+  const start = Date.now();
+  let failures = 0;
+  while (Date.now() - start < timeoutMs) {
+    try {
+      if (await predicate()) return;
+    } catch (e: any) {
+      failures++;
+      if (failures === 1 || failures % 3 === 0) {
+        const msg = e?.response
+          ? `HTTP ${e.response.status} ${e.response.statusText} body=${JSON.stringify(e.response.data)}`
+          : e?.code
+            ? `${e.code}: ${e.message}`
+            : e?.message || String(e);
 
-    process.env.PG_HOST = pg.getHost();
-    process.env.PG_PORT = pg.getMappedPort(5432).toString();
-    process.env.PG_USER = pg.getUsername();
-    process.env.PG_PASSWORD = pg.getPassword();
-    process.env.PG_DB = pg.getDatabase();
-    process.env.DB_SCHEMA = 'order_service';
-    process.env.TYPEORM_SYNC = 'true';
-    process.env.KAFKA_BROKER_HOSTNAME = kafkaContainer.getHost();
-    process.env.KAFKA_BROKER_PORT = kafkaContainer.getMappedPort(9092).toString();
+        console.warn(`[E2E] pollUntil error: ${msg}`);
+      }
+    }
+    await wait(intervalMs);
+  }
+  console.error(`[E2E] ${timeoutMessage}`);
+  throw new Error(timeoutMessage);
+}
 
-    app = await NestFactory.create(OrderWorkflowModule, { logger: false });
-    app.setGlobalPrefix('api');
-    app.connectMicroservice<MicroserviceOptions>(
-      orderWorkflowKafkaConfig.asNestMicroserviceOptions(),
-    );
-    await app.startAllMicroservices();
-    await app.listen(0);
-    baseUrl = await app.getUrl();
+const resolveCmd = (): string => {
+  const url = process.env.ORDER_BASE_URL;
+  if (url?.startsWith('http')) return url.replace(/\/+$/, '');
+  return `http://${process.env.ORDER_HOST ?? '127.0.0.1'}:${process.env.ORDER_PORT ?? '3001'}`;
+};
 
-    readApp = await NestFactory.create(OrderReadModule, { logger: false });
-    readApp.setGlobalPrefix('api');
-    await readApp.listen(0);
-    readUrl = await readApp.getUrl();
+const resolveRead = (): string => {
+  const url = process.env.ORDER_READ_BASE_URL;
+  if (url?.startsWith('http')) return url.replace(/\/+$/, '');
+  return `http://${process.env.ORDER_READ_HOST ?? '127.0.0.1'}:${process.env.ORDER_READ_PORT ?? '3002'}`;
+};
 
-    kafka = new Kafka({
-      brokers: [`${kafkaContainer.getHost()}:${kafkaContainer.getMappedPort(9092)}`],
-    });
-    consumer = kafka.consumer({ groupId: 'order-e2e' });
-    await consumer.connect();
-    await consumer.subscribe({ topic: KafkaTopics.AllResponsesReceived });
-    await consumer.subscribe({ topic: KafkaTopics.AllInvitationsDeclined });
-    await consumer.subscribe({ topic: KafkaTopics.StageTransitions });
-  }, 60000);
+const bootstrap = (): string => {
+  const bs = process.env.KAFKA_BOOTSTRAP;
+  if (!bs || !bs.includes(':'))
+    throw new Error(`KAFKA_BOOTSTRAP invalid: "${bs ?? ''}"`);
+  return bs;
+};
 
-  afterAll(async () => {
-    await consumer.stop();
-    await consumer.disconnect();
-    await app.close();
-    await readApp.close();
-    await pg.stop();
-    await kafkaContainer.stop();
+async function withConsumer<T>(
+  topics: string[],
+  each: (p: {
+    topic: string;
+    key?: string;
+    value?: any;
+    headers: Record<string, string>;
+  }) => void,
+  body: () => Promise<T>,
+): Promise<T> {
+  const kafka = new Kafka({
+    clientId: `order-e2e-${Math.random().toString(36).slice(2, 8)}`,
+    brokers: [bootstrap()],
+    logLevel: logLevel.NOTHING,
   });
 
-  it('emits decline events when all invitations are declined', async () => {
-    const commissionerId = 'comm-decline';
-    const workshops = ['wd1', 'wd2'];
+  const groupId = `order-e2e-${Date.now()}`;
+  const consumer: Consumer = kafka.consumer({ groupId });
+  console.log(
+    `[E2E][Kafka] connect groupId=${groupId} topics=[${topics.join(', ')}]`,
+  );
+  await consumer.connect();
+  for (const t of topics)
+    await consumer.subscribe({ topic: t, fromBeginning: false });
 
-    await axios.post(`${baseUrl}/api/order`, {
-      commissionerId: commissionerId,
-      selectedWorkshops: workshops,
-      request: {
-        title: 'req',
-        description: 'desc',
-        deadline: isoNow(),
-        budget: '10',
-      },
-    });
+  await consumer.run({
+    eachMessage: async ({ topic, message }) => {
+      const key = message.key?.toString('utf8');
+      const headers: Record<string, string> = {};
+      for (const [k, v] of Object.entries(message.headers ?? {})) {
+        headers[k] = Buffer.isBuffer(v) ? v.toString('utf8') : String(v);
+      }
+      let value: any;
+      try {
+        value = JSON.parse(message.value?.toString('utf8') ?? 'null');
+      } catch {
+        value = undefined;
+      }
+      const evName = headers['x-event-name'];
+      const evOrderId = value?.orderId ?? value?.orderID;
+      console.log(
+        `[E2E][Kafka] ${topic} name=${evName ?? '-'} orderId=${evOrderId ?? '-'}`,
+      );
+      each({ topic, key, value, headers });
+    },
+  });
 
-    const history = await axios.get(`${readUrl}/api/orders/stages`, {
-      params: { commissionerId },
-    });
-    const orderId = history.data.items[0].orderId;
-
-    const waitFor = new Promise<void>((resolve) => {
-      const received = new Set<string>();
-      consumer.run({
-        eachMessage: async ({ message }) => {
-          const name = message.headers?.['x-event-name']?.toString();
-          if (name) {
-            received.add(name);
-            if (
-              received.has('AllResponsesReceived') &&
-              received.has('AllInvitationsDeclined')
-            ) {
-              resolve();
-            }
-          }
-        },
-      });
-    });
-
-    for (const ws of workshops) {
-      await axios.post(`${baseUrl}/api/workshop-invitaion/decline`, {
-        orderId,
-        workshopId: ws,
-      });
+  try {
+    const res = await body();
+    await wait(250);
+    return res;
+  } catch (error) {
+    if (axios.isAxiosError(error) || (error as any)?.isAxiosError === true) {
+      const { response, code, message, status } = error as any;
+      console.error(
+        `[E2E] AxiosError${code ? `: ${code}` : ''} -> ${status ?? response?.status} (${message})\n${JSON.stringify(response?.data)}`,
+      );
     }
+    throw error;
+  } finally {
+    await consumer.stop().catch(() => { });
+    await consumer.disconnect().catch(() => { });
+  }
+}
 
-    await waitFor;
+async function readStages(READ: string, commissionerId: string): Promise<OrderHistoryQueryResultDto> {
+  const urlRefresh = `${READ}/api/orders/stages/refresh`;
+  console.log(`[E2E][HTTP] POST ${urlRefresh}`);
+  const resRefresh = await axios.post(urlRefresh, {}, { timeout: 2500 });
+  console.log(`[E2E][HTTP] <- ${resRefresh.status} from ${urlRefresh}`);
 
-    const historyAfter = await axios.get(`${readUrl}/api/orders/stages`, {
-      params: { commissionerId },
-    });
-    expect(historyAfter.data.total).toBeGreaterThan(0);
-  }, 60000);
+  const urlRead = `${READ}/api/orders/stages`;
+  console.log(
+    `[E2E][HTTP] GET ${urlRead}?commissionerId=${commissionerId}&limit=10&offset=0`,
+  );
+  const res = await axios.get(urlRead, {
+    params: { commissionerId, limit: 10, offset: 0 },
+    timeout: 2500,
+  });
+  console.log(`[E2E][HTTP] <- ${res.status} from ${urlRead}`);
+  console.log(`[E2E][HTTP]     data=${JSON.stringify(res.data)}`);
+  return res.data;
+}
 
-  it('processes accepted invitation through all stages', async () => {
-    const commissionerId = 'comm-accept';
-    const workshops = ['wa1', 'wa2'];
+describe('Order workflow integration (read model + Kafka)', () => {
+  let CMD: string;
+  let READ: string;
 
-    await axios.post(`${baseUrl}/api/order`, {
-      commissionerId: commissionerId,
-      selectedWorkshops: workshops,
-      request: {
-        title: 'req',
-        description: 'desc',
-        deadline: isoNow(),
-        budget: '10',
+  beforeAll(async () => {
+    CMD = resolveCmd();
+    READ = resolveRead();
+    console.log(`[E2E] CMD_BASE=${CMD}`);
+    console.log(`[E2E] READ_BASE=${READ}`);
+
+    //console.log(`[E2E][HTTP] GET ${CMD}/api/health (or /)`);
+    //await pollUntil(async () => (await axios.get(`${CMD}/api/health`).catch(() => axios.get(`${CMD}/`))).status < 500);
+
+    console.log(`[E2E] Waiting for read model to be ready...`);
+    console.log(`[E2E][HTTP] GET ${READ}/api/orders/stages?limit=1&offset=0`);
+    await pollUntil(
+      async () =>
+        (
+          await axios.get(`${READ}/api/orders/stages`, {
+            params: { limit: 1, offset: 0 },
+          })
+        ).status === 200,
+    );
+    console.log(`[E2E] Read model is ready -> confirmed`);
+  }, 90_000);
+
+  it('decline-all: emits Kafka signals; read model reflects decline', async () => {
+    console.log(`[E2E] Starting decline-all test...`);
+    const commissionerId = randomUUID();
+    const workshops = [randomUUID(), randomUUID()];
+
+    const seen = new Set<string>();
+    let orderId!: string;
+
+    await withConsumer(
+      [
+        String(KafkaTopics.AllResponsesReceived),
+        String(KafkaTopics.AllInvitationsDeclined),
+        String(KafkaTopics.StageTransitions),
+      ],
+      ({ headers, value }) => {
+        const name = headers['x-event-name'];
+        const vOrderId = value?.orderId ?? value?.orderID;
+        if (name && vOrderId && vOrderId === orderId) seen.add(name);
       },
-    });
+      async () => {
+        console.log(
+          `[E2E] commissionerId=${commissionerId} workshops=${workshops.join(',')}`,
+        );
 
-    const history = await axios.get(`${readUrl}/api/orders/stages`, {
-      params: { commissionerId },
-    });
-    const orderId = history.data.items[0].orderId;
+        const postOrderUrl = `${CMD}/api/order`;
+        console.log(`[E2E] Running order creation...`);
+        console.log(`[E2E][HTTP] POST ${postOrderUrl}`);
+        const response: AxiosResponse = await axios.post(postOrderUrl, {
+          commissionerId,
+          selectedWorkshops: workshops,
+          request: {
+            title: 'req',
+            description: 'desc',
+            deadline: isoNow(),
+            budget: '10',
+          },
+        } satisfies OrderInitDtoV1
+      );
+        console.log(
+          `[E2E] order init response: ${response.status} ${JSON.stringify(response.data)}`,
+        );
 
-    const waitForResponses = new Promise<void>((resolve) => {
-      let responses = 0;
-      consumer.run({
-        eachMessage: async ({ message }) => {
-          const name = message.headers?.['x-event-name']?.toString();
-          if (name === 'AllResponsesReceived') {
-            resolve();
-          }
-          if (name === 'AllInvitationsDeclined') {
-            resolve();
-          }
+        expect(response.status).toBeGreaterThanOrEqual(200);
+        expect(response.status).toBeLessThan(300);
+
+        orderId = await pollUntil(async () => {
+          const d = await readStages(READ, commissionerId);
+          return Boolean(d?.items?.[0]?.orderId);
         },
-      });
-    });
-
-    await axios.post(`${baseUrl}/api/workshop-invitaion/accept`, {
-      orderId,
-      workshopId: workshops[0],
-      request: {
-        stages: [
           {
+            timeoutMs: 90_000,
+            intervalMs: 400,
+          },
+          `Timed out waiting for order to appear in read model for commissioner ${commissionerId}`,
+        ).then(async () => {
+          const d = await readStages(READ, commissionerId);
+          return d.items[0].orderId;
+        });
+        console.log(`[E2E] Order retrieved: ${orderId}`);
+
+        for (const ws of workshops) {
+          console.log(`[E2E] Declining invitation for workshop ${ws}...`);
+          const url = `${CMD}/api/workshop-invitation/decline`;
+          console.log(
+            `[E2E][HTTP] POST ${url} orderId=${orderId} workshopId=${ws}`,
+          );
+          await axios.post(url, { orderId, workshopId: ws });
+          console.log(`[E2E] Declining SUCCESS`);
+        }
+
+        console.log(`[E2E] polling for events...`);
+        await pollUntil(
+          async () =>
+            seen.has('AllResponsesReceived') &&
+            seen.has('AllInvitationsDeclined'),
+          {
+            timeoutMs: 90_000,
+            intervalMs: 400,
+          },
+          `Timed out waiting for AllResponsesReceived + AllInvitationsDeclined events for order ${orderId}`,
+        );
+      },
+    );
+
+    console.log(`[E2E] verifying results of decline-all...`);
+
+    expect(seen.has('AllResponsesReceived')).toBe(true);
+    expect(seen.has('AllInvitationsDeclined')).toBe(true);
+
+
+    const after = await readStages(READ, commissionerId);
+    expect(after.total).toBeGreaterThan(0);
+  }, 150_000);
+
+  it('accept-and-complete: emits stage transitions & completion; read model reflects', async () => {
+    console.log(`[E2E] Starting accept-and-complete test...`);
+
+    const commissionerId = randomUUID();
+    const workshops = [randomUUID(), randomUUID()];
+
+    const seen = new Set<string>();
+    let orderId!: string;
+
+    await withConsumer(
+      [
+        String(KafkaTopics.AllResponsesReceived),
+        String(KafkaTopics.StageTransitions),
+        String(KafkaTopics.StageTransitions),
+      ],
+      ({ headers, value }) => {
+        const name = headers['x-event-name'];
+        const vOrderId = value?.orderId ?? value?.orderID;
+        if (name && vOrderId && vOrderId === orderId) seen.add(name);
+      },
+      async () => {
+        const postOrderUrl = `${CMD}/api/order`;
+        console.log(
+          `[E2E] commissionerId=${commissionerId} workshops=${workshops.join(',')}`,
+        );
+        console.log(`[E2E][HTTP] POST ${postOrderUrl}`);
+
+        console.log(`[E2E] Creating order...`);
+        await axios.post(postOrderUrl, {
+          commissionerId,
+          selectedWorkshops: workshops,
+          request: {
+            title: 'req',
+            description: 'desc',
+            deadline: isoNow(),
+            budget: '10',
+          },
+        } satisfies OrderInitDtoV1
+      );
+
+        orderId = await pollUntil(async () => {
+          const d = await readStages(READ, commissionerId);
+          return Boolean(d?.items?.[0]?.orderId);
+        },
+          {
+            timeoutMs: 90_000,
+            intervalMs: 400,
+          },
+          `Timed out waiting for order to appear in read model for commissioner ${commissionerId}`,).then(async () => {
+            const d = await readStages(READ, commissionerId);
+            console.log(`[E2E][HTTP] final readStages <- ${JSON.stringify(d)}`);
+            return d.items[0].orderId;
+          });
+        console.log(`[E2E] Order retrieved: ${orderId}`);
+
+        const acceptUrl = `${CMD}/api/workshop-invitation/accept`;
+        console.log(
+          `[E2E][HTTP] POST ${acceptUrl} orderId=${orderId} workshopId=${workshops[0]}`,
+        );
+
+        console.log(`[E2E] Accepting invitation for workshop ${workshops[0]}...`);
+        await axios.post(acceptUrl, {
+          orderId,
+          workshopId: workshops[0],
+          invitationInfo: {
+            description: 'desc',
+            deadline: isoNow(),
+            budget: "10 USD"
+          },
+          stages: [
+            {
+
+              stageName: 'Design',
+              stageOrder: 0,
+              approximateLength: '1d',
+              description: 'd',
+              needsConfirmation: false,
+            },
+            {
+
+              stageName: 'Build',
+              stageOrder: 1,
+              approximateLength: '1d',
+              description: 'b',
+              needsConfirmation: true,
+            },
+            {
+
+
+              stageName: 'Deliver',
+              stageOrder: 2,
+              approximateLength: '1d',
+              description: 'c',
+              needsConfirmation: false,
+            },
+          ],
+        } satisfies AcceptWorkshopInvitationDtoV1
+        );
+
+        console.log(`[E2E] Declining invitation for the other workshop...`);
+        const declineUrl = `${CMD}/api/workshop-invitation/decline`;
+        console.log(
+          `[E2E][HTTP] POST ${declineUrl} orderId=${orderId} workshopId=${workshops[1]}`,
+        );
+        await axios.post(declineUrl, { orderId, workshopId: workshops[1] });
+
+        console.log(`[E2E] Catching events...`);
+        await pollUntil(async () => seen.has('AllResponsesReceived'), {
+          timeoutMs: 60_000,
+          intervalMs: 400,
+        }
+          , `Timed out waiting for AllResponsesReceived event for order ${orderId}`
+
+        );
+
+        console.log(`[E2E] Marking & confirming stages...`);
+        const mark = (stage: string) =>
+          axios.post(`${CMD}/api/stage-completion/mark`, {
             orderId,
             workshopId: workshops[0],
+            commissionerId,
+            stageName: stage,
+          } satisfies MarkStageCompletionDtoV1);
+        const confirm = (stage: string) =>
+          axios.post(`${CMD}/api/stage-completion/confirm`, {
+            orderId,
+            workshopId: workshops[0],
+            commissionerId,
+            stageName: stage,
+          } satisfies ConfirmStageCompletionDtoV1
+        );
+
+        console.log(`[E2E][HTTP] POST ${CMD}/api/stage-completion/mark Design`);
+        await mark('Design');
+        console.log(`Design marked (autoconfirm expected)`);
+
+        console.log(`[E2E][HTTP] POST ${CMD}/api/stage-completion/mark Build`);
+        await mark('Build');
+        console.log(`Build marked`);
+
+        console.log(
+          `[E2E][HTTP] POST ${CMD}/api/stage-completion/confirm Build`,
+        );
+        await confirm('Build');
+        console.log(`Build confirmed`);
+
+        console.log(
+          `[E2E][HTTP] POST ${CMD}/api/stage-completion/mark Deliver`,
+        );
+        await mark('Deliver');
+        console.log(`Deliver marked (autoconfirm expected)`);
+        console.log(`All stages marked (and Build confirmed)`);
+
+        console.log(`[E2E] Waiting for AllStagesCompleted...`);
+        console.log(`[E2E] Catching events...`);
+        await pollUntil(async () => seen.has('AllStagesCompleted'),
+          {
+            timeoutMs: 90_000,
+            intervalMs: 500,
+          }, `Timed out waiting for AllStagesCompleted event for order ${orderId}`
+        );
+
+        console.log(`[E2E] AllStagesCompleted received`);
+      },
+    );
+
+    console.log(`[E2E] verifying results of accept-and-complete...`);
+    expect(seen.has('AllResponsesReceived')).toBe(true);
+    expect(seen.has('StageConfirmationMarked')).toBe(true);
+    expect(seen.has('AllStagesCompleted')).toBe(true);
+    const final = await readStages(READ, commissionerId);
+    expect(final.total).toBeGreaterThan(0);
+
+  }, 180_000);
+
+  // --------- Non-happy paths ---------
+
+  it('non-happy: decline not-invited workshop → 4xx; no Kafka; read model unchanged', async () => {
+    console.log(`[E2E] Starting decline-not-invited test...`);
+    const commissionerId = randomUUID();
+    const invited = [randomUUID(), randomUUID()];
+    const notInvited = randomUUID();
+
+    const seen = new Set<string>();
+    let orderId!: string;
+
+    await withConsumer(
+      [
+        String(KafkaTopics.StageTransitions),
+        String(KafkaTopics.AllResponsesReceived),
+        String(KafkaTopics.AllInvitationsDeclined),
+        String(KafkaTopics.StageTransitions),
+      ],
+      ({ headers, value }) => {
+        const name = headers['x-event-name'];
+        const vOrderId = value?.orderId ?? value?.orderID;
+        if (name && vOrderId && vOrderId === orderId) seen.add(name);
+      },
+      async () => {
+        const postOrderUrl = `${CMD}/api/order`;
+
+        console.log(`[E2E] Running order creation...`);
+        console.log(
+          `[E2E] commissionerId=${commissionerId} invited=${invited.join(',')}`,
+        );
+        console.log(`[E2E][HTTP] POST ${postOrderUrl}`);
+        await axios.post(postOrderUrl, {
+          commissionerId,
+          selectedWorkshops: invited,
+          request: {
+            title: 'bad',
+            description: 'decline-not-invited',
+            deadline: isoNow(),
+            budget: '1',
+          },
+        } satisfies OrderInitDtoV1
+      );
+
+        orderId = await pollUntil(async () => {
+          const d = await readStages(READ, commissionerId);
+          return Boolean(d?.items?.[0]?.orderId);
+        },
+          {
+            timeoutMs: 90_000,
+            intervalMs: 400,
+          },
+          `Timed out waiting for order to appear in read model for commissioner ${commissionerId}`,
+
+        ).then(async () => {
+          const d = await readStages(READ, commissionerId);
+          console.log(`[E2E][HTTP] final readStages <- ${JSON.stringify(d)}`);
+          return d.items[0].orderId;
+        });
+
+        const before = await readStages(READ, commissionerId);
+
+        let status = 0;
+        try {
+          console.log(`[E2E] Declining the one to whom it shall not concern...`);
+          const url = `${CMD}/api/workshop-invitation/decline`;
+          console.log(
+            `[E2E][HTTP] POST ${url} orderId=${orderId} workshopId=${notInvited}`,
+          );
+          await axios.post(url, { orderId, workshopId: notInvited });
+        } catch (e: any) {
+          console.log(`[E2E] Caught expected error: ${e?.message ?? e}`);
+          console.log(`[E2E] Yeah, screw off, ${notInvited}, ain't your damn business!`);
+
+          status = e?.response?.status ?? 0;
+        }
+        expect(status).toBeGreaterThanOrEqual(400);
+
+        await wait(800);
+        expect(seen.size).toBe(0);
+
+        console.log(`[E2E] Verifying read model unchanged...`);
+        const after = await readStages(READ, commissionerId);
+        expect(after.total).toBeGreaterThanOrEqual(before.total ?? 0);
+
+      },
+    );
+  }, 90_000);
+
+  it('non-happy: mark stage before acceptance → 4xx; no StageTransitions; read model unchanged', async () => {
+    console.log(`[E2E] Starting mark-before-accept test...`);
+    const commissionerId = randomUUID();
+    const workshops = [randomUUID(), randomUUID()];
+
+    const seen = new Set<string>();
+    let orderId!: string;
+
+    await withConsumer(
+      [
+        String(KafkaTopics.StageTransitions),
+        String(KafkaTopics.StageTransitions),
+      ],
+      ({ headers, value }) => {
+        const name = headers['x-event-name'];
+        const vOrderId = value?.orderId ?? value?.orderID;
+        if (name && vOrderId && vOrderId === orderId) seen.add(name);
+      },
+      async () => {
+        const postOrderUrl = `${CMD}/api/order`;
+        console.log(`[E2E] Running order creation...`);
+        console.log(
+          `[E2E] commissionerId=${commissionerId} workshops=${workshops.join(',')}`,
+        );
+        console.log(`[E2E][HTTP] POST ${postOrderUrl}`);
+        await axios.post(postOrderUrl, {
+          commissionerId,
+          selectedWorkshops: workshops,
+          request: {
+            title: 'bad',
+            description: 'mark-before-accept',
+            deadline: isoNow(),
+            budget: '1',
+          },
+        } satisfies OrderInitDtoV1
+      );
+
+        orderId = await pollUntil(async () => {
+          const d = await readStages(READ, commissionerId);
+          return Boolean(d?.items?.[0]?.orderId);
+        },
+          {
+            timeoutMs: 90_000,
+            intervalMs: 400,
+          },
+          `Timed out waiting for order to appear in read model for commissioner ${commissionerId}`,
+
+        ).then(async () => {
+          const d = await readStages(READ, commissionerId);
+          console.log(`[E2E][HTTP] final readStages <- ${JSON.stringify(d)}`);
+          return d.items[0].orderId;
+        });
+
+        const before = await readStages(READ, commissionerId);
+
+        let status = 0;
+        try {
+          console.log(`[E2E] Marking stage before acceptance...`);
+          const url = `${CMD}/api/stage-completion/mark`;
+          console.log(`[E2E][HTTP] POST ${url} (pre-accept)`);
+          await axios.post(url, {
+            orderId,
+            workshopId: workshops[0],
+            commissionerId,
             stageName: 'Design',
-            stageOrder: 0,
-            approximateLength: '1d',
-            description: 'd',
-            needsConfirmation: false,
-          },
-          {
-            orderId,
-            workshopId: workshops[0],
-            stageName: 'Build',
-            stageOrder: 1,
-            approximateLength: '1d',
-            description: 'b',
-            needsConfirmation: true,
-          },
-          {
-            orderId,
-            workshopId: workshops[0],
-            stageName: 'Deliver',
-            stageOrder: 2,
-            approximateLength: '1d',
-            description: 'c',
-            needsConfirmation: false,
-          },
-        ],
+          } satisfies MarkStageCompletionDtoV1
+        );
+        } catch (e: any) {
+          console.log(`[E2E] Caught expected error: ${e?.message ?? e}`);
+          console.log(`[E2E] the hell is wrong with you, ${workshops[0]}?`);
+          status = e?.response?.status ?? 0;
+        }
+        expect(status).toBeGreaterThanOrEqual(400);
+
+        await wait(600);
+        expect(seen.size).toBe(0);
+
+        console.log(`[E2E] Verifying read model unchanged...`);
+        const after = await readStages(READ, commissionerId);
+        expect(after.total).toBeGreaterThanOrEqual(before.total ?? 0);
       },
-    });
+    );
+  }, 90_000);
 
-    await axios.post(`${baseUrl}/api/workshop-invitaion/decline`, {
-      orderId,
-      workshopId: workshops[1],
-    });
+  it('non-happy: confirm stage before mark or when not required → 4xx; no completion; read model not completed', async () => {
+    console.log(`[E2E] Starting confirm-before-mark test...`);
+    const commissionerId = randomUUID();
+    const workshops = [randomUUID(), randomUUID()];
 
-    await waitForResponses;
+    const seen = new Set<string>();
+    let orderId!: string;
 
-    const waitForStages = new Promise<void>((resolve) => {
-      const seen = new Set<string>();
-      consumer.run({
-        eachMessage: async ({ message }) => {
-          const name = message.headers?.['x-event-name']?.toString();
-          if (name) {
-            seen.add(name);
-            if (seen.has('AllStagesCompleted')) {
-              resolve();
-            }
-          }
+    await withConsumer(
+      [
+        String(KafkaTopics.StageTransitions),
+        String(KafkaTopics.StageTransitions),
+      ],
+      ({ headers, value }) => {
+        const name = headers['x-event-name'];
+        const vOrderId = value?.orderId ?? value?.orderID;
+        if (name && vOrderId && vOrderId === orderId) seen.add(name);
+      },
+      async () => {
+        const postOrderUrl = `${CMD}/api/order`;
+        console.log(
+          `[E2E] commissionerId=${commissionerId} workshops=${workshops.join(',')}`,
+        );
+        console.log(`[E2E][HTTP] POST ${postOrderUrl}`);
+        await axios.post(postOrderUrl, {
+          commissionerId,
+          selectedWorkshops: workshops,
+          request: {
+            title: 'bad',
+            description: 'confirm-before-mark',
+            deadline: isoNow(),
+            budget: '1',
+          },
+        } satisfies OrderInitDtoV1
+      );
+
+        orderId = await pollUntil(async () => {
+          const d = await readStages(READ, commissionerId);
+          return Boolean(d?.items?.[0]?.orderId);
         },
-      });
-    });
+          {
+            timeoutMs: 90_000,
+            intervalMs: 400,
+          },
+          `Timed out waiting for order to appear in read model for commissioner ${commissionerId}`,
+        ).then(async () => {
+          const d = await readStages(READ, commissionerId);
+          return d.items[0].orderId;
+        });
 
-    const mark = async (stage: string) => {
-      await axios.post(`${baseUrl}/api/stage-completion/mark`, {
-        orderId,
-        workshopId: workshops[0],
-        commissionerId,
-        stageName: stage,
-      });
-    };
-    const confirm = async (stage: string) => {
-      await axios.post(`${baseUrl}/api/stage-completion/confirm`, {
-        orderId,
-        workshopId: workshops[0],
-        commissionerId,
-        stageName: stage,
-      });
-    };
+        console.log(`[E2E] Accepting invitation for workshop ${workshops[0]}...`);
+        const acceptUrl = `${CMD}/api/workshop-invitation/accept`;
+        console.log(
+          `[E2E][HTTP] POST ${acceptUrl} orderId=${orderId} workshopId=${workshops[0]} (needsConfirmation for Build)`,
+        );
+        await axios.post(acceptUrl, {
+          orderId,
+          workshopId: workshops[0],
+          invitationInfo: {
+            description: 'desc',
+            deadline: isoNow(),
+            budget: "10 USD"
 
-    await mark('Design');
-    await mark('Build');
-    await confirm('Build');
-    await mark('Deliver');
+          },
+          stages: [
+            {
 
-    await waitForStages;
+              stageName: 'Design',
+              stageOrder: 0,
+              approximateLength: '1d',
+              description: 'd',
+              needsConfirmation: false,
+            },
+            {
 
-    const historyAfter = await axios.get(`${readUrl}/api/orders/stages`, {
-      params: { commissionerId },
-    });
-    expect(historyAfter.data.total).toBeGreaterThan(0);
-  }, 120000);
+              stageName: 'Build',
+              stageOrder: 1,
+              approximateLength: '1d',
+              description: 'b',
+              needsConfirmation: true,
+            },
+          ],
+        } satisfies AcceptWorkshopInvitationDtoV1
+        );
+
+
+        const before = await readStages(READ, commissionerId);
+
+        // confirm Design (no confirmation needed)
+        let status1 = 0;
+        try {
+
+          console.log(`[E2E] Confirming Design (no confirmation needed)...`);
+          const url1 = `${CMD}/api/stage-completion/confirm`;
+          console.log(`[E2E][HTTP] POST ${url1} (Design no-confirm-required)`);
+          await axios.post(url1, {
+            orderId,
+            workshopId: workshops[0],
+            commissionerId,
+            stageName: 'Design',
+          } satisfies ConfirmStageCompletionDtoV1
+        );
+        } catch (e: any) {
+          console.log(`[E2E] Caught expected error: ${e?.message ?? e}`);
+          console.log(`[E2E] Impertinent fool, ${workshops[0]}!`);
+          console.log()
+
+          status1 = e?.response?.status ?? 0;
+        }
+        expect(status1).toBeGreaterThanOrEqual(400);
+
+        let status2 = 0;
+        try {
+          console.log(`[E2E] Confirming Build (before marking)...`);
+          const url2 = `${CMD}/api/stage-completion/confirm`;
+          console.log(`[E2E][HTTP] POST ${url2} (Build before mark)`);
+          await axios.post(url2, {
+            orderId,
+            workshopId: workshops[0],
+            commissionerId,
+            stageName: 'Build',
+          } satisfies ConfirmStageCompletionDtoV1
+        );
+        } catch (e: any) {
+          console.log(`[E2E] Caught expected error: ${e?.message ?? e}`);
+          console.log(`[E2E] Asinine wretch, ${workshops[0]}!`);
+          status2 = e?.response?.status ?? 0;
+        }
+        expect(status2).toBeGreaterThanOrEqual(400);
+
+        console.log(`[E2E] Verifying no completion occurred...`);
+        await wait(800);
+        expect(seen.has('AllStagesCompleted')).toBe(false);
+
+        const after = await readStages(READ, commissionerId);
+        expect(after.total).toBeGreaterThanOrEqual(before.total ?? 0);
+      },
+    );
+  }, 120_000);
+
+  console.log(`[E2E] HAIL SATAN 666`)
 });

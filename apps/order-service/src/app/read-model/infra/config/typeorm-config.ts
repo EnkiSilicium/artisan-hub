@@ -25,8 +25,8 @@ export const OrderReadTypeOrmOptions: DataSourceOptions = {
   entitySkipConstructor: true,
   
   // toggles
-  synchronize: process.env.TYPEORM_SYNC === 'true', // dev only
-  migrationsRun: process.env.TYPEORM_MIGRATIONS_RUN === 'true', 
+  synchronize: true, // dev only
+  migrationsRun: true, 
   logging: process.env.TYPEORM_LOGGING
     ? (process.env.TYPEORM_LOGGING.split(',') as DataSourceOptions['logging'])
     : ['error', 'warn'],

@@ -55,21 +55,23 @@ module.exports = async function () {
     KAFKA_BROKER_HOSTNAME: bootstrap.split(':')[0],
     KAFKA_BROKER_PORT: bootstrap.split(':')[1],
     // HTTP
-    BONUS_PROC_HTTP_PORT: String(PROC_PORT),
-    BONUS_READ_HTTP_PORT: String(READ_PORT),
+    ORDER_WRKFLOW_HTTP_PORT: String(PROC_PORT),
+    ORDER_READ_HTTP_PORT: String(READ_PORT),
     HTTP_PREFIX: 'api',
     READ_BASE_URL: `http://127.0.0.1:${READ_PORT}`,
+    NODE_ENV: 'development',
+    DISABLE_AUTH: 'true'
   };
 
-  // 4) Spawn the built app (dist/apps/bonus-service/main.js)
-  const entry = path.join(process.cwd(), 'dist', 'apps', 'bonus-service', 'main.js');
-  if (!fs.existsSync(entry)) {
+  // 4) Spawn the built app (dist/apps/order-service/main)
+  const entryApp = path.join(process.cwd(), 'dist', 'apps', 'order-service', 'main.js');
+  if (!fs.existsSync(entryApp)) {
     throw new Error(
-      `[E2E] Built entry not found at ${entry}. Ensure "bonus-service:build" ran before e2e.`,
+      `[E2E] Built entry not found at ${entryApp}. Ensure "order-service:build" ran before e2e.`,
     );
   }
 
-  const app = spawn('node', [entry], {
+  const app = spawn('node', [entryApp], {
     env,
     stdio: 'inherit',
     shell: true, // Windows-friendly
