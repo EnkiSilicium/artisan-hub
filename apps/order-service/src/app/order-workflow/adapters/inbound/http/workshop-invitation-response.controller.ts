@@ -9,6 +9,7 @@ import {
   ApiBody,
   ApiCreatedResponse,
   ApiBadRequestResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { WorkshopInvitationResponseService } from 'apps/order-service/src/app/order-workflow/application/services/workshop/workshop-invitation-response.service';
 import {
@@ -24,7 +25,7 @@ import {
 
 @ApiTags('Order workflow')
 
-
+@ApiBearerAuth('JWT')
 @Controller({ path: WorkshopInvitationResponsePaths.Root, version: '1' })
 
 export class WorkshopInvitationResponseController {

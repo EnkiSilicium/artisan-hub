@@ -9,6 +9,7 @@ import {
   ApiBody,
   ApiCreatedResponse,
   ApiBadRequestResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { StageCompletionService } from 'apps/order-service/src/app/order-workflow/application/services/stage/stage-completion.service';
 import {
@@ -23,6 +24,7 @@ import {
 } from 'contracts';
 
 @ApiTags('Order workflow')
+@ApiBearerAuth('JWT')
 @Controller({ path: StageCompletionPaths.Root, version: '1' })
 export class StageCompletionController {
   constructor(
@@ -46,7 +48,6 @@ export class StageCompletionController {
     return await this.stageCompletionService.acceptCompletionMarked({
       orderId: body.orderId,
       workshopId: body.workshopId,
-      commissionerId: body.commissionerId,
       payload: {
         stageName: body.stageName,
       },
@@ -70,7 +71,6 @@ export class StageCompletionController {
     return await this.stageCompletionService.confirmCompletion({
       orderId: body.orderId,
       workshopId: body.workshopId,
-      commissionerId: body.commissionerId,
       payload: {
         stageName: body.stageName,
       },
