@@ -12,19 +12,32 @@ import {
   Min,
 } from 'class-validator';
 
-const SORT_FIELDS = ['vipCreatedAt', 'vipLastUpdatedAt', 'bonusLastUpdatedAt', 'totalPoints'] as const;
-const SORT_DIRS   = ['asc', 'desc'] as const;
+const SORT_FIELDS = [
+  'vipCreatedAt',
+  'vipLastUpdatedAt',
+  'bonusLastUpdatedAt',
+  'totalPoints',
+] as const;
+const SORT_DIRS = ['asc', 'desc'] as const;
 
 /**
  * Query DTO for reading VIP/additive bonus information.  All fields are optional.
  */
 export class BonusReadQueryDto {
-  @ApiPropertyOptional({ type: String, format: 'uuid', description: 'Filter by commissioner ID' })
+  @ApiPropertyOptional({
+    type: String,
+    format: 'uuid',
+    description: 'Filter by commissioner ID',
+  })
   @IsOptional()
   @IsUUID()
   commissionerId?: string;
 
-  @ApiPropertyOptional({ type: Boolean, description: 'Filter by VIP status' })
+  @ApiPropertyOptional({
+    type: Boolean,
+    description: 'Filter by VIP status',
+    example: true,
+  })
   @IsOptional()
   @Transform(({ value }) =>
     value === 'true' ? true : value === 'false' ? false : undefined,
@@ -32,7 +45,11 @@ export class BonusReadQueryDto {
   @IsBoolean()
   isVIP?: boolean;
 
-  @ApiPropertyOptional({ type: String, description: 'Filter by grade' })
+  @ApiPropertyOptional({
+    type: String,
+    description: 'Filter by grade',
+    example: 'gold',
+  })
   @IsOptional()
   @IsString()
   grade?: string;
@@ -41,6 +58,7 @@ export class BonusReadQueryDto {
     type: Number,
     minimum: 0,
     description: 'Minimum total points',
+    example: 100,
   })
   @IsOptional()
   @Transform(({ value }) => Number(value))
@@ -52,6 +70,7 @@ export class BonusReadQueryDto {
     type: Number,
     minimum: 0,
     description: 'Maximum total points',
+    example: 1000,
   })
   @IsOptional()
   @Transform(({ value }) => Number(value))
@@ -63,6 +82,7 @@ export class BonusReadQueryDto {
     type: Number,
     minimum: 1,
     description: 'VIP policy version number',
+    example: 2,
   })
   @IsOptional()
   @Transform(({ value }) => Number(value))
@@ -74,6 +94,7 @@ export class BonusReadQueryDto {
     type: Number,
     minimum: 1,
     description: 'Bonus policy version number',
+    example: 5,
   })
   @IsOptional()
   @Transform(({ value }) => Number(value))
@@ -85,6 +106,7 @@ export class BonusReadQueryDto {
     type: Number,
     minimum: 1,
     description: 'Grade policy version number',
+    example: 3,
   })
   @IsOptional()
   @Transform(({ value }) => Number(value))
@@ -96,6 +118,7 @@ export class BonusReadQueryDto {
     type: String,
     format: 'date-time',
     description: 'Show items created on or after this date',
+    example: '2024-01-01T00:00:00.000Z',
   })
   @IsOptional()
   @IsISO8601()
@@ -105,6 +128,7 @@ export class BonusReadQueryDto {
     type: String,
     format: 'date-time',
     description: 'Show items created before this date',
+    example: '2024-12-31T23:59:59.000Z',
   })
   @IsOptional()
   @IsISO8601()
@@ -115,6 +139,7 @@ export class BonusReadQueryDto {
     minimum: 1,
     maximum: 500,
     description: 'Number of items per page (default 50)',
+    example: 50,
   })
   @IsOptional()
   @Transform(({ value }) => Number(value))
@@ -127,6 +152,7 @@ export class BonusReadQueryDto {
     type: Number,
     minimum: 0,
     description: 'Offset into the result set (default 0)',
+    example: 0,
   })
   @IsOptional()
   @Transform(({ value }) => Number(value))
@@ -138,6 +164,7 @@ export class BonusReadQueryDto {
     enum: SORT_FIELDS,
     description: 'Field on which to sort (default vipLastUpdatedAt)',
     default: 'vipLastUpdatedAt',
+    example: 'vipLastUpdatedAt',
   })
   @IsOptional()
   @IsIn(SORT_FIELDS as readonly string[])
@@ -147,6 +174,7 @@ export class BonusReadQueryDto {
     enum: SORT_DIRS,
     description: 'Direction of the sort (default desc)',
     default: 'desc',
+    example: 'desc',
   })
   @IsOptional()
   @IsIn(SORT_DIRS as readonly string[])
