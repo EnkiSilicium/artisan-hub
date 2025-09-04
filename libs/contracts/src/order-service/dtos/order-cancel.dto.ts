@@ -29,7 +29,6 @@ export class OrderCancelDtoV1 {
     @IsNotEmpty()
     @IsString()
     reason!: string;
-
 }
 
 

@@ -129,27 +129,27 @@ export function remapTypeOrmPgErrorToInfra(
         message,
       )
     ) {
-      return throwInfra('TIMEOUT', { msg: message });
+      return throwInfra('TIMEOUT', { message: message });
     }
     if (/terminating connection|server closed the connection/i.test(message)) {
-      return throwInfra('UNAVAILABLE', { msg: message });
+      return throwInfra('UNAVAILABLE', { message: message });
     }
 
     // Unknown PG failure → INTEGRATION (glue/config/driver), not UNAVAILABLE.
     return throwInfra('INTEGRATION', {
       sqlstate: sqlstate || 'unknown',
-      msg: message,
+      message: message,
       table,
       column,
     });
   }
 
   // 3) Non-QueryFailedError with timeout/connection smell
-  const msg = String((error as any)?.message ?? '');
-  if (/timeout/i.test(msg)) return throwInfra('TIMEOUT', { msg });
-  if (/connection.*(closed|lost|refused)/i.test(msg))
-    return throwInfra('UNAVAILABLE', { msg });
+  const message = String((error as any)?.message ?? '');
+  if (/timeout/i.test(message)) return throwInfra('TIMEOUT', { message });
+  if (/connection.*(closed|lost|refused)/i.test(message))
+    return throwInfra('UNAVAILABLE', { message });
 
   // 4) Last resort — INTEGRATION (don’t lie with a fake “timeout”)
-  return throwInfra('INTEGRATION', { msg });
+  return throwInfra('INTEGRATION', { message });
 }

@@ -8,7 +8,7 @@ import { OrderReadTypeOrmOptions } from "apps/order-service/src/app/read-model/i
 import { orderReadWinstonConfig } from "apps/order-service/src/app/read-model/infra/config/winston.config";
 import { OrderHistoryProjection } from "apps/order-service/src/app/read-model/infra/persistence/projections/order-histrory.projection";
 import { OrderStageFlatRepo } from "apps/order-service/src/app/read-model/infra/persistence/repositories/order-history.repository";
-import { OrderHistoryRefreshJob } from "apps/order-service/src/app/read-model/infra/jobs/order-history-refresh.job";
+import { OrderHistoryRefreshWorker } from "apps/order-service/src/app/read-model/infra/workers/order-history-refresh.worker";
 import { HttpErrorInterceptor, KafkaErrorInterceptor, HttpErrorInterceptorOptions, KafkaErrorInterceptorOptions } from "error-handling/interceptor";
 import { WinstonModule } from "nest-winston";
 import { OpenTelemetryModule } from "nestjs-otel";
@@ -50,7 +50,7 @@ import { LoggingInterceptor } from "observability";
         OrderStageFlatRepo,
         OrderStagesReadService,
         OrderHistoryProjection,
-        OrderHistoryRefreshJob,
+        OrderHistoryRefreshWorker,
 
 
         LoggingInterceptor,

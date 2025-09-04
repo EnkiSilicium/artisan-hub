@@ -10,20 +10,19 @@ import {
   getAmbient,
   als,
 } from 'libs/persistence/src/lib/helpers/transaction.helper';
-import { OutboxMessage } from 'libs/persistence/src/lib/outbox/outbox-message.entity';
+import { OutboxMessage } from 'libs/persistence/src/lib/entities/outbox-message.entity';
 import { KafkaProducerPort } from 'adapter';
 
 import { InfraError } from 'error-handling/error-core';
 import { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
 import { remapTypeOrmPgErrorToInfra } from 'error-handling/remapper/typeorm-postgres';
+import { OutboxService } from 'libs/persistence/src/lib/services/schedule-outbox-publish.service';
 
 @Injectable()
 export class TypeOrmUoW {
   constructor(
     private readonly ds: DataSource,
-    private readonly kafka: KafkaProducerPort<
-      OutboxMessage<BaseEvent<string>>['payload']
-    >,
+    private readonly publishJob: OutboxService,
   ) { }
 
   async run<T>(
@@ -79,9 +78,11 @@ export class TypeOrmUoW {
       //  beforeCommit hooks
       for (const cb of store.beforeCommit!) await cb();
 
+
       // persist staged outbox messages inside the tx
+      let rows: OutboxMessage<BaseEvent<string>>[] = []
       if (store.outboxBuffer!.length) {
-        const rows: OutboxMessage<BaseEvent<string>>[] =
+        rows =
           store.outboxBuffer!.map((message) => ({
             id: message.id,
             payload: message.payload,
@@ -98,13 +99,34 @@ export class TypeOrmUoW {
 
       //  afterCommit hooks (publish staged messages)
       if (store.outboxBuffer!.length) {
-        await this.kafka.dispatch(store.outboxBuffer!.map((e) => e.payload));
-
-        const messageIds = store.outboxBuffer!.map((e) => e.id);
-        // delete the events after they have been sent.
-        // if crashes before that, the startup sequence will try to publish-delete
-        // all unpublished
-        await this.ds.manager.delete(OutboxMessage, { id: In(messageIds) });
+        const messageIds: string[] = store.outboxBuffer!.map((e) => e.id);
+        
+        this.publishJob.enqueuePublish({
+          events: rows.map(r => r.payload),
+          outboxIds: store.outboxBuffer!.map((e) => e.id)
+        })
+        // this.kafka
+        //   .dispatch(rows.map((e) => e.payload))
+        //   .then((v) => {
+            
+        //     // delete the events after they have been sent.
+        //     // if crashes before that, the startup sequence will try to publish-delete
+        //     // all unpublished
+        //     return this.ds.manager.delete(OutboxMessage, {
+        //       id: In(messageIds),
+        //     });
+        //   })
+        //   .catch((error) => {
+        //     //success of kafka publish should not be coupled to the success of transaction.
+        //     Logger.warn({
+        //       message: `Kafka publish failed: ${error?.message ?? 'unkown reason'}, scheduling retry...`,
+        //       meta: { ...error },
+        //     });
+        //     this.publishJob.enqueuePublish({
+        //       events: rows.map(r => r.payload),
+        //       outboxIds: messageIds
+        //     })
+        //   });
       }
 
       for (const cb of store.afterCommit!) await cb();

@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from 'async_hooks';
 import { EntityManager } from 'typeorm';
 import { Ambient } from 'libs/persistence/src/lib/interfaces/transaction-context.type';
-import { OutboxMessage } from 'libs/persistence/src/lib/outbox/outbox-message.entity';
+import { OutboxMessage } from 'libs/persistence/src/lib/entities/outbox-message.entity';
 import { ProgrammerError } from 'error-handling/error-core';
 import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
 import { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
@@ -93,10 +93,10 @@ export function registerAfterCommit(cb: () => Promise<void> | void) {
  * Those are committed as a part of the transaction and flushed into kafka after commit.
  * Runs BEFORE beforeCommit
  *
- * @param msg what to put in outbox
+ * @param message what to put in outbox
  */
 export function enqueueOutbox<e extends BaseEvent<string>>(
-  msg: OutboxMessage<e>,
+  message: OutboxMessage<e>,
 ) {
   const s = getAmbient();
   if (!s?.outboxBuffer) {
@@ -107,15 +107,15 @@ export function enqueueOutbox<e extends BaseEvent<string>>(
       },
     });
   }
-  //assertImplementsEntityTechnicals(msg.payload);
+  //assertImplementsEntityTechnicals(message.payload);
 
-  if (hasTimeMarkers(msg.payload)) {
+  if (hasTimeMarkers(message.payload)) {
     // recasting annoying typeorm date objects into ISO strings
-    msg.payload.createdAt = <Date><unknown>msg.payload.createdAt.toISOString();
-    msg.payload.lastUpdatedAt = <Date><unknown>msg.payload.lastUpdatedAt.toISOString();
+    message.payload.createdAt = <Date><unknown>message.payload.createdAt.toISOString();
+    message.payload.lastUpdatedAt = <Date><unknown>message.payload.lastUpdatedAt.toISOString();
   }
 
-  s.outboxBuffer.push(msg);
+  s.outboxBuffer.push(message);
 }
 
 function hasTimeMarkers(

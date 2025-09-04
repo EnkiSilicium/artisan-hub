@@ -1,5 +1,5 @@
-import { Equals, IsISO8601, IsNotEmpty, IsOptional, IsString } from "class-validator";
-import { BaseEvent } from "libs/contracts/src/_common/base-event.event.js";
+import { Equals, IsInt, IsISO8601, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { BaseEvent } from "libs/contracts/src/_common/base-event.event";
 
 export class OrderCancelledEventV1 implements BaseEvent<'OrderCancelled'> {
 
@@ -19,6 +19,9 @@ export class OrderCancelledEventV1 implements BaseEvent<'OrderCancelled'> {
     @IsString()
     @IsISO8601()
     cancelledBy!: string;
+
+    @IsInt()
+    aggregateVersion!: number 
 
     @IsOptional()
     @IsNotEmpty()

@@ -13,11 +13,11 @@ export class OrderCompletedV1 {
 
   @IsString()
   @IsNotEmpty()
-  orderID!: string;
+  orderId!: string;
 
   @IsString()
   @IsNotEmpty()
-  workshopID!: string;
+  workshopId!: string;
 
   @IsString()
   @IsNotEmpty()

@@ -1,5 +1,5 @@
 import { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
-import { OutboxMessage } from 'libs/persistence/src/lib/outbox/outbox-message.entity';
+import { OutboxMessage } from 'libs/persistence/src/lib/entities/outbox-message.entity';
 import { EntityManager } from 'typeorm';
 
 /**

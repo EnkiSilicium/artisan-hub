@@ -29,6 +29,9 @@ export class HttpErrorInterceptor implements NestInterceptor {
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    Logger.debug({ message: `${HttpErrorInterceptor.name} active` })
+
+
     if (context.getType() !== 'http') return next.handle(); // don’t touch Kafka/RPC
 
     return next.handle().pipe(
