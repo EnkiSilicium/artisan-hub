@@ -1,37 +1,37 @@
 // libs/persistence/src/lib/unit-of-work/typeorm.uow.baseevent.spec.ts
 import 'reflect-metadata';
 import { randomUUID } from 'crypto';
-import { DataSource } from 'typeorm';
-import {
-  PostgreSqlContainer,
-  StartedPostgreSqlContainer,
-} from '@testcontainers/postgresql';
+
+import { PostgreSqlContainer } from '@testcontainers/postgresql';
 
 // UoW + helpers under test (your real code)
-import { TypeOrmUoW, inRollbackedTestTx } from 'persistence';
+import { InfraError } from 'error-handling/error-core';
+import { InfraErrorRegistry } from 'error-handling/registries/common';
 import {
   getAmbient,
   currentManager,
   requireTxManager,
   enqueueOutbox,
 } from 'libs/persistence/src/lib/helpers/transaction.helper';
-
-import { OutboxMessage } from 'libs/persistence/src/lib/outbox/outbox-message.entity';
+import { TypeOrmUoW, inRollbackedTestTx } from 'persistence';
+import { OutboxMessage } from 'persistence';
 import { isoNow } from 'shared-kernel';
-import { InfraError } from 'error-handling/error-core';
-import { InfraErrorRegistry } from 'error-handling/registries/common';
-import type { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
+import { DataSource } from 'typeorm';
 
-type KafkaProducerPort<T> = { dispatch(messages: T[]): Promise<void> };
+import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import type { BaseEvent } from 'contracts';
+import type { OutboxService } from 'persistence';
+
+type KafkaProducerPort<T> = { enqueuePublish(messages: T[]): Promise<void> };
 
 // Now the producer publishes BaseEvent payloads, not OutboxMessage rows
-const kafkaMock: KafkaProducerPort<BaseEvent<string>> = {
-  dispatch: jest.fn().mockResolvedValue(undefined),
-};
+const publishMock: OutboxService = <OutboxService>(<unknown>{
+  enqueuePublish: jest.fn().mockResolvedValue(undefined),
+});
 
 jest.setTimeout(60_000);
 
-describe('TypeOrmUoW (integration) — dispatches BaseEvent payloads', () => {
+describe('TypeOrmUoW (integration) — enqueuePublishes BaseEvent payloads', () => {
   let container: StartedPostgreSqlContainer;
   let ds: DataSource;
   let uow: TypeOrmUoW;
@@ -57,7 +57,7 @@ describe('TypeOrmUoW (integration) — dispatches BaseEvent payloads', () => {
     await ds.initialize();
 
     // TypeOrmUoW should be constructed with a Kafka port of BaseEvent<string>
-    uow = new TypeOrmUoW(ds, kafkaMock as any);
+    uow = new TypeOrmUoW(ds, publishMock);
   });
 
   afterAll(async () => {
@@ -66,11 +66,11 @@ describe('TypeOrmUoW (integration) — dispatches BaseEvent payloads', () => {
   });
 
   beforeEach(() => {
-    (kafkaMock.dispatch as jest.Mock).mockClear();
+    (publishMock.enqueuePublish as jest.Mock).mockClear();
   });
 
   it('writing outside UoW throws for requireTxManager and enqueueOutbox', async () => {
-    expect(() => requireTxManager(ds as any)).toThrow();
+    expect(() => requireTxManager(ds)).toThrow();
 
     const msg: OutboxMessage<BaseEvent<string>> = {
       id: randomUUID(),
@@ -83,7 +83,10 @@ describe('TypeOrmUoW (integration) — dispatches BaseEvent payloads', () => {
 
   it('commit path: persists outbox within tx, publishes BaseEvent after commit, then deletes', async () => {
     const id = randomUUID();
-    const payload: BaseEvent<'orderUpdated'> = { eventName: 'orderUpdated', schemaV: 1 };
+    const payload: BaseEvent<'orderUpdated'> = {
+      eventName: 'orderUpdated',
+      schemaV: 1,
+    };
 
     let seenInsideTx = 0;
 
@@ -93,7 +96,7 @@ describe('TypeOrmUoW (integration) — dispatches BaseEvent payloads', () => {
         id,
         payload,
         createdAt: isoNow(),
-      } as any;
+      };
       enqueueOutbox(msg);
 
       // Not persisted yet before the UoW does its insert.
@@ -106,14 +109,18 @@ describe('TypeOrmUoW (integration) — dispatches BaseEvent payloads', () => {
       s.beforeCommit!.push(async () => {
         const rows = await currentManager(ds).find(OutboxMessage);
         seenInsideTx = rows.length;
-        expect(rows.map(r => r.id)).toContain(id);
+        expect(rows.map((r) => r.id)).toContain(id);
       });
     });
 
     // published exactly once with our BaseEvent payload
-    expect(kafkaMock.dispatch).toHaveBeenCalledTimes(1);
-    const dispatched: BaseEvent<string>[] = (kafkaMock.dispatch as jest.Mock).mock.calls[0][0];
-    expect(dispatched).toEqual([{ eventName: 'orderUpdated', schemaV: 1 }]);
+    expect(publishMock.enqueuePublish).toHaveBeenCalledTimes(1);
+    const enqueuePublished: BaseEvent<string>[] = (
+      publishMock.enqueuePublish as jest.Mock
+    ).mock.calls[0][0];
+    expect(enqueuePublished).toEqual([
+      { eventName: 'orderUpdated', schemaV: 1 },
+    ]);
 
     // we saw exactly one persisted row before commit
     expect(seenInsideTx).toBe(1);
@@ -124,7 +131,10 @@ describe('TypeOrmUoW (integration) — dispatches BaseEvent payloads', () => {
   });
 
   it('rollback path: no rows remain, nothing published', async () => {
-    const payload: BaseEvent<'rollbackMe'> = { eventName: 'rollbackMe', schemaV: 1 };
+    const payload: BaseEvent<'rollbackMe'> = {
+      eventName: 'rollbackMe',
+      schemaV: 1,
+    };
     const id = randomUUID();
 
     await inRollbackedTestTx(ds, async () => {
@@ -133,12 +143,12 @@ describe('TypeOrmUoW (integration) — dispatches BaseEvent payloads', () => {
           id,
           payload,
           createdAt: isoNow(),
-        } as any);
+        });
       });
       // outer wrapper rolls back
     });
 
-    expect(kafkaMock.dispatch).not.toHaveBeenCalled();
+    expect(publishMock.enqueuePublish).not.toHaveBeenCalled();
     const rows = await ds.manager.find(OutboxMessage);
     expect(rows.length).toBe(0);
   });
@@ -151,20 +161,21 @@ describe('TypeOrmUoW (integration) — dispatches BaseEvent payloads', () => {
     const evB: BaseEvent<'batchB'> = { eventName: 'batchB', schemaV: 1 };
 
     await uow.run({}, async () => {
-      enqueueOutbox({ id: id1, payload: evA, createdAt: isoNow() } as any);
+      enqueueOutbox({ id: id1, payload: evA, createdAt: isoNow() });
 
       await uow.run({}, async () => {
-        enqueueOutbox({ id: id2, payload: evB, createdAt: isoNow() } as any);
+        enqueueOutbox({ id: id2, payload: evB, createdAt: isoNow() });
       });
     });
 
-    expect(kafkaMock.dispatch).toHaveBeenCalledTimes(1);
-    const batch: BaseEvent<string>[] = (kafkaMock.dispatch as jest.Mock).mock.calls[0][0];
+    expect(publishMock.enqueuePublish).toHaveBeenCalledTimes(1);
+    const batch: BaseEvent<string>[] = (publishMock.enqueuePublish as jest.Mock)
+      .mock.calls[0][0];
 
     // order isn’t guaranteed; assert by set of eventNames and schemaV presence
-    const names = new Set(batch.map(b => b.eventName));
+    const names = new Set(batch.map((b) => b.eventName));
     expect(names).toEqual(new Set(['batchA', 'batchB']));
-    batch.forEach(b => expect(b.schemaV).toBe(1));
+    batch.forEach((b) => expect(b.schemaV).toBe(1));
 
     const rows = await ds.manager.find(OutboxMessage);
     expect(rows.length).toBe(0);
@@ -183,12 +194,13 @@ describe('TypeOrmUoW (integration) — dispatches BaseEvent payloads', () => {
           errorObject: InfraErrorRegistry.byCode.TX_CONFLICT,
         });
       }
-      enqueueOutbox({ id, payload: ev, createdAt: isoNow() } as any);
+      enqueueOutbox({ id, payload: ev, createdAt: isoNow() });
     });
 
     expect(attempts).toBe(2);
-    expect(kafkaMock.dispatch).toHaveBeenCalledTimes(1);
-    const sent: BaseEvent<string>[] = (kafkaMock.dispatch as jest.Mock).mock.calls[0][0];
+    expect(publishMock.enqueuePublish).toHaveBeenCalledTimes(1);
+    const sent: BaseEvent<string>[] = (publishMock.enqueuePublish as jest.Mock)
+      .mock.calls[0][0];
     expect(sent).toEqual([{ eventName: 'afterRetry', schemaV: 1 }]);
 
     const rows = await ds.manager.find(OutboxMessage);

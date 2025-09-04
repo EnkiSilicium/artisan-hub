@@ -1,4 +1,3 @@
-
 /**
  * Forces implementation of technical columns managed by the repository.
  */

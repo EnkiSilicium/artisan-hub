@@ -3,10 +3,11 @@ import {
   StagesAggregate,
   Stage,
 } from 'apps/order-service/src/app/order-workflow/domain/entities/stage/stage.entity';
-import { StageStatus } from '../../../../domain/entities/stage/stage-status.enum';
-import { requireTxManager, updateWithVersionGuard } from 'persistence';
 import { remapTypeOrmPgErrorToInfra } from 'error-handling/remapper/typeorm-postgres';
+import { requireTxManager, updateWithVersionGuard } from 'persistence';
 import { DataSource, In } from 'typeorm';
+
+import { StageStatus } from '../../../../domain/entities/stage/stage-status.enum';
 
 @Injectable()
 export class StagesAggregateRepo {

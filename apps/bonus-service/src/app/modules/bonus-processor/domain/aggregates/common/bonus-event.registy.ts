@@ -1,4 +1,4 @@
-import { OrderEventNameUnion } from 'contracts';
+import type { OrderEventNameUnion } from 'contracts';
 
 export const BonusEventNameEnum = {
   OrderCompleted: 'OrderCompleted',
@@ -11,8 +11,7 @@ export class EventBonusInfo {
   bonusAmount: number;
 }
 
-export type BonusEventRegistry =
-  Record<BonusEventName, EventBonusInfo>
+export type BonusEventRegistry = Record<BonusEventName, EventBonusInfo>;
 
 export class BonusEventRegistryInterface {
   readonly policyName: 'BonusEventRegistry';
@@ -20,8 +19,6 @@ export class BonusEventRegistryInterface {
 
   registry: BonusEventRegistry;
 }
-
-
 
 export const BonusEventRegistry: BonusEventRegistryInterface = {
   policyName: 'BonusEventRegistry',
@@ -31,5 +28,3 @@ export const BonusEventRegistry: BonusEventRegistryInterface = {
     OrderPlaced: { bonusAmount: 40 },
   },
 };
-
-

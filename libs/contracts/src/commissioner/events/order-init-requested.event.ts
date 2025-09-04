@@ -1,4 +1,12 @@
-import { ArrayNotEmpty, Equals, IsArray, IsISO8601, IsNotEmpty, IsString, ValidateNested } from "class-validator";
+import {
+  ArrayNotEmpty,
+  Equals,
+  IsArray,
+  IsISO8601,
+  IsNotEmpty,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 
 export class OrderInitRequestPayload {
   @IsString()
@@ -33,4 +41,3 @@ export class OrderInitRequestedEvent {
   @Equals(1) // read: schemaV must equal the number 1, exactly
   schemaV!: 1;
 }
-

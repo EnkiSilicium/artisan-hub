@@ -1,33 +1,29 @@
-import { TestingModule, Test } from '@nestjs/testing';
-import {
-  PostgreSqlContainer,
-  StartedPostgreSqlContainer,
-} from '@testcontainers/postgresql';
+import { randomUUID } from 'crypto';
+
+import { Test } from '@nestjs/testing';
+import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { Order } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.entity';
+import { makeOrder } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.entity.mock-factory';
 import { RequestEntity } from 'apps/order-service/src/app/order-workflow/domain/entities/request/request.entity';
 import {
   Stage,
   StagesAggregate,
 } from 'apps/order-service/src/app/order-workflow/domain/entities/stage/stage.entity';
+import { makeStage } from 'apps/order-service/src/app/order-workflow/domain/entities/stage/stage.entity.mock-factory';
 import { WorkshopInvitation } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.entity';
-import { makeOrder } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.entity.mock-factory';
+import { makeWorkshopInvitation } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.entity.mock-factory';
 import { OrderRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/order/order.repo';
 import { makeRequest } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/request/request.mock-factory';
 import { RequestRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/request/request.repo';
-import { WorkshopInvitationRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/workshop-invitation/workshop-invitation.repo';
 import { StagesAggregateRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/stage/stage.repo';
-
-import {
-  TypeOrmUoW,
-  requireTxManager,
-  inRollbackedTestTx,
-} from 'persistence';
-import { randomUUID } from 'crypto';
-import { DataSource } from 'typeorm';
-import { makeWorkshopInvitation } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.entity.mock-factory';
-import { makeStage } from 'apps/order-service/src/app/order-workflow/domain/entities/stage/stage.entity.mock-factory';
-import { KafkaProducerPort } from 'adapter';
+import { WorkshopInvitationRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/workshop-invitation/workshop-invitation.repo';
 import { InfraError } from 'error-handling/error-core';
+import { TypeOrmUoW, requireTxManager, inRollbackedTestTx } from 'persistence';
+import { DataSource } from 'typeorm';
+
+import type { TestingModule } from '@nestjs/testing';
+import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import type { KafkaProducerPort } from 'adapter';
 
 describe('StagesAggregateRepo (integration)', () => {
   let moduleRef: TestingModule;
@@ -58,7 +54,9 @@ describe('StagesAggregateRepo (integration)', () => {
     });
     await ds.initialize();
 
-    const kafkaMock = { dispatch: jest.fn().mockResolvedValue(undefined) } as KafkaProducerPort<any>;
+    const kafkaMock = {
+      dispatch: jest.fn().mockResolvedValue(undefined),
+    } as KafkaProducerPort<any>;
 
     moduleRef = await Test.createTestingModule({
       providers: [
@@ -71,10 +69,7 @@ describe('StagesAggregateRepo (integration)', () => {
         {
           provide: TypeOrmUoW,
           useFactory: (dataSource: DataSource, kafka: any) =>
-            new (require('libs/persistence/src/lib/unit-of-work/typeorm.uow').TypeOrmUoW)(
-              dataSource,
-              kafka,
-            ),
+            new TypeOrmUoW(dataSource, kafka),
           inject: [DataSource, 'KAFKA_PUBLISHER'],
         },
       ],

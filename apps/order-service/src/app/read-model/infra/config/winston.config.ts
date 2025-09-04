@@ -1,6 +1,10 @@
-import { LoggerFactoryOverrides, makeWinstonOptions } from 'libs/observability/src/lib/config/winston-config.factory';
+import { makeWinstonOptions } from 'observability';
+
+import type { LoggerFactoryOverrides } from 'observability';
 
 const orderLoggerFactoryOverrides: LoggerFactoryOverrides = {
-    serviceName: "order-read",
+  serviceName: 'order-read',
 };
-export const orderReadWinstonConfig = makeWinstonOptions(orderLoggerFactoryOverrides);
+export const orderReadWinstonConfig = makeWinstonOptions(
+  orderLoggerFactoryOverrides,
+);

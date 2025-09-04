@@ -1,10 +1,12 @@
-import { IsString, IsNotEmpty, Equals, IsISO8601 } from "class-validator";
-import { BaseEvent } from "libs/contracts/src/_common/base-event.event";
+import { IsString, IsNotEmpty, Equals, IsISO8601 } from 'class-validator';
+import { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
 
-export class AllResponsesReceivedEventV1 implements BaseEvent<'AllResponsesReceived'> {
+export class AllResponsesReceivedEventV1
+  implements BaseEvent<'AllResponsesReceived'>
+{
   @IsString()
   @IsNotEmpty()
-  eventName!: 'AllResponsesReceived'
+  eventName!: 'AllResponsesReceived';
 
   @IsString()
   @IsNotEmpty()

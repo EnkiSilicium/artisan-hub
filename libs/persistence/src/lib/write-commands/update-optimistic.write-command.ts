@@ -1,17 +1,21 @@
-import { ProgrammerError, InfraError} from 'error-handling/error-core';
-import {ProgrammerErrorRegistry, InfraErrorRegistry} from 'error-handling/registries/common'
+import { ProgrammerError, InfraError } from 'error-handling/error-core';
+import {
+  ProgrammerErrorRegistry,
+  InfraErrorRegistry,
+} from 'error-handling/registries/common';
+import { assertImplementsEntityTechnicals } from 'libs/persistence/src/lib/assertions/assert-implements-entity-technicals.assertion.js';
 import { isoNow } from 'shared-kernel';
-import { EntityManager, ObjectType } from 'typeorm';
+
+import type { DataSource, EntityManager, ObjectType } from 'typeorm';
 
 /**
  * A function enforcing optimistic concurerncy on insert.
  * Also bumps in-memory entity's version and 'lastUpdated'.
- * 
+ *
  * @param input
  * @returns current version
  */
-export async function updateWithVersionGuard<T extends object>(
-  input: {
+export async function updateWithVersionGuard<T extends object>(input: {
   entityManager: EntityManager;
   target: ObjectType<T>;
   /** fields to update (ENTITY PROPERTY NAMES) */
@@ -24,14 +28,13 @@ export async function updateWithVersionGuard<T extends object>(
    */
   pkWhere?: Partial<T>;
   /** optional in-memory entity to bump time+version */
-  entity?: T & { version: number; lastUpdatedAt?: string; };
-}
-): Promise<number> {
+  entity: T & { version: number; lastUpdatedAt?: string };
+}): Promise<number> {
   const { entityManager, target, currentVersion } = input;
 
   // TypeORM 0.3 uses dataSource; older code sometimes exposes connection
-  const ds =
-    (entityManager as any).dataSource ?? (entityManager as any).connection;
+  const ds: DataSource =
+    (entityManager as any)?.dataSource ?? (entityManager as any)?.connection;
   const meta = ds.getMetadata(target);
 
   if (!Number.isInteger(currentVersion) || currentVersion <= 0) {
@@ -43,9 +46,9 @@ export async function updateWithVersionGuard<T extends object>(
     });
   }
 
-  // Resolve version column name from entity metadata (fallback is 'version')
-  const versionProperty =
-    meta.columns.find((c: any) => c.isVersion)?.propertyName ?? 'version';
+  assertImplementsEntityTechnicals(input.entity);
+
+  const versionProperty = 'version';
 
   // Resolve PK property names
   const pkProps: string[] = meta.primaryColumns.map((c: any) => c.propertyName);
@@ -57,12 +60,10 @@ export async function updateWithVersionGuard<T extends object>(
   }
 
   // Build pkWhere from input or from the entity instance
-  let pkWhere: Record<string, unknown> | undefined =
+  const pkWhere: Record<string, unknown> | undefined =
     (input.pkWhere as Record<string, unknown> | undefined) ??
     (input.entity
-      ? Object.fromEntries(
-          pkProps.map((p) => [p, (input.entity as any)[p]]),
-        )
+      ? Object.fromEntries(pkProps.map((p) => [p, (input.entity as any)[p]]))
       : undefined);
 
   // Validate pkWhere completeness and values
@@ -70,13 +71,12 @@ export async function updateWithVersionGuard<T extends object>(
     throw new ProgrammerError({
       errorObject: ProgrammerErrorRegistry.byCode.BUG,
       details: {
-        description:
-          `'pkWhere' must be an object with all PKs, or provide 'entity' so PKs can be derived`,
+        description: `'pkWhere' must be an object with all PKs`,
       },
     });
   }
   for (const pk of pkProps) {
-    const v = (pkWhere as any)[pk];
+    const v = (pkWhere)[pk];
     if (v === undefined || v === null) {
       throw new ProgrammerError({
         errorObject: ProgrammerErrorRegistry.byCode.BUG,
@@ -103,15 +103,18 @@ export async function updateWithVersionGuard<T extends object>(
     if (pk in setInput) {
       throw new ProgrammerError({
         errorObject: ProgrammerErrorRegistry.byCode.BUG,
-        details: { description: `attempt to update primary key property '${pk}'` },
+        details: {
+          description: `attempt to update primary key property '${pk}'`,
+        },
       });
     }
   }
 
   // Scrub accidental version from SET; add lastUpdatedAt only if present on the entity
   delete setInput[versionProperty];
-  const hasLastUpdated =
-    meta.columns.some((c: any) => c.propertyName === 'lastUpdatedAt');
+  const hasLastUpdated = meta.columns.some(
+    (c: any) => c.propertyName === 'lastUpdatedAt',
+  );
   if (hasLastUpdated) {
     setInput['lastUpdatedAt'] = now;
   }
@@ -136,18 +139,16 @@ export async function updateWithVersionGuard<T extends object>(
 
   if (res.affected !== 1) {
     // not found or stale version, both are optimistic misses
-    const id = Object.fromEntries(pkProps.map((p) => [p, (pkWhere as any)[p]]));
     throw new InfraError({
       errorObject: InfraErrorRegistry.byCode.TX_CONFLICT,
-      details: {description: "Optimistic lock error"}
-    })
-
+      details: { description: 'Optimistic lock error' },
+    });
   }
 
   // Bump the in-memory entity if provided
   if (input.entity) {
-    (input.entity as any)[versionProperty] = currentVersion + 1;
-    if (hasLastUpdated) (input.entity as any)['lastUpdatedAt'] = now;
+    (input.entity)[versionProperty] = currentVersion + 1;
+    if (hasLastUpdated) input.entity['lastUpdatedAt'] = now;
   }
 
   return currentVersion + 1;

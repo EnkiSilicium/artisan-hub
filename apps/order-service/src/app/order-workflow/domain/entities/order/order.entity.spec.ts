@@ -1,6 +1,6 @@
 // Adjust the import to your file location
 
-import { Order } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.entity';
+import { makeOrder } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.entity.mock-factory';
 import {
   OrderStates,
   OrderActions,
@@ -13,7 +13,8 @@ import {
   Cancelled,
   CancelDisputeOpened,
 } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.state';
-import { makeOrder } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.entity.mock-factory';
+
+import type { Order } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.entity';
 
 const T0 = '2025-01-01T00:00:00.000Z';
 

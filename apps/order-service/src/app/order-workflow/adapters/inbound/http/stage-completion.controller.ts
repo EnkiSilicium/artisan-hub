@@ -1,8 +1,4 @@
-import {
-  Body,
-  Controller,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -15,12 +11,9 @@ import { StageCompletionService } from 'apps/order-service/src/app/order-workflo
 import {
   MarkStageCompletionDtoV1,
   ConfirmStageCompletionDtoV1,
-
   StageCompletionMarkResultDto,
   StageCompletionConfirmResultDto,
-
   StageCompletionPaths,
-
 } from 'contracts';
 
 @ApiTags('Order workflow')
@@ -42,9 +35,7 @@ export class StageCompletionController {
     type: StageCompletionMarkResultDto,
   })
   @ApiBadRequestResponse({ description: 'Validation failed' })
-  async mark(
-    @Body() body: MarkStageCompletionDtoV1,
-  ) {
+  async mark(@Body() body: MarkStageCompletionDtoV1) {
     return await this.stageCompletionService.acceptCompletionMarked({
       orderId: body.orderId,
       workshopId: body.workshopId,
@@ -65,9 +56,7 @@ export class StageCompletionController {
     type: StageCompletionConfirmResultDto,
   })
   @ApiBadRequestResponse({ description: 'Validation failed' })
-  async confirm(
-    @Body() body: ConfirmStageCompletionDtoV1,
-  ) {
+  async confirm(@Body() body: ConfirmStageCompletionDtoV1) {
     return await this.stageCompletionService.confirmCompletion({
       orderId: body.orderId,
       workshopId: body.workshopId,

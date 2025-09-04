@@ -10,15 +10,11 @@ import {
 import {
   ApiTags,
   ApiOperation,
-  ApiQuery,
   ApiOkResponse,
   ApiAcceptedResponse,
 } from '@nestjs/swagger';
 import { OrderStagesReadService } from 'apps/order-service/src/app/read-model/application/query-handlers/history.query-handler';
-import {
-  OrderHistoryQueryResultDto,
-  ReadOrderStagesQueryDto,
-} from 'contracts';
+import { OrderHistoryQueryResultDto, ReadOrderStagesQueryDto } from 'contracts';
 
 @ApiTags('Orders read')
 @Controller('orders/stages')

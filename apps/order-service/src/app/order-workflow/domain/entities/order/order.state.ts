@@ -2,10 +2,9 @@ import {
   OrderStates,
   OrderActions,
 } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.enum';
-import {
-  BaseState,
-  Handlers,
-} from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.type';
+import { BaseState } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.type';
+
+import type { Handlers } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.type';
 
 export class PendingWorkshopInvitations extends BaseState<OrderStates.PendingWorkshopInvitations> {
   readonly stateName = OrderStates.PendingWorkshopInvitations as const;
@@ -57,8 +56,6 @@ export class CancelDisputeOpened extends BaseState<OrderStates.CancelDisputeOpen
 
   handlers = {} satisfies Handlers<OrderStates.CancelDisputeOpened>;
 }
-
-
 
 export const StateRegistry = {
   [OrderStates.PendingWorkshopInvitations]: PendingWorkshopInvitations,

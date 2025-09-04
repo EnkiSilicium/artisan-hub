@@ -1,20 +1,21 @@
 // apps/order-service/src/app/order-workflow/infra/auth/guards/jwt-ownership.guard.ts
-import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
+import {
+    CanActivate,
+    ExecutionContext,
+    Injectable,
+    Logger,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { Request } from 'express';
-
-
-
-import { ActorName } from '../assertions/actor.enum';
-import { ActorEntityFieldMap } from '../assertions/actor-entity-field.map';
-
-
-import { DomainError, ProgrammerError } from 'error-handling/error-core';
-import { OrderDomainErrorRegistry } from 'error-handling/registries/order';
-import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
 import { assertBelongsTo } from 'apps/order-service/src/app/order-workflow/infra/auth/assertions/assert-belongs-to.assertion';
 import { OrderRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/order/order.repo';
 import { WorkshopInvitationRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/workshop-invitation/workshop-invitation.repo';
+import { DomainError, ProgrammerError } from 'error-handling/error-core';
+import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
+import { OrderDomainErrorRegistry } from 'error-handling/registries/order';
+import { Request } from 'express';
+
+import { ActorEntityFieldMap } from '../assertions/actor-entity-field.map';
+import { ActorName } from '../assertions/actor.enum';
 
 export type Principal = { actorName: ActorName; id: string };
 
@@ -36,25 +37,28 @@ export class OrderHttpJwtGuard extends AuthGuard('jwt') implements CanActivate {
         super();
     }
 
-
     async canActivate(ctx: ExecutionContext): Promise<boolean> {
-        Logger.debug({ message: `${OrderHttpJwtGuard.name} active` })
+        Logger.debug({ message: `${OrderHttpJwtGuard.name} active` });
         // Run the JWT AuthGuard first
         const authed = await super.canActivate(ctx);
         if (!authed) return false;
-
 
         if (ctx.getType() !== 'http') return true;
         const req = ctx.switchToHttp().getRequest<Request>();
         const body = (req.body ?? {}) as AnyPayload;
 
         // Get req.user from strategy and normalize principal on the body
-        const user = (req as any).user as Principal | undefined;
+        const user = req.user as Principal | undefined;
 
         this.logger.verbose({
             message: `Authorization request for ${ctx.getClass().name}#${ctx.getHandler().name} from ${user?.actorName} id=${user?.id}`,
-            meta: { path: req.url, method: req.method, actorId: user?.id, actorName: user?.actorName },
-        })
+            meta: {
+                path: req.url,
+                method: req.method,
+                actorId: user?.id,
+                actorName: user?.actorName,
+            },
+        });
 
         if (!user?.actorName || !user?.id) {
             // Strategy didn't supply a usable user
@@ -65,7 +69,7 @@ export class OrderHttpJwtGuard extends AuthGuard('jwt') implements CanActivate {
         }
 
         // Populate/override request principal
-        body.principal = { actorName: user.actorName, id: user.id }
+        body.principal = { actorName: user.actorName, id: user.id };
 
         // Validate self-claims in the payload (no lying about your own id)
         this.verifySelfClaims(body.principal, body);
@@ -73,63 +77,75 @@ export class OrderHttpJwtGuard extends AuthGuard('jwt') implements CanActivate {
         // Ownership checks (warn and pass if no orderId)
         const orderId = body.orderId;
         if (!orderId) {
-            this.logger.warn(
-                {
-                    message: `Payload missing orderId; skipping ownership check. Are you sure the belongs here: ${req.url}?`,
-                    meta: {
-                        path: req.url,
-                        method: req.method,
-                        actorName: body.principal.actorName,
-                        actorId: body.principal.id,
-
-                    }
-
+            this.logger.warn({
+                message: `Payload missing orderId; skipping ownership check. Are you sure the belongs here: ${req.url}?`,
+                meta: {
+                    path: req.url,
+                    method: req.method,
+                    actorName: body.principal.actorName,
+                    actorId: body.principal.id,
                 },
-            );
+            });
             return true;
         }
 
-        if (body.principal.actorName === ActorName.Commissioner) {
-            //Repo call
-            const order = await this.orderRepo.findById(orderId);
+        switch (body.principal.actorName) {
+        
+            case ActorName.Commissioner: {
+                const order = await this.orderRepo.findById(orderId);
 
-            if (!order) {
-                throw new DomainError({
-                    errorObject: OrderDomainErrorRegistry.byCode.FORBIDDEN,
-                    details: { description: 'Order not found or forbidden', orderId },
-                });
+                if (!order) {
+                    throw new DomainError({
+                        errorObject: OrderDomainErrorRegistry.byCode.FORBIDDEN,
+                        details: { description: 'Order not found or forbidden', orderId },
+                    });
+                }
+
+                assertBelongsTo(body.principal, order);
+                return true;
             }
-            assertBelongsTo(body.principal, order);
-            return true;
-        }
 
-        if (body.principal.actorName === ActorName.Workshop) {
-            const workshopId = body.workshopId ?? body.principal.id;
-            if (!workshopId) {
+           
+            case ActorName.Workshop: {
+                const workshopId = body.workshopId ?? body.principal.id;
+
+                if (!workshopId) {
+                    throw new DomainError({
+                        errorObject: OrderDomainErrorRegistry.byCode.FORBIDDEN,
+                        details: {
+                            description: 'Missing workshopId for workshop principal',
+                        },
+                    });
+                }
+
+                const invitation = await this.invitationRepo.findById(orderId, workshopId);
+
+                if (!invitation) {
+                    throw new DomainError({
+                        errorObject: OrderDomainErrorRegistry.byCode.FORBIDDEN,
+                        details: {
+                            description: 'Invitation not found or forbidden',
+                            orderId,
+                            workshopId,
+                        },
+                    });
+                }
+
+                assertBelongsTo(body.principal, invitation);
+                return true;
+            }
+
+         
+            default:
                 throw new DomainError({
                     errorObject: OrderDomainErrorRegistry.byCode.FORBIDDEN,
                     details: {
-                        description: 'Missing workshopId for workshop principal',
+                        description: `Unsupported actor type: ${body.principal.actorName}`,
+                        orderId,
                     },
                 });
-            }
-            //Repo call
-            const invitation = await this.invitationRepo.findById(orderId, workshopId);
-
-            if (!invitation) {
-                throw new DomainError({
-                    errorObject: OrderDomainErrorRegistry.byCode.FORBIDDEN,
-                    details: { description: 'Invitation not found or forbidden', orderId, workshopId },
-                });
-            }
-            assertBelongsTo(body.principal, invitation);
-            return true;
         }
 
-        throw new ProgrammerError({
-            errorObject: ProgrammerErrorRegistry.byCode.BUG,
-            details: { description: `Unknown actorName ${body.principal.actorName}` },
-        });
     }
 
     private verifySelfClaims(principal: Principal, payload: AnyPayload): void {
@@ -138,16 +154,16 @@ export class OrderHttpJwtGuard extends AuthGuard('jwt') implements CanActivate {
             this.logger.warn({
                 message: `No entity field mapping for actorName ${principal.actorName}; skipping self-claim verification`,
                 meta: { actorName: principal.actorName },
-            })
+            });
             return;
-        };
+        }
 
-        const claimed = (payload as any)[field];
+        const claimed = payload[field];
         if (!claimed) {
             this.logger.warn({
                 message: `Payload missing self-claim field '${String(field)}'; skipping self-claim verification`,
                 meta: { field: String(field), actorName: principal.actorName },
-            })
+            });
             return;
         }
 

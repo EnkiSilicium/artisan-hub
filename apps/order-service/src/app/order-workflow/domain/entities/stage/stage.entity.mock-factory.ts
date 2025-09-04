@@ -1,7 +1,9 @@
-import { Stage } from './stage.entity';
-import { StageStatus } from './stage-status.enum';
-import { isoNow } from 'shared-kernel';
 import { randomUUID } from 'crypto';
+
+import { isoNow } from 'shared-kernel';
+
+import { StageStatus } from './stage-status.enum';
+import { Stage } from './stage.entity';
 
 export function makeStage(over: Partial<Stage> = {}): Stage {
   const s = Object.create(Stage.prototype) as Stage;

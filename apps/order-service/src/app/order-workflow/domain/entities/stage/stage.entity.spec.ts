@@ -2,9 +2,10 @@
 import 'reflect-metadata';
 
 // Adjust these paths to your project layout:
-import { StagesAggregate, Stage } from './stage.entity';
 import { StageStatus } from 'apps/order-service/src/app/order-workflow/domain/entities/stage/stage-status.enum';
 import { makeStage } from 'apps/order-service/src/app/order-workflow/domain/entities/stage/stage.entity.mock-factory';
+
+import { StagesAggregate, Stage } from './stage.entity';
 
 describe('StagesAggregate', () => {
   // ---------------- helpers ----------------

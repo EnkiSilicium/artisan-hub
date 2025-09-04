@@ -1,7 +1,9 @@
-import { VipProfile } from './vip-profile.entity';
-import { isoNow } from 'shared-kernel';
 import { randomUUID } from 'crypto';
+
+import { isoNow } from 'shared-kernel';
+
 import { LastMonthEventSet } from './last-month-event-set.entity';
+import { VipProfile } from './vip-profile.entity';
 
 export function makeVipProfile(over: Partial<VipProfile> = {}): VipProfile {
   const vp = Object.create(VipProfile.prototype) as VipProfile;
@@ -23,12 +25,14 @@ export function makeVipProfile(over: Partial<VipProfile> = {}): VipProfile {
   return vp;
 }
 
-export function makeLMEvent(over: Partial<LastMonthEventSet> & { commissionerId?: string } = {}): LastMonthEventSet {
+export function makeLMEvent(
+  over: Partial<LastMonthEventSet> & { commissionerId?: string } = {},
+): LastMonthEventSet {
   const ev = Object.create(LastMonthEventSet.prototype) as LastMonthEventSet;
   Object.assign(ev, {
     eventId: over.eventId ?? randomUUID(),
     commissionerId: over.commissionerId ?? randomUUID(),
-    eventName: over.eventName ?? ("OrderCompleted" as any),
+    eventName: over.eventName ?? ('OrderCompleted' as any),
     bucket: over.bucket ?? 0,
     createdAt: over.createdAt ?? isoNow(),
     lastUpdatedAt: over.lastUpdatedAt ?? isoNow(),

@@ -1,7 +1,7 @@
 // read-model/mappers/vip-additive.mapper.ts
 
-import { BonusReadProjection } from 'apps/bonus-service/src/app/modules/read-projection/infra/persistence/projections/bonus-read.projection';
-import { BonusReadFlatDto, BonusReadresultDto } from 'contracts';
+import type { BonusReadProjection } from 'apps/bonus-service/src/app/modules/read-projection/infra/persistence/projections/bonus-read.projection';
+import type { BonusReadFlatDto, BonusReadresultDto } from 'contracts';
 
 export const toBonusReadFlatDto = (
   row: BonusReadProjection,

@@ -1,6 +1,4 @@
-import { BonusEventName } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.registy';
-
-
+import type { BonusEventName } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.registy';
 
 export type BonusEventProcessCommand = {
   eventId: string;
@@ -8,5 +6,3 @@ export type BonusEventProcessCommand = {
   injestedAt: string;
   eventName: BonusEventName;
 };
-
-

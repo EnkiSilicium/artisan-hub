@@ -11,8 +11,12 @@ import {
   IsIn,
 } from 'class-validator';
 
-const SORT_FIELDS = ['orderCreatedAt', 'orderLastUpdatedAt', 'stageOrder'] as const;
-const SORT_DIRS   = ['asc', 'desc'] as const;
+const SORT_FIELDS = [
+  'orderCreatedAt',
+  'orderLastUpdatedAt',
+  'stageOrder',
+] as const;
+const SORT_DIRS = ['asc', 'desc'] as const;
 
 /**
  * Query DTO for reading order stages.  Optional fields will be omitted if not provided.

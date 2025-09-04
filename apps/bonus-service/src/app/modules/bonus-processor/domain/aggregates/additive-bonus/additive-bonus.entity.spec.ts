@@ -1,16 +1,20 @@
 import 'reflect-metadata';
-import {
+
+import { AdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity';
+import { makeAdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity.mock-factory';
+import { makeBonusEvent } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity.mock-factory';
+
+import type {
+  GradePolicyInterface,
+  GradeInfo,
+  GradeName,
+} from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/grade.policy';
+import type {
   BonusEventName,
   BonusEventRegistryInterface,
   EventBonusInfo,
 } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.registy';
-
-import { GradePolicyInterface, GradeInfo, GradeName } from "apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/grade.policy";
-import { AdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity';
-import { BonusEventEntity } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity';
-import { makeAdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity.mock-factory';
-import { makeBonusEvent } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity.mock-factory';
-import { DomainError } from 'error-handling/error-core';
+import type { DomainError } from 'error-handling/error-core';
 
 const uuid = (n = 1) =>
   `${String(n).padStart(8, '0')}-1111-4111-8111-11111111111${n}`;
@@ -61,7 +65,6 @@ const mkBonus = (over: Partial<BonusEventRegistryInterface>) => ({
   ...baseBonusPolicy,
   ...over,
 });
-
 
 describe('AdditiveBonus', () => {
   describe('constructor', () => {
@@ -131,11 +134,19 @@ describe('AdditiveBonus', () => {
 
       expect.assertions(2);
       try {
-        entity.processBonusEvent(event.eventName, bonusRegistry, wrongGradePolicy);
+        entity.processBonusEvent(
+          event.eventName,
+          bonusRegistry,
+          wrongGradePolicy,
+        );
       } catch (err) {
         const e = err as DomainError;
-        expect(e.details?.description).toContain(String(entity.gradePolicyVersion));
-        expect(e.details?.description).not.toContain(String(entity.bonusPolicyVersion));
+        expect(e.details?.description).toContain(
+          String(entity.gradePolicyVersion),
+        );
+        expect(e.details?.description).not.toContain(
+          String(entity.bonusPolicyVersion),
+        );
       }
     });
 

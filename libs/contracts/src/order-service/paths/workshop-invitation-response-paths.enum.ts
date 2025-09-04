@@ -3,4 +3,3 @@ export enum WorkshopInvitationResponsePaths {
   Accept = 'accept',
   Decline = 'decline',
 }
-

@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 import { IsoDateTransformer } from 'libs/persistence/src/lib/transformers/iso-date-transformer';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+
 import type { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
 
 @Entity({ name: 'outbox_message' })
