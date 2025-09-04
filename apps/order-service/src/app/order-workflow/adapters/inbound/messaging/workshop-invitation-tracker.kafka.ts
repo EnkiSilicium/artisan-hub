@@ -1,23 +1,25 @@
-import { Controller, UseInterceptors } from '@nestjs/common';
+import { Controller, UseInterceptors, UsePipes, ValidationPipe } from '@nestjs/common';
 import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
 import { KafkaTopics } from 'contracts';
 import { WorkshopInvitationTracker } from '../../../infra/workshop-invitation-tracker/workshop-invitation-tracker.service';
 import { KafkaErrorInterceptor } from 'error-handling/interceptor';
 import { LoggingInterceptor } from 'observability';
+import { validator } from 'adapter';
 
 @Controller()
 export class WorkshopInvitationTrackerKafkaController {
   constructor(private readonly tracker: WorkshopInvitationTracker) {}
 
   @UseInterceptors(KafkaErrorInterceptor, LoggingInterceptor)
-
   @EventPattern(KafkaTopics.InvitationDeclined)
+  @UsePipes(new ValidationPipe(validator))
   async handleDeclined(@Payload() payload: any) {
     await this.tracker.handleResponse(payload.orderID, true);
   }
 
   @UseInterceptors(KafkaErrorInterceptor, LoggingInterceptor)
   @EventPattern(KafkaTopics.OrderTransitions)
+  @UsePipes(new ValidationPipe(validator))
   async handleAccepted(@Payload() payload: any) {
     if (payload.eventName !== 'InvitationAccepted') { //TODO enum
       return;

@@ -6,6 +6,7 @@ import {
   Query,
   UsePipes,
   ValidationPipe,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,6 +20,8 @@ import {
   OrderHistoryQueryResultDto,
   ReadOrderStagesQueryDto,
 } from 'contracts';
+import { validator } from 'adapter';
+import { OrderHttpJwtGuard } from 'apps/order-service/src/app/order-workflow/infra/auth/guards/order-http-jwt.guard';
 
 @ApiTags('Orders read')
 @Controller('orders/stages')
@@ -26,12 +29,13 @@ export class OrderHistoryController {
   constructor(private readonly svc: OrderStagesReadService) {}
 
   @Get()
+  @UseGuards(OrderHttpJwtGuard)
   @ApiOperation({
     summary: 'List order stages',
     description: 'Returns a paginated list of stages with optional filters.',
   })
   @ApiOkResponse({ type: OrderHistoryQueryResultDto })
-  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  @UsePipes(new ValidationPipe(validator))
   async read(@Query() q: ReadOrderStagesQueryDto) {
     return this.svc.read({
       commissionerId: q.commissionerId,
@@ -49,6 +53,8 @@ export class OrderHistoryController {
   }
 
   @Post('refresh')
+  @UseGuards(OrderHttpJwtGuard)
+  @UsePipes(new ValidationPipe(validator))
   @HttpCode(202)
   @ApiOperation({
     summary: 'Refresh the read model',

@@ -1,5 +1,5 @@
 
-import { Controller, UseInterceptors } from '@nestjs/common';
+import { Controller, UseInterceptors, UsePipes, ValidationPipe } from '@nestjs/common';
 import {
   Ctx,
   EventPattern,
@@ -15,6 +15,7 @@ import { isoNow } from 'shared-kernel';
 import { ProgrammerError } from 'error-handling/error-core';
 import { KafkaErrorInterceptor } from 'error-handling/interceptor';
 import { LoggingInterceptor } from 'observability';
+import { validator } from 'adapter';
 
 @Controller()
 export class BonusEventsConsumer {
@@ -23,6 +24,7 @@ export class BonusEventsConsumer {
 
   @UseInterceptors(KafkaErrorInterceptor, LoggingInterceptor)
   @EventPattern(KafkaTopics.OrderTransitions)
+  @UsePipes(new ValidationPipe(validator))
   async onOrderTransitions(
     @Payload() payload: object,
     @Ctx() ctx: KafkaContext,
@@ -32,6 +34,7 @@ export class BonusEventsConsumer {
   }
 
   @EventPattern(KafkaTopics.StageTransitions)
+  @UsePipes(new ValidationPipe(validator))
   async onStageTransitions(
     @Payload() payload: object,
     @Ctx() ctx: KafkaContext,
