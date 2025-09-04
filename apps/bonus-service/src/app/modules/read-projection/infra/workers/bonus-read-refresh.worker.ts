@@ -1,10 +1,10 @@
-import { OnModuleInit } from '@nestjs/common';
+import { Logger, OnModuleInit } from '@nestjs/common';
 import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { BonusReadHandler } from '../../application/bonus-read/bonus-read.query-handler';
 
 @Processor('bonus-read-refresh')
-export class BonusReadRefreshJob extends WorkerHost implements OnModuleInit {
+export class BonusReadRefreshWorker extends WorkerHost implements OnModuleInit {
   constructor(
     private readonly service: BonusReadHandler,
     @InjectQueue('bonus-read-refresh') private readonly queue: Queue,
@@ -17,7 +17,7 @@ export class BonusReadRefreshJob extends WorkerHost implements OnModuleInit {
       'refresh',
       {},
       {
-        repeat: { every: 10_000 },
+        repeat: { every: 300_000 },
         removeOnComplete: true,
         removeOnFail: true,
       },
@@ -25,6 +25,9 @@ export class BonusReadRefreshJob extends WorkerHost implements OnModuleInit {
   }
 
   async process(job: Job): Promise<void> {
+    Logger.verbose({
+      message: `Worker: read projection refreshed!`
+    })
     await this.service.refresh();
   }
 }

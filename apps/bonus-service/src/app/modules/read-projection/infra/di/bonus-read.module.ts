@@ -8,7 +8,7 @@ import { bonusReadTypeOrmOptions } from 'apps/bonus-service/src/app/modules/read
 import { bonusReadWinstonConfig } from 'apps/bonus-service/src/app/modules/read-projection/infra/config/winston.config';
 import { BonusReadProjection } from 'apps/bonus-service/src/app/modules/read-projection/infra/persistence/projections/bonus-read.projection';
 import { BonusReadRepo } from 'apps/bonus-service/src/app/modules/read-projection/infra/persistence/repositories/bonus-read.repository';
-import { BonusReadRefreshJob } from 'apps/bonus-service/src/app/modules/read-projection/infra/jobs/bonus-read-refresh.job';
+import { BonusReadRefreshWorker } from 'apps/bonus-service/src/app/modules/read-projection/infra/workers/bonus-read-refresh.worker';
 import { HttpErrorInterceptor, KafkaErrorInterceptor, HttpErrorInterceptorOptions, KafkaErrorInterceptorOptions } from 'error-handling/interceptor';
 import { WinstonModule } from 'nest-winston';
 import { OpenTelemetryModule } from 'nestjs-otel';
@@ -60,7 +60,7 @@ import { LoggingInterceptor } from 'observability';
         BonusReadHandler,
         BonusReadProjection,
         BonusReadRepo,
-        BonusReadRefreshJob,
+        BonusReadRefreshWorker,
 
         LoggingInterceptor,
         HttpErrorInterceptor,
