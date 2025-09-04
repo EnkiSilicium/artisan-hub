@@ -7,8 +7,9 @@ export enum OrderStates {
   CancelDisputeOpened = 'CancelDisputeOpened',
 }
 export enum OrderActions {
-  TransitionToPendingCompletion,
-  Cancel,
-  MarkAsComplete,
-  Complete,
+  TransitionToPendingCompletion = 'TransitionToPendingCompletion',
+  Cancel = 'Cancel',
+  MarkAsComplete = 'MarkAsComplete',
+  Complete = 'Complete',
 }
+  

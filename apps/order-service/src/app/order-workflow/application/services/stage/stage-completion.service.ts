@@ -18,6 +18,7 @@ import {
 } from 'contracts';
 import { randomUUID } from 'crypto';
 import { isoNow } from 'shared-kernel';
+import { OrderMarkedAsCompletedEventV1 } from 'libs/contracts/src/order-service/events/order-marked-as-completed.event';
 
 @Injectable()
 export class StageCompletionService {
@@ -25,9 +26,9 @@ export class StageCompletionService {
     public readonly uow: TypeOrmUoW,
     private readonly ordersRepo: OrderRepo,
     private readonly stagesAggregateRepo: StagesAggregateRepo,
-  ) {}
-  
-  
+  ) { }
+
+
   async acceptCompletionMarked(
     cmd: AcceptCompletionMarkedCommand,
   ): Promise<StageCompletionMarkResultDto> {
@@ -42,45 +43,39 @@ export class StageCompletionService {
         orderId: order.orderId,
         workshopId: cmd.workshopId,
       });
-
       assertIsFound(stages, StagesAggregate, {
         orderId: order.orderId,
         commissionerId: order.commissionerId,
         workshopId: cmd.workshopId,
       });
 
-      const order = await this.ordersRepo.findById(cmd.orderId);
-
-      assertIsFound(order, Order, {
-        orderId: cmd.orderId,
-        commissionerId: cmd.commissionerId,
-        workshopId: cmd.workshopId,
-      });
 
       const { allCompleted, stageCompleted } = stages.acceptCompletionMarked({
         stageName: cmd.payload.stageName,
       });
 
-      this.stagesAggregateRepo.save(stages);
-      
-      const stageMarkedEventPayload: StageConfirmationMarkedEventV1 = {
-          commissionerId: order.commissionerId,
 
-          confirmedAt: isoNow(),
-          eventName: 'StageConfirmed',
-          orderID: order.orderId,
-          schemaV: 1,
-          stageName: cmd.payload.stageName,
-          workshopID: cmd.workshopId,
-        };
-        enqueueOutbox({
-          id: randomUUID(),
-          createdAt: isoNow(),
-          payload: {
-            ...stageConfirmedEventPayload,
-          },
-        });
-      }
+      await this.stagesAggregateRepo.save(stages);
+
+
+      const stageMarkedEventPayload: StageConfirmationMarkedEventV1 = {
+        commissionerId: order.commissionerId,
+
+        confirmedAt: isoNow(),
+        eventName: 'StageConfirmationMarked',
+        orderID: order.orderId,
+        schemaV: 1,
+        stageName: cmd.payload.stageName,
+        workshopID: cmd.workshopId,
+      };
+      enqueueOutbox({
+        id: randomUUID(),
+        createdAt: isoNow(),
+        payload: {
+          ...stageMarkedEventPayload,
+        },
+      });
+
 
 
 
@@ -105,7 +100,7 @@ export class StageCompletionService {
 
 
       if (allCompleted) {
-        order.complete();
+        order.markAsCompleted();
         await this.ordersRepo.update(order);
 
 
@@ -125,7 +120,26 @@ export class StageCompletionService {
             ...allStageConfirmedEventPayload,
           },
         });
+
+        const oprderMarkedAsCompleted: OrderMarkedAsCompletedEventV1 = {
+          eventName: 'OrderMarkedAsCompleted',
+          commissionerId: order.commissionerId,
+          markedAt: isoNow(),
+          orderId: order.orderId,
+          schemaV: 1,
+          workshopId: cmd.workshopId,
+          aggregateVersion: order.version
+        };
+        enqueueOutbox({
+          id: randomUUID(),
+          createdAt: isoNow(),
+          payload: {
+            ...oprderMarkedAsCompleted,
+          },
+        });
       }
+
+
       return {
         orderId: cmd.orderId,
         workshopId: cmd.workshopId,
@@ -134,6 +148,7 @@ export class StageCompletionService {
         allStagesCompleted: allCompleted,
       };
     });
+
   }
 
   async confirmCompletion(
@@ -160,7 +175,7 @@ export class StageCompletionService {
         stageName: cmd.payload.stageName,
       });
 
-      this.stagesAggregateRepo.save(stages);
+      await this.stagesAggregateRepo.save(stages);
 
 
       const stageConfirmedEventPayload: StageConfirmedEventV1 = {
@@ -181,7 +196,8 @@ export class StageCompletionService {
       });
 
       if (allCompleted) {
-        order.complete();
+
+        order.markAsCompleted();
 
         await this.ordersRepo.update(order);
 
@@ -200,7 +216,26 @@ export class StageCompletionService {
             ...allStagedCompletedEventPayload,
           },
         });
+
+        const oprderMarkedAsCompleted: OrderMarkedAsCompletedEventV1 = {
+          eventName: 'OrderMarkedAsCompleted',
+          commissionerId: order.commissionerId,
+          markedAt: isoNow(),
+          orderId: order.orderId,
+          schemaV: 1,
+          workshopId: cmd.workshopId,
+          aggregateVersion: order.version
+        };
+        enqueueOutbox({
+          id: randomUUID(),
+          createdAt: isoNow(),
+          payload: {
+            ...oprderMarkedAsCompleted,
+          },
+        });
       }
+
+
       return {
         orderId: cmd.orderId,
         workshopId: cmd.workshopId,

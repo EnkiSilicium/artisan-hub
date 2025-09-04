@@ -24,31 +24,27 @@ import {
   IsOptional,
 } from 'class-validator';
 import { WorkshopInvitation } from '../workshop-invitation/workshop-invitation.entity';
-import {
-  EntityTechnicalsInterface,
-  IsoDateTransformer,
-} from 'persistence';
+import { EntityTechnicalsInterface, IsoDateTransformer } from 'persistence';
 import { assertValid } from 'shared-kernel';
 import { StageStatus } from 'apps/order-service/src/app/order-workflow/domain/entities/stage/stage-status.enum';
 import { DomainError } from 'error-handling/error-core';
 import { OrderDomainErrorRegistry } from 'error-handling/registries/order';
-
+import { Logger } from '@nestjs/common';
 
 /**
  * Aggregate root for Stage entity.
- * 
+ *
  */
 export class StagesAggregate {
   stages: Stage[] = [];
-  
+
   amountOfStages = 0;
 
   /**
-   * Pointer into 0-base array of stages. 
+   * Pointer into 0-base array of stages.
    * If [lastIndex + 1], that indicates all stages are finished.
    */
   currentStage = 0;
-
 
   constructor(init: Array<Stage | constructStageData>) {
     // normalize inputs to Stage instances
@@ -90,6 +86,10 @@ export class StagesAggregate {
 
     // Compute first pending index; if none, set to amountOfStages
     this.currentStage = this.findFirstNonCompleted() ?? this.amountOfStages;
+
+    Logger.verbose({
+      message: `Created stages: ${init.map((i) => i.stageName).join(` ,`)}`,
+    });
   }
 
   acceptCompletionMarked(data: { stageName: string }): {
@@ -143,7 +143,6 @@ export class StagesAggregate {
 
   editStage() {}
 
-
   private isStageInstance(value: unknown): value is Stage {
     return value instanceof Stage;
   }
@@ -187,7 +186,7 @@ export class StagesAggregate {
 
 /**
  * Stage instance. Is a subentity of StagesAggregate - do not interract with it directly.
- * 
+ *
  */
 @Unique('uq_stage_order_index', ['orderId', 'workshopId', 'stageOrder'])
 @Index('ix_stage_lookup', ['orderId', 'workshopId', 'stageOrder'])
@@ -298,12 +297,30 @@ export class Stage implements EntityTechnicalsInterface {
     this.status = this.needsConfirmation
       ? StageStatus.AwaitingConfirmation
       : StageStatus.Completed;
+
+    Logger.verbose({
+      message: `Stage ${this.stageName} number ${this.stageOrder} marked as completed!`,
+      meta: {
+        orderId: this.orderId,
+        workshopId: this.workshopId,
+        stageName: this.stageName,
+      },
+    });
+
     return this.status;
   }
 
   confirmStage() {
     this.assertStatusIs(StageStatus.AwaitingConfirmation);
     this.status = StageStatus.Completed;
+    Logger.verbose({
+      message: `Stage ${this.stageName} number ${this.stageOrder} confirmed!`,
+      meta: {
+        orderId: this.orderId,
+        workshopId: this.workshopId,
+        stageName: this.stageName,
+      },
+    });
   }
 
   editStage() {}

@@ -33,6 +33,7 @@ import {
 import { assertValid } from 'shared-kernel';
 import { DomainError } from 'error-handling/error-core';
 import { OrderDomainErrorRegistry } from 'error-handling/registries/order';
+import { Logger } from '@nestjs/common';
 
 //  - pending|declined -> description, deadline, budget are NULL
 @Check(
@@ -171,6 +172,11 @@ export class WorkshopInvitation implements EntityTechnicalsInterface {
     //this.placedAt = isoNow();
     //this.lastUpdatedAt = this.placedAt
     assertValid(this, OrderDomainErrorRegistry);
+    Logger.verbose({
+      message: `Workshop invitation created!`, meta: {
+        orderId: this.orderId, workshopId: this.workshopId,
+      }
+    })
   }
 
   accept(data: { description: string; deadline: string; budget: string }) {
@@ -187,6 +193,12 @@ export class WorkshopInvitation implements EntityTechnicalsInterface {
     assertValid(o, OrderDomainErrorRegistry);
 
     Object.assign(this, o);
+
+    Logger.verbose({
+      message: `Workshop invitation accepted!`, meta: {
+        orderId: this.orderId, workshopId: this.workshopId,
+      }
+    })
   }
 
   decline() {
@@ -215,7 +227,7 @@ export class WorkshopInvitation implements EntityTechnicalsInterface {
     this.description = description;
 
     try {
-      assertValid(this,  OrderDomainErrorRegistry, ['description']);
+      assertValid(this, OrderDomainErrorRegistry, ['description']);
     } catch (error) {
       this.description = oldDescription;
       throw error;
@@ -228,7 +240,7 @@ export class WorkshopInvitation implements EntityTechnicalsInterface {
     this.deadline = deadline;
 
     try {
-      assertValid(this,  OrderDomainErrorRegistry, ['deadline']);
+      assertValid(this, OrderDomainErrorRegistry, ['deadline']);
     } catch (error) {
       this.deadline = oldDeadline;
       throw error;

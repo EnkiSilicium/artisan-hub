@@ -42,6 +42,8 @@ import {
 import { assertValid, isoNow } from 'shared-kernel';
 import { DomainError } from 'error-handling/error-core';
 import { OrderDomainErrorRegistry } from 'error-handling/registries/order';
+import { Logger } from '@nestjs/common';
+
 
 
 /**
@@ -101,6 +103,12 @@ export class Order implements EntityTechnicalsInterface {
 
     this.isTerminated = false;
     assertValid(this, OrderDomainErrorRegistry);
+
+    Logger.verbose({
+      message: `Order aggregate created`, meta: {
+        orderId: this.orderId, commissionerId: this.commissionerId,
+      }
+    })
   }
 
   transitionToPendingCompletion() {
@@ -116,6 +124,32 @@ export class Order implements EntityTechnicalsInterface {
     this.state = new outcome.nextState();
 
     this.lastUpdatedAt = isoNow();
+    Logger.verbose({
+      message: `Transitioned to ${OrderStates.PendingCompletion}`, meta: {
+        orderId: this.orderId, commissionerId: this.commissionerId,
+      }
+    })
+  }
+
+  markAsCompleted() {
+    const action = OrderActions.MarkAsComplete;
+    const assumed = OrderStates.PendingCompletion;
+
+    this.assertCurrentStateIs(assumed, this.state, action);
+
+    const outcome: Outcome<typeof assumed, typeof action> = this.state.handle(
+      action,
+    ) satisfies LegalOutcome<typeof assumed, typeof action>;
+
+    this.state = new outcome.nextState();
+
+    this.lastUpdatedAt = isoNow();
+    Logger.verbose({
+      message: `Order marked as completed!`, meta: {
+        orderId: this.orderId, commissionerId: this.commissionerId,
+      }
+    })
+
   }
 
   complete() {
@@ -132,6 +166,11 @@ export class Order implements EntityTechnicalsInterface {
 
     this.lastUpdatedAt = isoNow();
     this.isTerminated = true;
+    Logger.verbose({
+      message: `Order completed!`, meta: {
+        orderId: this.orderId, commissionerId: this.commissionerId,
+      }
+    })
   }
 
   cancelOrder() {
@@ -170,6 +209,11 @@ export class Order implements EntityTechnicalsInterface {
 
     this.lastUpdatedAt = isoNow();
     this.isTerminated = true;
+    Logger.verbose({
+      message: `Order cancelled!`, meta: {
+        orderId: this.orderId, commissionerId: this.commissionerId,
+      }
+    })
   }
   /**
    * Asserts that the current state equals `assumed`. Narrows `state` on success.
