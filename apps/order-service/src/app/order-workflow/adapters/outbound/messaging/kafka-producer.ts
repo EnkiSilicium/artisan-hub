@@ -1,85 +1,105 @@
-// order-event-dispatcher.ts
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { Producer, Message } from 'kafkajs';
+// bonus-event-dispatcher.clientkafka.ts
+import {
+  Inject,
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
+import { ClientKafka } from '@nestjs/microservices';
+import { lastValueFrom } from 'rxjs';
+import { defaultIfEmpty } from 'rxjs/operators';
+
+import { KAFKA_PRODUCER } from 'adapter'; // token bound to ClientKafka
+import { KafkaProducerPort } from 'adapter';
 import { KafkaTopics, OrderEventInstanceUnion } from 'contracts';
 import { OrderServiceTopicMap } from 'apps/order-service/src/app/order-workflow/adapters/outbound/messaging/kafka.topic-map';
-import { KAFKA_PRODUCER } from 'persistence';
-import { KafkaProducerPort } from 'adapter';
-
-type PerTopicBuckets = Map<KafkaTopics, Message[]>;
+import { ProgrammerError } from 'error-handling/error-core';
+import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
 
 @Injectable()
 export class OrderEventDispatcher
-  implements KafkaProducerPort<OrderEventInstanceUnion>
+  implements
+    KafkaProducerPort<OrderEventInstanceUnion>,
+    OnModuleInit,
+    OnModuleDestroy
 {
   private readonly logger = new Logger(OrderEventDispatcher.name);
 
-  constructor(@Inject(KAFKA_PRODUCER) private readonly producer: Producer) {}
+  constructor(@Inject(KAFKA_PRODUCER) private readonly client: ClientKafka) {}
 
-  /**
-   * Dispatch a mixed bag of events. Each event's eventName selects the topic.
-   * Batches by topic for efficiency; preserves per-key order within each topic/partition.
-   */
-  async dispatch(events: Array<OrderEventInstanceUnion>): Promise<void> {
+  async onModuleInit() {
+    // ClientKafka needs an explicit connect in app code (Nest won't auto-connect producers)
+    await this.client.connect();
+    this.logger.log('ClientKafka connected');
+  }
+
+  async onModuleDestroy() {
+    try {
+      await this.client.close();
+    } catch (e) {
+      this.logger.warn({
+        message: `ClientKafka close error: ${(e as Error).message}`,
+      });
+    }
+  }
+
+  async dispatch(events: OrderEventInstanceUnion[]): Promise<void> {
     if (!events.length) return;
 
-    const buckets: PerTopicBuckets = new Map();
+    // Emit each event. ClientKafka expects: emit(topic: string, data: { key, value, headers? })
+    // It returns an Observable we must subscribe to (convert to Promise).
+    const ops = events.map(async (evt) => {
+      const topic = this.topicFor(evt); // validated string topic
+      const key = this.keyFor(evt); // stable key => ordered per key
 
-    for (const evt of events) {
-      const topic = OrderServiceTopicMap[evt.eventName];
-      if (!topic) {
-        // Should be impossible if the map is typed as Record<Union['eventName'], …>
-        this.logger.error(`No topic mapping for eventName=${evt.eventName}`);
-        continue;
-      }
-
-      const key = pickKey(evt); // stable per-workflow/aggregate key for partitioning
-      if (!key) {
-        // You want deterministic partitioning; warn if we’re flying blind
-        this.logger.warn(
-          `No stable key on event ${evt.eventName}. Consider adding workflowId/orderId.`,
-        );
-      }
-
-      const msg: Message = {
-        key: key ?? undefined,
-        value: Buffer.from(JSON.stringify(evt)),
-        headers: {
-          'x-event-name': Buffer.from(evt.eventName),
-        },
+      const record = {
+        key, // string | Buffer
+        value: evt, // your BaseEvent payload (plus any extra fields)
+        headers: { 'x-event-name': evt.eventName }, // strings are fine; Buffers also OK
+        // partition: 0,                               // optional: force a partition (not recommended in prod)
+        // timestamp: Date.now().toString(),           // optional
       };
 
-      const list = buckets.get(topic);
-      if (list) list.push(msg);
-      else buckets.set(topic, [msg]);
-    }
-
-    // Send each topic's messages
-    Logger.verbose({
-      message: `Dispatching ${events.length} events in ${buckets.size} topic(s).`,
-      context: OrderEventDispatcher.name,
-      meta: { topics: Array.from(buckets.keys()), events: events.map(e => e.eventName) },
-    });
-    await Promise.all(
-      Array.from(buckets.entries()).map(([topic, messages]) =>
-        this.producer.send({ topic, messages }),
-      ),
-    );
-    Logger.verbose({
-      message: `SUCCESS: Dispatched ${events.length} events in ${buckets.size} topic(s).`,
-      context: OrderEventDispatcher.name,
-      meta: { topics: Array.from(buckets.keys()), events: events.map(e => e.eventName) }
+      const obs = this.client.emit(topic, record);
+      await lastValueFrom(obs.pipe(defaultIfEmpty(undefined)));
     });
 
+    await Promise.all(ops);
+    this.logger.log({
+      message: `Emitted ${events.length} event(s) via ClientKafka`,
+    });
   }
-}
 
-function pickKey(evt: OrderEventInstanceUnion): string | undefined {
-  return (
-    (evt as any).orderId ??
-    (evt as any).commissionerId ??
-    (evt as any).workshopId ??
-    (evt as any).eventId ??
-    undefined
-  );
+  private topicFor(evt: OrderEventInstanceUnion): string {
+    // Make bad mappings fail fast and loudly
+    const topic =
+      OrderServiceTopicMap[evt.eventName as keyof typeof OrderServiceTopicMap];
+    if (!topic) {
+      const known = Object.keys(OrderServiceTopicMap).join(', ');
+      throw new ProgrammerError({
+        errorObject: ProgrammerErrorRegistry.byCode.BUG,
+        details: {
+          message: `No topic mapping for eventName="${evt.eventName}". Known: [${known}]`,
+          event: { ...evt },
+        },
+      });
+    }
+    return String(topic); // ensure string pattern
+  }
+
+  private keyFor(evt: any): string | undefined {
+    // Tolerate old casings so partitioning doesn't silently degrade
+    return (
+      evt.orderId ??
+      evt.orderID ??
+      evt.commissionerId ??
+      evt.commissionerID ??
+      evt.workshopId ??
+      evt.workshopID ??
+      evt.eventId ??
+      evt.eventID ??
+      undefined
+    );
+  }
 }
