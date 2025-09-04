@@ -15,6 +15,9 @@ export class LoggingInterceptor implements NestInterceptor {
   private readonly logger = new Logger(LoggingInterceptor.name);
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    Logger.debug({ message: `${LoggingInterceptor.name} active` })
+
+
     const controller = context.getClass()?.name ?? 'UnknownController';
     const method = context.getHandler()?.name ?? 'unknownMethod';
     const transport = this.getTransportName(context);
@@ -23,7 +26,7 @@ export class LoggingInterceptor implements NestInterceptor {
 
     // BEFORE
     this.logger.log({
-      msg: `${controller}::${method} requested via ${transport}`,
+      message: `${controller}::${method} requested via ${transport}`,
       controller,
       method,
       transport,
@@ -34,7 +37,7 @@ export class LoggingInterceptor implements NestInterceptor {
       // AFTER SUCCESS
       tap(() => {
         this.logger.log({
-          msg: `${controller}::${method} SUCCESS`,
+          message: `${controller}::${method} SUCCESS`,
           controller,
           method,
           transport,
@@ -46,7 +49,7 @@ export class LoggingInterceptor implements NestInterceptor {
       catchError((error: unknown) => {
         try {
           this.logger.error({
-            msg: `${controller}::${method} FAILURE`,
+            message: `${controller}::${method} FAILURE`,
             controller,
             method,
             transport,
@@ -69,18 +72,23 @@ export class LoggingInterceptor implements NestInterceptor {
 
   private getTransportName(context: ExecutionContext): string {
     const type = context.getType();
-    if (type === 'http') return 'http';
-    if (type === 'rpc') {
-      const rpcCtx: any = context.switchToRpc().getContext?.();
-      if (rpcCtx instanceof KafkaContext) return 'kafka';
-      const name = rpcCtx?.constructor?.name ?? '';
-      if (/Kafka/i.test(name)) return 'kafka';
-      if (/Nats/i.test(name)) return 'nats';
-      if (/Rmq/i.test(name)) return 'rmq';
-      return 'rpc';
+    switch (type) {
+      case 'http':
+        return 'http';
+      case 'rpc': {
+        const rpcCtx: any = context.switchToRpc().getContext?.();
+        if (rpcCtx instanceof KafkaContext) return 'kafka';
+        const name = rpcCtx?.constructor?.name ?? '';
+        if (/Kafka/i.test(name)) return 'kafka';
+        if (/Nats/i.test(name)) return 'nats';
+        if (/Rmq/i.test(name)) return 'rmq';
+        return 'rpc';
+      }
+      case 'ws':
+        return 'ws';
+      default:
+        return String(type);
     }
-    if (type === 'ws') return 'ws';
-    return String(type);
   }
 
   private extractMeta(context: ExecutionContext) {
@@ -93,31 +101,35 @@ export class LoggingInterceptor implements NestInterceptor {
     ] as const;
     const out: Record<string, unknown> = {};
 
-    if (context.getType() === 'http') {
-      const request: any = context.switchToHttp().getRequest?.();
-      const sources = [request?.body, request?.query, request?.params];
-      for (const src of sources) {
-        if (src && typeof src === 'object') {
+    switch (context.getType()) {
+      case 'http': {
+        const request: any = context.switchToHttp().getRequest?.();
+        const sources = [request?.body, request?.query, request?.params];
+        for (const src of sources) {
+          if (src && typeof src === 'object') {
+            for (const k of wanted)
+              if (k in src && src[k] !== undefined) out[k] = src[k];
+          }
+        }
+        break;
+      }
+      case 'rpc': {
+        const data: any = context.switchToRpc().getData?.();
+        if (data && typeof data === 'object') {
           for (const k of wanted)
-            if (k in src && src[k] !== undefined) out[k] = src[k];
+            if (k in data && data[k] !== undefined) out[k] = data[k];
         }
-      }
-    }
-    else if (context.getType() === 'rpc') {
-      const data: any = context.switchToRpc().getData?.();
-      if (data && typeof data === 'object') {
-        for (const k of wanted)
-          if (k in data && data[k] !== undefined) out[k] = data[k];
-      }
-      // Kafka headers (first level only)
-      const kctx: any = context.switchToRpc().getContext?.();
-      const msg: any = kctx?.getMessage?.();
-      const headers: any = msg?.headers;
-      if (headers && typeof headers === 'object') {
-        for (const k of wanted) {
-          const v = headers[k];
-          if (v !== undefined) out[k] = Buffer.isBuffer(v) ? v.toString() : v;
+        // Kafka headers (first level only)
+        const kctx: any = context.switchToRpc().getContext?.();
+        const message: any = kctx?.getMessage?.();
+        const headers: any = message?.headers;
+        if (headers && typeof headers === 'object') {
+          for (const k of wanted) {
+            const v = headers[k];
+            if (v !== undefined) out[k] = Buffer.isBuffer(v) ? v.toString() : v;
+          }
         }
+        break;
       }
     }
 

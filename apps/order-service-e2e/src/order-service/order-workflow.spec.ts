@@ -20,13 +20,13 @@ async function pollUntil(
     } catch (e: any) {
       failures++;
       if (failures === 1 || failures % 3 === 0) {
-        const msg = e?.response
+        const message = e?.response
           ? `HTTP ${e.response.status} ${e.response.statusText} body=${JSON.stringify(e.response.data)}`
           : e?.code
             ? `${e.code}: ${e.message}`
             : e?.message || String(e);
 
-        console.warn(`[E2E] pollUntil error: ${msg}`);
+        console.warn(`[E2E] pollUntil error: ${message}`);
       }
     }
     await wait(intervalMs);

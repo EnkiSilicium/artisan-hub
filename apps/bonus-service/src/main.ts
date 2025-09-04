@@ -10,6 +10,8 @@ import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { HttpErrorInterceptor, KafkaErrorInterceptor } from 'error-handling/interceptor';
 import { LoggingInterceptor } from 'observability';
 import { ApiPaths } from 'contracts';
+import otelSDK from 'libs/observability/src/lib/open-telemetry/tracing';
+import { Span } from 'nestjs-otel';
 
 
 function setupSwagger(app: INestApplication, {
@@ -75,6 +77,7 @@ async function startBonusReadApp() {
   );
 
 
+  @Span()
 
   setupSwagger(app, { title: 'Bonus Read API', path: 'docs', version: '1.0' });
 
@@ -86,7 +89,7 @@ async function startBonusReadApp() {
 
 
 async function bootstrap() {
-  //  await otelSDK.start();
+  await otelSDK.start();
 
 
   await startBonusProcessorApp()

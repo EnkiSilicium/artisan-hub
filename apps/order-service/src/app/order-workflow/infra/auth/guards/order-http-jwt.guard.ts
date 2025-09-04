@@ -38,6 +38,7 @@ export class OrderHttpJwtGuard extends AuthGuard('jwt') implements CanActivate {
 
 
     async canActivate(ctx: ExecutionContext): Promise<boolean> {
+        Logger.debug({ message: `${OrderHttpJwtGuard.name} active` })
         // Run the JWT AuthGuard first
         const authed = await super.canActivate(ctx);
         if (!authed) return false;

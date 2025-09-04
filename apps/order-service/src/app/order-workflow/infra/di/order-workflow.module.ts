@@ -16,12 +16,12 @@ import { WorkshopInvitationRepo } from 'apps/order-service/src/app/order-workflo
 import { WorkshopInvitationTrackerPort } from 'apps/order-service/src/app/order-workflow/application/ports/initialize-tracker.port';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { OrderWorkflowTypeOrmOptions } from 'apps/order-service/src/app/order-workflow/infra/config/typeorm-config';
-import { TypeOrmUoW } from 'persistence';
+import { outboxBullMqConfigFactory, OutboxModule, OutboxProcessor, OutboxService, TypeOrmUoW } from 'persistence';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { orderWorkflowOtelConfig } from 'apps/order-service/src/app/order-workflow/infra/config/otel.config';
 import { orderWorkflowWinstonConfig } from 'apps/order-service/src/app/order-workflow/infra/config/winston.config';
 import { orderWorkflowKafkaConfig } from 'apps/order-service/src/app/order-workflow/infra/config/kafka.config';
-import { KAFKA_PRODUCER } from 'persistence';
+import { KAFKA_PRODUCER } from 'adapter';
 import { OrderEventDispatcher } from 'apps/order-service/src/app/order-workflow/adapters/outbound/messaging/kafka-producer';
 import { KafkaProducerPort } from 'adapter';
 import { WorkshopMockAdapter } from 'apps/order-service/src/app/order-workflow/adapters/outbound/http-clients/workshop.adapter';
@@ -42,10 +42,25 @@ import { OrderHttpJwtGuard } from 'apps/order-service/src/app/order-workflow/inf
 import { JwtStrategy } from 'apps/order-service/src/app/order-workflow/infra/auth/strategies/jwt.strategy';
 import { extractBoolEnv } from 'shared-kernel';
 import { MockAuthGuard } from 'apps/order-service/src/app/order-workflow/infra/auth/guards/mock-auth.guard';
+import { OrderComfirmCompletionController } from 'apps/order-service/src/app/order-workflow/adapters/inbound/http/order-confirm-completion.controller';
+import { OrderComfirmCompletionService } from 'apps/order-service/src/app/order-workflow/application/services/order/order-confirm-completion.service';
+import { OrderCancelController } from 'apps/order-service/src/app/order-workflow/adapters/inbound/http/order.cancel.controller';
+import { OrderCancelService } from 'apps/order-service/src/app/order-workflow/application/services/order/order-cancel.service';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
     imports: [
         TypeOrmModule.forRoot(OrderWorkflowTypeOrmOptions),
+        BullModule.registerQueue(
+            outboxBullMqConfigFactory(),
+        ),
+
+        BullModule.forRoot({
+            connection: {
+                host: process.env.REDIS_HOST || 'localhost',
+                port: Number(process.env.REDIS_PORT || 6379),
+            },
+        }),
 
         OpenTelemetryModule.forRoot(orderWorkflowOtelConfig),
         ClientsModule.register([
@@ -78,15 +93,21 @@ import { MockAuthGuard } from 'apps/order-service/src/app/order-workflow/infra/a
         WorkshopInvitationResponseController,
         StageCompletionController,
         WorkshopInvitationTrackerKafkaController,
+        OrderComfirmCompletionController,
+        OrderCancelController
     ],
 
     providers: [
         OrderInitService,
+        OrderComfirmCompletionService,
         RequestEditService,
         StageCompletionService,
         WorkshopInvitationEditService,
         WorkshopInvitationResponseService,
+        OrderCancelService,
 
+        OutboxProcessor,
+        OutboxService,
         TypeOrmUoW,
 
         RequestRepo,
@@ -108,7 +129,7 @@ import { MockAuthGuard } from 'apps/order-service/src/app/order-workflow/infra/a
 
 
 
-        ...(extractBoolEnv(process.env.DISABLE_AUTH)
+        ...(extractBoolEnv("true")
             ? []
             : [JwtStrategy]),
         {
@@ -118,8 +139,6 @@ import { MockAuthGuard } from 'apps/order-service/src/app/order-workflow/infra/a
                 : OrderHttpJwtGuard,
         },
 
-
-        
         {
             provide: HttpErrorInterceptorOptions,
             useValue: {

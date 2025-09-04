@@ -10,6 +10,7 @@ import { OrderReadModule } from 'apps/order-service/src/app/read-model/infra/di/
 import { HttpErrorInterceptor, KafkaErrorInterceptor } from 'error-handling/interceptor';
 import { LoggingInterceptor } from 'observability';
 import { ApiPaths } from 'contracts';
+import otelSDK from 'libs/observability/src/lib/open-telemetry/tracing';
 
 
 
@@ -21,6 +22,18 @@ function setupSwagger(app: INestApplication, {
   const config = new DocumentBuilder()
     .setTitle(title)
     .setVersion(version)
+    .addTag('Order workflow')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        in: 'header',
+        name: 'Authorization',
+        description: 'Paste: Bearer <your-JWT>',
+      },
+      'JWT',
+    )
     .build();
   const doc = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup(path, app, doc, { customSiteTitle: title });
@@ -63,6 +76,7 @@ async function startOrderWorkflowApp() {
 }
 
 async function startOrderReadApp() {
+  
   const httpPort = Number(process.env.ORDER_READ_HTTP_PORT ?? 3002);
 
   const app = await NestFactory.create(OrderReadModule, { bufferLogs: true });
@@ -73,7 +87,7 @@ async function startOrderReadApp() {
 
     app.get(HttpErrorInterceptor),
     app.get(LoggingInterceptor),
-    
+
   );
 
 
@@ -88,13 +102,13 @@ async function startOrderReadApp() {
 
 
 async function bootstrap() {
-  //await otelSDK.start();
-
-
+  await otelSDK.start();
 
   await startOrderWorkflowApp()
   //read assumes entities defined in DB
   await startOrderReadApp()
+
+  
 
   // Graceful shutdown on signals
   const shutdown = async (signal: string) => {
@@ -102,6 +116,8 @@ async function bootstrap() {
     console.log(`\nReceived ${signal}. Shutting down...`)
     process.exit(0);
   };
+
+
   process.on('SIGINT', () => shutdown('SIGINT'));
   process.on('SIGTERM', () => shutdown('SIGTERM'));
 }

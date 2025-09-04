@@ -4,18 +4,19 @@ import { ClientKafka } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import { defaultIfEmpty } from 'rxjs/operators';
 
-import { KAFKA_PRODUCER } from 'persistence'; // token bound to ClientKafka
+import { KAFKA_PRODUCER } from 'adapter'; // token bound to ClientKafka
 import { KafkaProducerPort } from 'adapter';
 import { BonusEventInstanceUnion, KafkaTopics } from 'contracts';
 import { BonusServiceTopicMap } from 'apps/bonus-service/src/app/modules/bonus-processor/adapters/outbound/messaging/kafka.topic-map';
+import { ProgrammerError } from 'error-handling/error-core';
+import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
 
 @Injectable()
 export class BonusEventDispatcher
-  implements KafkaProducerPort<BonusEventInstanceUnion>, OnModuleInit, OnModuleDestroy
-{
+  implements KafkaProducerPort<BonusEventInstanceUnion>, OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(BonusEventDispatcher.name);
 
-  constructor(@Inject(KAFKA_PRODUCER) private readonly client: ClientKafka) {}
+  constructor(@Inject(KAFKA_PRODUCER) private readonly client: ClientKafka) { }
 
   async onModuleInit() {
     // ClientKafka needs an explicit connect in app code (Nest won't auto-connect producers)
@@ -27,7 +28,9 @@ export class BonusEventDispatcher
     try {
       await this.client.close();
     } catch (e) {
-      this.logger.warn(`ClientKafka close error: ${(e as Error).message}`);
+      this.logger.warn({
+        message: `ClientKafka close error: ${(e as Error).message}`,
+      });
     }
   }
 
@@ -53,7 +56,9 @@ export class BonusEventDispatcher
     });
 
     await Promise.all(ops);
-    this.logger.log(`Emitted ${events.length} event(s) via ClientKafka`);
+    this.logger.log({
+      message: `Emitted ${events.length} event(s) via ClientKafka`,
+    });
   }
 
   private topicFor(evt: BonusEventInstanceUnion): string {
@@ -61,7 +66,13 @@ export class BonusEventDispatcher
     const topic = BonusServiceTopicMap[evt.eventName as keyof typeof BonusServiceTopicMap];
     if (!topic) {
       const known = Object.keys(BonusServiceTopicMap).join(', ');
-      throw new Error(`No topic mapping for eventName="${evt.eventName}". Known: [${known}]`);
+      throw new ProgrammerError({
+        errorObject: ProgrammerErrorRegistry.byCode.BUG,
+        details: {
+          message: `No topic mapping for eventName="${evt.eventName}". Known: [${known}]`,
+          event: { ...evt },
+        },
+      });
     }
     return String(topic); // ensure string pattern
   }

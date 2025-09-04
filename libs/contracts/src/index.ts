@@ -8,22 +8,20 @@ export * from './bonus-service/paths/bonus-read-paths.enum';
 export * from './commissioner/events/cancel-submitted.event';
 export * from './commissioner/events/order-init-requested.event';
 export * from './order-service/dtos/order-cancel.dto';
+export * from './order-service/dtos/order-confirm-completion.dto';
 export * from './order-service/dtos/order-history-query.dto';
 export * from './order-service/dtos/order-history-result.dto';
-export * from './order-service/dtos/order-init.dto';
 export * from './order-service/dtos/order-init-result.dto';
-export * from './order-service/dtos/stage-completion-confirm.dto';
+export * from './order-service/dtos/order-init.dto';
 export * from './order-service/dtos/stage-completion-confirm-result.dto';
-export * from './order-service/dtos/stage-completion-mark.dto';
+export * from './order-service/dtos/stage-completion-confirm.dto';
 export * from './order-service/dtos/stage-completion-mark-result.dto';
-export * from './order-service/dtos/workshop-invitation-accept.dto';
+export * from './order-service/dtos/stage-completion-mark.dto';
 export * from './order-service/dtos/workshop-invitation-accept-result.dto';
-export * from './order-service/dtos/workshop-invitation-decline.dto';
-
-export * from './order-service/events/all-invitations-declined.event';
-
+export * from './order-service/dtos/workshop-invitation-accept.dto';
 export * from './order-service/dtos/workshop-invitation-decline-result.dto';
-
+export * from './order-service/dtos/workshop-invitation-decline.dto';
+export * from './order-service/events/all-invitations-declined.event';
 export * from './order-service/events/all-responses-received.event';
 export * from './order-service/events/all-stages-completed.event';
 export * from './order-service/events/cancelled.event';
@@ -32,6 +30,7 @@ export * from './order-service/events/invitation-declined.event';
 export * from './order-service/events/offer-accepted.event';
 export * from './order-service/events/order-cancelled.event';
 export * from './order-service/events/order-completed.event';
+export * from './order-service/events/order-marked-as-completed.event';
 export * from './order-service/events/order-placed.event';
 export * from './order-service/events/request-edeited.event';
 export * from './order-service/events/stage-confirmation-marked.event';
