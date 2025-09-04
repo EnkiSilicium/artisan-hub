@@ -10,6 +10,8 @@ import {
   ApiCreatedResponse,
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiNotFoundResponse,
+  ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 import { OrderInitService } from 'apps/order-service/src/app/order-workflow/application/services/order/order-init.service';
   // Re-exported DTO from libs/contracts
@@ -38,6 +40,8 @@ export class OrderInitController {
     type: OrderInitResultDto,
   })
   @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiNotFoundResponse({ description: 'Workshop not found (NOT_FOUND)' })
+  @ApiUnprocessableEntityResponse({ description: 'Domain validation failed (VALIDATION)' })
   async postOrderInit(@Body() body: OrderInitDtoV1) {
     return await this.orderInitService.orderInit({
       payload: {

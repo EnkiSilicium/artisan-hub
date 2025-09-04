@@ -10,6 +10,8 @@ import {
   ApiCreatedResponse,
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiNotFoundResponse,
+  ApiConflictResponse,
 } from '@nestjs/swagger';
 import { StageCompletionService } from 'apps/order-service/src/app/order-workflow/application/services/stage/stage-completion.service';
 import {
@@ -42,6 +44,8 @@ export class StageCompletionController {
     type: StageCompletionMarkResultDto,
   })
   @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiNotFoundResponse({ description: 'Order or stage not found (NOT_FOUND)' })
+  @ApiConflictResponse({ description: 'Invariants violated (INVARIANTS_VIOLATED)' })
   async mark(
     @Body() body: MarkStageCompletionDtoV1,
   ) {
@@ -65,6 +69,8 @@ export class StageCompletionController {
     type: StageCompletionConfirmResultDto,
   })
   @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiNotFoundResponse({ description: 'Order or stage not found (NOT_FOUND)' })
+  @ApiConflictResponse({ description: 'Invariants violated (INVARIANTS_VIOLATED)' })
   async confirm(
     @Body() body: ConfirmStageCompletionDtoV1,
   ) {
