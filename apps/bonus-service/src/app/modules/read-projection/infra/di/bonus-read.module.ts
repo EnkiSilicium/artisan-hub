@@ -9,73 +9,70 @@ import { bonusReadWinstonConfig } from 'apps/bonus-service/src/app/modules/read-
 import { BonusReadProjection } from 'apps/bonus-service/src/app/modules/read-projection/infra/persistence/projections/bonus-read.projection';
 import { BonusReadRepo } from 'apps/bonus-service/src/app/modules/read-projection/infra/persistence/repositories/bonus-read.repository';
 import { BonusReadRefreshWorker } from 'apps/bonus-service/src/app/modules/read-projection/infra/workers/bonus-read-refresh.worker';
-import { HttpErrorInterceptor, KafkaErrorInterceptor, HttpErrorInterceptorOptions, KafkaErrorInterceptorOptions } from 'error-handling/interceptor';
+import { BONUS_READ_REFRESH_QUEUE } from 'apps/bonus-service/src/app/modules/read-projection/infra/workers/bonus-read-refresh.token';
+import {
+  HttpErrorInterceptor,
+  KafkaErrorInterceptor,
+  HttpErrorInterceptorOptions,
+  KafkaErrorInterceptorOptions,
+} from 'error-handling/interceptor';
 import { WinstonModule } from 'nest-winston';
 import { OpenTelemetryModule } from 'nestjs-otel';
 import { LoggingInterceptor } from 'observability';
 
 @Module({
-    imports: [
-        TypeOrmModule.forRoot(bonusReadTypeOrmOptions),
+  imports: [
+    TypeOrmModule.forRoot(bonusReadTypeOrmOptions),
 
-        OpenTelemetryModule.forRoot(bonusReadOtelConfig),
+    OpenTelemetryModule.forRoot(bonusReadOtelConfig),
 
-        BullModule.forRoot({
-            connection: {
-                host: process.env.REDIS_HOST || 'localhost',
-                port: Number(process.env.REDIS_PORT || 6379),
-            },
-        }),
-        BullModule.registerQueue({
-            name: 'bonus-read-refresh',
-        }),
-        // ClientsModule.register([
-        //     {
-        //         name: KAFKA_PRODUCER,
-        //         transport: Transport.KAFKA,
-        //         options: {
-        //             client: bonusReadKafkaConfig.client,
-        //             producer: bonusReadKafkaConfig.producer,
-        //             run: bonusReadKafkaConfig.run,
-        //             consumer: bonusReadKafkaConfig.consumer
-        //         },
-        //     },
-        // ]),
+    BullModule.forRoot({
+      connection: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: Number(process.env.REDIS_PORT || 6379),
+      },
+    }),
+    BullModule.registerQueue({
+      name: BONUS_READ_REFRESH_QUEUE,
+    }),
+    // ClientsModule.register([
+    //     {
+    //         name: KAFKA_PRODUCER,
+    //         transport: Transport.KAFKA,
+    //         options: {
+    //             client: bonusReadKafkaConfig.client,
+    //             producer: bonusReadKafkaConfig.producer,
+    //             run: bonusReadKafkaConfig.run,
+    //             consumer: bonusReadKafkaConfig.consumer
+    //         },
+    //     },
+    // ]),
 
-        WinstonModule.forRoot({
-            transports: [
-                bonusReadWinstonConfig.transports.consoleTransport,
-                bonusReadWinstonConfig.transports.fileTransport
-            ],
+    WinstonModule.forRoot({
+      transports: [
+        bonusReadWinstonConfig.transports.consoleTransport,
+        bonusReadWinstonConfig.transports.fileTransport,
+      ],
+    }),
+  ],
+  controllers: [BonusReadController],
+  providers: [
+    BonusReadHandler,
+    BonusReadProjection,
+    BonusReadRepo,
+    BonusReadRefreshWorker,
 
-        }),
-    ],
-    controllers: [
-        BonusReadController
+    LoggingInterceptor,
+    HttpErrorInterceptor,
 
-
-
-    ],
-    providers: [
-        BonusReadHandler,
-        BonusReadProjection,
-        BonusReadRepo,
-        BonusReadRefreshWorker,
-
-        LoggingInterceptor,
-        HttpErrorInterceptor,
-
-        {
-            provide: HttpErrorInterceptorOptions, useValue: {
-                includeTupleInBody: false,
-                retryAfterSeconds: 1,
-                addNoStoreHeaders: true,
-            }
-        },
-
-
-
-    ],
-
+    {
+      provide: HttpErrorInterceptorOptions,
+      useValue: {
+        includeTupleInBody: false,
+        retryAfterSeconds: 1,
+        addNoStoreHeaders: true,
+      },
+    },
+  ],
 })
-export class BonusReadModule { }
+export class BonusReadModule {}
