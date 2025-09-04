@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { InvitationResponseTracker } from './invitation-response-tracker.entity';
 import {
-  AllInvitationsDeclinedEventV1,
-  AllResponsesReceivedEventV1,
+  AllInvitationsDeclinedEvent,
+  AllResponsesReceivedEvent,
   OrderEventInstanceUnion,
 } from 'contracts';
 import { KafkaProducerPort } from 'adapter';
@@ -55,7 +55,7 @@ export class WorkshopInvitationTracker {
     if (tracker.responses >= tracker.total) {
       const events: OrderEventInstanceUnion[] = [];
 
-      const allRes: AllResponsesReceivedEventV1 = {
+      const allRes: AllResponsesReceivedEvent = {
         eventName: 'AllResponsesReceived',
         orderID: orderId,
         commissionerId: tracker.commissionerId,
@@ -65,7 +65,7 @@ export class WorkshopInvitationTracker {
       events.push(allRes);
 
       if (tracker.declines >= tracker.total) {
-        const allDecl: AllInvitationsDeclinedEventV1 = {
+        const allDecl: AllInvitationsDeclinedEvent = {
           eventName: 'AllInvitationsDeclined',
           orderID: orderId,
           commissionerId: tracker.commissionerId,

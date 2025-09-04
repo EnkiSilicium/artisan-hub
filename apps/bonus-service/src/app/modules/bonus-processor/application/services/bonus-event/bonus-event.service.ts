@@ -10,7 +10,7 @@ import { AdditiveBonusRepo } from 'apps/bonus-service/src/app/modules/bonus-proc
 import { BonusEventRepo } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/persistence/repositories/bonus-event/bonus-event.repo';
 import { VipProfileRepo } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/persistence/repositories/vip-profile/vip-profile.repo';
 import { enqueueOutbox, TypeOrmUoW } from 'persistence';
-import { GradeAttainedEventV1, VipAccquiredEventV1 } from 'contracts';
+import { GradeAttainedEvent, VipAccquiredEvent } from 'contracts';
 import { createHash, randomUUID } from 'crypto';
 import { AdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity';
 import { isoNow } from 'shared-kernel';
@@ -88,7 +88,7 @@ export class BonusEventService {
 
 
       if (vipGained) {
-        const vipGainedPayload: VipAccquiredEventV1 = {
+        const vipGainedPayload: VipAccquiredEvent = {
           eventName: 'VipAccquired',
           accquiredAt: isoNow(),
           commissionerId: vipProfile.commissionerId,
@@ -104,7 +104,7 @@ export class BonusEventService {
       }
 
       if (gradeChanged) {
-        const gradeAttainedPayload: GradeAttainedEventV1 = {
+        const gradeAttainedPayload: GradeAttainedEvent = {
           eventName: 'GradeAttained',
           attainedAt: isoNow(),
           commissionerId: vipProfile.commissionerId,

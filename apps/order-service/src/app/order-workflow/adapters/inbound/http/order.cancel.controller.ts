@@ -13,7 +13,7 @@ import {
     ApiBearerAuth,
 } from '@nestjs/swagger';
 import { OrderCancelService } from 'apps/order-service/src/app/order-workflow/application/services/order/order-cancel.service';
-import { OrderCancelDtoV1, OrderInitDtoV1 } from 'contracts';
+import { OrderCancelDto } from 'contracts';
 
 @ApiTags('Order workflow')
 @ApiBearerAuth('JWT')
@@ -27,10 +27,10 @@ export class OrderCancelController {
         summary: 'Cancel an order',
         description: 'Cancels an existing order based on the provided order ID.',
     })
-    @ApiBody({ type: OrderInitDtoV1 })
+    @ApiBody({ type: OrderCancelDto })
     @ApiCreatedResponse({ description: 'Order canceled successfully' })
     @ApiBadRequestResponse({ description: 'Validation failed' })
-    async postOrderCancel(@Body() body: OrderCancelDtoV1) {
+    async postOrderCancel(@Body() body: OrderCancelDto) {
         return await this.orderCancelService.orderCancel({
             orderId: body.orderId,
             cancelledBy: body.cancelledBy,

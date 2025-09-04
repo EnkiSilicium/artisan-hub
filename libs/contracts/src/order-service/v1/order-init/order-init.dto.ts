@@ -12,7 +12,7 @@ import { Type } from 'class-transformer';
 /**
  * Payload for creating a new order request.
  */
-export class RequestOrderInitPayloadV1 {
+export class RequestOrderInitPayload {
   @ApiProperty({ type: String, description: 'Human‑readable title of the order' })
   @IsString()
   @IsNotEmpty()
@@ -40,7 +40,7 @@ export class RequestOrderInitPayloadV1 {
 /**
  * DTO for creating an order (version 1).
  */
-export class OrderInitDtoV1 {
+export class OrderInitDto {
   @ApiProperty({
     type: String,
     format: 'uuid',
@@ -51,12 +51,12 @@ export class OrderInitDtoV1 {
   commissionerId!: string;
 
   @ApiProperty({
-    type: () => RequestOrderInitPayloadV1,
+    type: () => RequestOrderInitPayload,
     description: 'Payload describing the order request',
   })
   @ValidateNested()
-  @Type(() => RequestOrderInitPayloadV1)
-  request!: RequestOrderInitPayloadV1;
+  @Type(() => RequestOrderInitPayload)
+  request!: RequestOrderInitPayload;
 
     @ApiProperty({
     type: String,

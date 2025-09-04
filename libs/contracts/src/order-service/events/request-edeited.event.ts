@@ -1,7 +1,7 @@
 import { IsString, IsNotEmpty, Equals, IsISO8601 } from "class-validator";
 import { BaseEvent } from "libs/contracts/src/_common/base-event.event";
 
-export class RequestEditedEventV1 implements BaseEvent<'RequestEdited'> {
+export class RequestEditedEvent implements BaseEvent<'RequestEdited'> {
 
   @IsString()
   @IsNotEmpty()

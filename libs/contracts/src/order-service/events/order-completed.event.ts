@@ -6,7 +6,7 @@ import {
   IsInt,
 } from 'class-validator';
 
-export class OrderCompletedV1 {
+export class OrderCompletedEvent {
   @IsString()
   @IsNotEmpty()
   eventName!: 'OrderCompleted';

@@ -1,7 +1,7 @@
 import { IsString, IsNotEmpty, Equals, IsISO8601, IsInt } from "class-validator";
 import { BaseEvent } from "libs/contracts/src/_common/base-event.event";
 
-export class OrderMarkedAsCompletedEventV1 implements BaseEvent<'OrderMarkedAsCompleted'> {
+export class OrderMarkedAsCompletedEvent implements BaseEvent<'OrderMarkedAsCompleted'> {
 
     @IsString()
     @IsNotEmpty()

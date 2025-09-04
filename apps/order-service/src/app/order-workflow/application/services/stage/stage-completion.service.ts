@@ -12,13 +12,13 @@ import { TypeOrmUoW, enqueueOutbox } from 'persistence';
 import {
   StageCompletionMarkResultDto,
   StageCompletionConfirmResultDto,
-  StageConfirmationMarkedEventV1,
-  StageConfirmedEventV1,
-  AllStagesCompletedEventV1,
+  StageConfirmationMarkedEvent,
+  StageConfirmedEvent,
+  AllStagesCompletedEvent,
 } from 'contracts';
 import { randomUUID } from 'crypto';
 import { isoNow } from 'shared-kernel';
-import { OrderMarkedAsCompletedEventV1 } from 'libs/contracts/src/order-service/events/order-marked-as-completed.event';
+import { OrderMarkedAsCompletedEvent } from 'libs/contracts/src/order-service/events/order-marked-as-completed.event';
 
 @Injectable()
 export class StageCompletionService {
@@ -58,7 +58,7 @@ export class StageCompletionService {
       await this.stagesAggregateRepo.save(stages);
 
 
-      const stageMarkedEventPayload: StageConfirmationMarkedEventV1 = {
+      const stageMarkedEventPayload: StageConfirmationMarkedEvent = {
         commissionerId: order.commissionerId,
 
         confirmedAt: isoNow(),
@@ -80,7 +80,7 @@ export class StageCompletionService {
 
 
       if (stageCompleted) {
-        const stageConfirmedEventPayload: StageConfirmedEventV1 = {
+        const stageConfirmedEventPayload: StageConfirmedEvent = {
           commissionerId: order.commissionerId,
           confirmedAt: isoNow(),
           eventName: 'StageConfirmed',
@@ -104,7 +104,7 @@ export class StageCompletionService {
         await this.ordersRepo.update(order);
 
 
-        const allStageConfirmedEventPayload: AllStagesCompletedEventV1 = {
+        const allStageConfirmedEventPayload: AllStagesCompletedEvent = {
           commissionerId: order.commissionerId,
 
           completedAt: isoNow(),
@@ -121,7 +121,7 @@ export class StageCompletionService {
           },
         });
 
-        const oprderMarkedAsCompleted: OrderMarkedAsCompletedEventV1 = {
+        const oprderMarkedAsCompleted: OrderMarkedAsCompletedEvent = {
           eventName: 'OrderMarkedAsCompleted',
           commissionerId: order.commissionerId,
           markedAt: isoNow(),
@@ -178,7 +178,7 @@ export class StageCompletionService {
       await this.stagesAggregateRepo.save(stages);
 
 
-      const stageConfirmedEventPayload: StageConfirmedEventV1 = {
+      const stageConfirmedEventPayload: StageConfirmedEvent = {
         commissionerId: order.commissionerId,
         confirmedAt: isoNow(),
         eventName: 'StageConfirmed',
@@ -201,7 +201,7 @@ export class StageCompletionService {
 
         await this.ordersRepo.update(order);
 
-        const allStagedCompletedEventPayload: AllStagesCompletedEventV1 = {
+        const allStagedCompletedEventPayload: AllStagesCompletedEvent = {
           commissionerId: order.commissionerId,
           completedAt: isoNow(),
           schemaV: 1,
@@ -217,7 +217,7 @@ export class StageCompletionService {
           },
         });
 
-        const oprderMarkedAsCompleted: OrderMarkedAsCompletedEventV1 = {
+        const oprderMarkedAsCompleted: OrderMarkedAsCompletedEvent = {
           eventName: 'OrderMarkedAsCompleted',
           commissionerId: order.commissionerId,
           markedAt: isoNow(),

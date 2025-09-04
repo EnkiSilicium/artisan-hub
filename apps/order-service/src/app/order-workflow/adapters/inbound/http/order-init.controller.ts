@@ -16,7 +16,7 @@ import { OrderInitService } from 'apps/order-service/src/app/order-workflow/appl
 
 import { OrderInitResultDto } from 'contracts';
 
-import { OrderInitDtoV1, OrderInitPaths } from 'contracts';
+import { OrderInitDto, OrderInitPaths } from 'contracts';
 
 
 @ApiTags('Order workflow')
@@ -32,13 +32,13 @@ export class OrderInitController {
 
 
   })
-  @ApiBody({ type: OrderInitDtoV1 })
+  @ApiBody({ type: OrderInitDto })
   @ApiCreatedResponse({
     description: 'Order created successfully',
     type: OrderInitResultDto,
   })
   @ApiBadRequestResponse({ description: 'Validation failed' })
-  async postOrderInit(@Body() body: OrderInitDtoV1) {
+  async postOrderInit(@Body() body: OrderInitDto) {
     return await this.orderInitService.orderInit({
       payload: {
         commissionerId: body.commissionerId,

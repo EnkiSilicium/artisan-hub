@@ -11,7 +11,7 @@ import {
 import { OrderInitRequestPayload } from 'libs/contracts/src/commissioner/events/order-init-requested.event';
 import { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
 
-export class OrderPlacedEventV1 implements BaseEvent<'OrderPlaced'> {
+export class OrderPlacedEvent implements BaseEvent<'OrderPlaced'> {
   @IsString()
   @IsNotEmpty()
   eventName!: 'OrderPlaced';

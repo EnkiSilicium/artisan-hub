@@ -13,8 +13,8 @@ import {
 } from '@nestjs/swagger';
 import { WorkshopInvitationResponseService } from 'apps/order-service/src/app/order-workflow/application/services/workshop/workshop-invitation-response.service';
 import {
-  AcceptWorkshopInvitationDtoV1,
-  DeclineWorkshopInvitationDtoV1,
+  AcceptWorkshopInvitationDto,
+  DeclineWorkshopInvitationDto,
 
   WorkshopInvitationAcceptResultDto,
   WorkshopInvitationDeclineResultDto,
@@ -39,14 +39,14 @@ export class WorkshopInvitationResponseController {
     description:
       'Accepts a workshop invitation for an order and returns the updated state.',
   })
-  @ApiBody({ type: AcceptWorkshopInvitationDtoV1 })
+  @ApiBody({ type: AcceptWorkshopInvitationDto })
   @ApiCreatedResponse({
     description: 'Invitation accepted',
     type: WorkshopInvitationAcceptResultDto,
   })
   @ApiBadRequestResponse({ description: 'Validation failed' })
   async accept(
-    @Body() body: AcceptWorkshopInvitationDtoV1,
+    @Body() body: AcceptWorkshopInvitationDto,
   ) {
     
     const orderId = body.orderId
@@ -72,14 +72,14 @@ export class WorkshopInvitationResponseController {
     description:
       'Declines a workshop invitation for an order and returns the updated state.',
   })
-  @ApiBody({ type: DeclineWorkshopInvitationDtoV1 })
+  @ApiBody({ type: DeclineWorkshopInvitationDto })
   @ApiCreatedResponse({
     description: 'Invitation declined',
     type: WorkshopInvitationDeclineResultDto,
   })
   @ApiBadRequestResponse({ description: 'Validation failed' })
   async decline(
-    @Body() body: DeclineWorkshopInvitationDtoV1,
+    @Body() body: DeclineWorkshopInvitationDto,
   ) {
     return await this.workshopInvitationResponseService.declineWorkshopInvitation(
       {

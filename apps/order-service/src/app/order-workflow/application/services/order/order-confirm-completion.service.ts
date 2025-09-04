@@ -9,7 +9,7 @@ import { OrderRepo } from 'apps/order-service/src/app/order-workflow/infra/persi
 import { RequestRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/request/request.repo';
 import { WorkshopInvitationRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/workshop-invitation/workshop-invitation.repo';
 import { TypeOrmUoW, enqueueOutbox } from 'persistence';
-import { OrderCancelledEventV1, OrderCompletedV1, OrderPlacedEventV1 } from 'contracts';
+import { OrderCompletedEvent } from 'contracts';
 import { randomUUID } from 'crypto';
 import { isoNow } from 'shared-kernel';
 import { assert } from 'console';
@@ -41,7 +41,7 @@ export class OrderComfirmCompletionService {
 
             await this.orderRepo.update(order);
             
-            const eventPayload: OrderCompletedV1 = {
+            const eventPayload: OrderCompletedEvent = {
                 eventName: 'OrderCompleted',
                 orderId: order.orderId,
                 schemaV: 1,

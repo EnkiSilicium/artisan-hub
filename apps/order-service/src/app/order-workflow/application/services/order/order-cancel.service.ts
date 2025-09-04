@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Order } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.entity';
 import { OrderRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/order/order.repo';
 import { TypeOrmUoW, enqueueOutbox } from 'persistence';
-import { OrderCancelledEventV1 } from 'contracts';
+import { OrderCancelledEvent } from 'contracts';
 import { randomUUID } from 'crypto';
 import { isoNow } from 'shared-kernel';
 import { assertIsFound } from 'apps/order-service/src/app/order-workflow/domain/entities/common/assert-is-found.assertion';
@@ -33,7 +33,7 @@ export class OrderCancelService {
 
             await this.orderRepo.update(order);
             
-            const eventPayload: OrderCancelledEventV1 = {
+            const eventPayload: OrderCancelledEvent = {
                 eventName: 'OrderCancelled',
                 orderId: order.orderId,
                 cancelledBy: order.createdAt,

@@ -3,7 +3,7 @@ import axios, { AxiosResponse } from 'axios';
 import { randomUUID } from 'crypto';
 import { Kafka, Consumer, logLevel } from 'kafkajs';
 import { isoNow } from 'shared-kernel';
-import { AcceptWorkshopInvitationDtoV1, ConfirmStageCompletionDtoV1, KafkaTopics, MarkStageCompletionDtoV1, OrderHistoryQueryResultDto, OrderHistoryQueryResultFlatDto, OrderInitDtoV1 } from 'contracts';
+import { AcceptWorkshopInvitationDto, ConfirmStageCompletionDto, KafkaTopics, MarkStageCompletionDto, OrderHistoryQueryResultDto, OrderHistoryQueryResultFlatDto, OrderInitDto } from 'contracts';
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -200,7 +200,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
             deadline: isoNow(),
             budget: '10',
           },
-        } satisfies OrderInitDtoV1
+        } satisfies OrderInitDto
       );
         console.log(
           `[E2E] order init response: ${response.status} ${JSON.stringify(response.data)}`,
@@ -295,7 +295,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
             deadline: isoNow(),
             budget: '10',
           },
-        } satisfies OrderInitDtoV1
+        } satisfies OrderInitDto
       );
 
         orderId = await pollUntil(async () => {
@@ -354,7 +354,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
               needsConfirmation: false,
             },
           ],
-        } satisfies AcceptWorkshopInvitationDtoV1
+        } satisfies AcceptWorkshopInvitationDto
         );
 
         console.log(`[E2E] Declining invitation for the other workshop...`);
@@ -380,14 +380,14 @@ describe('Order workflow integration (read model + Kafka)', () => {
             workshopId: workshops[0],
             commissionerId,
             stageName: stage,
-          } satisfies MarkStageCompletionDtoV1);
+          } satisfies MarkStageCompletionDto);
         const confirm = (stage: string) =>
           axios.post(`${CMD}/api/stage-completion/confirm`, {
             orderId,
             workshopId: workshops[0],
             commissionerId,
             stageName: stage,
-          } satisfies ConfirmStageCompletionDtoV1
+          } satisfies ConfirmStageCompletionDto
         );
 
         console.log(`[E2E][HTTP] POST ${CMD}/api/stage-completion/mark Design`);
@@ -473,7 +473,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
             deadline: isoNow(),
             budget: '1',
           },
-        } satisfies OrderInitDtoV1
+        } satisfies OrderInitDto
       );
 
         orderId = await pollUntil(async () => {
@@ -555,7 +555,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
             deadline: isoNow(),
             budget: '1',
           },
-        } satisfies OrderInitDtoV1
+        } satisfies OrderInitDto
       );
 
         orderId = await pollUntil(async () => {
@@ -586,7 +586,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
             workshopId: workshops[0],
             commissionerId,
             stageName: 'Design',
-          } satisfies MarkStageCompletionDtoV1
+          } satisfies MarkStageCompletionDto
         );
         } catch (e: any) {
           console.log(`[E2E] Caught expected error: ${e?.message ?? e}`);
@@ -638,7 +638,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
             deadline: isoNow(),
             budget: '1',
           },
-        } satisfies OrderInitDtoV1
+        } satisfies OrderInitDto
       );
 
         orderId = await pollUntil(async () => {
@@ -687,7 +687,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
               needsConfirmation: true,
             },
           ],
-        } satisfies AcceptWorkshopInvitationDtoV1
+        } satisfies AcceptWorkshopInvitationDto
         );
 
 
@@ -705,7 +705,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
             workshopId: workshops[0],
             commissionerId,
             stageName: 'Design',
-          } satisfies ConfirmStageCompletionDtoV1
+          } satisfies ConfirmStageCompletionDto
         );
         } catch (e: any) {
           console.log(`[E2E] Caught expected error: ${e?.message ?? e}`);
@@ -726,7 +726,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
             workshopId: workshops[0],
             commissionerId,
             stageName: 'Build',
-          } satisfies ConfirmStageCompletionDtoV1
+          } satisfies ConfirmStageCompletionDto
         );
         } catch (e: any) {
           console.log(`[E2E] Caught expected error: ${e?.message ?? e}`);

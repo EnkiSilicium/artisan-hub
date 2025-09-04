@@ -8,7 +8,7 @@ import {
     ApiBearerAuth,
 } from '@nestjs/swagger';
 import { OrderComfirmCompletionService } from 'apps/order-service/src/app/order-workflow/application/services/order/order-confirm-completion.service';
-import { OrderInitDtoV1, OrderConfirmCompletionDtoV1 } from 'contracts';
+import { OrderConfirmCompletionDto } from 'contracts';
 
 @ApiTags('Order workflow')
 @ApiBearerAuth('JWT')
@@ -23,11 +23,11 @@ export class OrderComfirmCompletionController {
         description:
             'Confirm completion an existing order based on the provided order ID - done by commissioner.',
     })
-    @ApiBody({ type: OrderInitDtoV1 })
+    @ApiBody({ type: OrderConfirmCompletionDto })
     @ApiCreatedResponse({ description: 'Order canceled successfully' })
     @ApiBadRequestResponse({ description: 'Validation failed' })
     @ApiBearerAuth('JWT')
-    async postOrderCancel(@Body() body: OrderConfirmCompletionDtoV1) {
+    async postOrderCancel(@Body() body: OrderConfirmCompletionDto) {
         return await this.service.confirmCompletion({
             orderId: body.orderId,
             commissionerId: body.commissionerId,

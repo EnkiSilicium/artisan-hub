@@ -7,7 +7,7 @@ import {
 } from 'class-validator';
 import { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
 
-export class InvitationAcceptedEventV1
+export class InvitationAcceptedEvent
   implements BaseEvent<'InvitationAccepted'>
 {
   @IsString()

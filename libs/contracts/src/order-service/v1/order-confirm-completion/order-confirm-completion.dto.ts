@@ -1,7 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsNotEmpty, IsString } from "class-validator";
 
-export class OrderConfirmCompletionDtoV1 {
+export class OrderConfirmCompletionDto {
     @ApiProperty({
         description: 'Unique identifier of the order',
         type: String,

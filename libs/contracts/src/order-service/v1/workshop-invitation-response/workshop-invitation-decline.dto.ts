@@ -9,7 +9,7 @@ import {
 /**
  * DTO used to decline a workshop invitation.
  */
-export class DeclineWorkshopInvitationDtoV1 {
+export class DeclineWorkshopInvitationDto {
   @ApiProperty({
     type: String,
     format: 'uuid',

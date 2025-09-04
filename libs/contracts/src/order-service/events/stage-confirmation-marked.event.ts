@@ -1,7 +1,7 @@
 import { IsString, IsNotEmpty, Equals, IsISO8601 } from "class-validator";
 import { BaseEvent } from "libs/contracts/src/_common/base-event.event";
 
-export class StageConfirmationMarkedEventV1 implements BaseEvent<'StageConfirmationMarked'> {
+export class StageConfirmationMarkedEvent implements BaseEvent<'StageConfirmationMarked'> {
   @IsString()
   @IsNotEmpty()
   eventName!: 'StageConfirmationMarked'

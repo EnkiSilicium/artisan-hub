@@ -7,7 +7,7 @@ import {
 } from 'class-validator';
 import { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
 
-export class CancelledEventV1 implements BaseEvent<'Cancelled'> {
+export class CancelledEvent implements BaseEvent<'Cancelled'> {
   @IsString()
   @IsNotEmpty()
   eventName!: 'Cancelled';

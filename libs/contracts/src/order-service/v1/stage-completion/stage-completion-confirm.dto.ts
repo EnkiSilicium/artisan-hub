@@ -2,9 +2,9 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsNotEmpty } from 'class-validator';
 
 /**
- * DTO used to mark a stage as completed.
+ * DTO used when a commissioner confirms that a stage has been completed.
  */
-export class MarkStageCompletionDtoV1 {
+export class ConfirmStageCompletionDto {
   @ApiProperty({
     type: String,
     format: 'uuid',
@@ -26,13 +26,13 @@ export class MarkStageCompletionDtoV1 {
   @ApiProperty({
     type: String,
     format: 'uuid',
-    description: 'ID of the order for which the stage is being marked',
+    description: 'ID of the order for which the stage was completed',
   })
   @IsString()
   @IsNotEmpty()
   orderId!: string;
 
-  @ApiProperty({ type: String, description: 'Name of the stage to mark as completed' })
+  @ApiProperty({ type: String, description: 'Name of the stage to confirm' })
   @IsString()
   @IsNotEmpty()
   stageName!: string;

@@ -19,8 +19,8 @@ import { TypeOrmUoW, enqueueOutbox } from 'persistence';
 import {
   WorkshopInvitationAcceptResultDto,
   WorkshopInvitationDeclineResultDto,
-  InvitationAcceptedEventV1,
-  InvitationDeclinedEventV1,
+  InvitationAcceptedEvent,
+  InvitationDeclinedEvent,
 } from 'contracts';
 import { randomUUID } from 'crypto';
 import { isoNow } from 'shared-kernel';
@@ -69,7 +69,7 @@ export class WorkshopInvitationResponseService {
       await this.workshopInvitationsRepo.update(workshopInvitation);
       await this.orderRepo.update(order);
 
-      const eventPayload: InvitationAcceptedEventV1 = {
+      const eventPayload: InvitationAcceptedEvent = {
         commissionerId: order.commissionerId,
         eventName: 'InvitationAccepted',
         acceptedAt: isoNow(),
@@ -115,7 +115,7 @@ export class WorkshopInvitationResponseService {
       await this.workshopInvitationsRepo.update(workshopInvitation);
       await this.orderRepo.update(order);
 
-      const eventPayload: InvitationDeclinedEventV1 = {
+      const eventPayload: InvitationDeclinedEvent = {
         commissionerId: order.commissionerId,
         eventName: 'InvitationDeclined',
         declinedAt: isoNow(),

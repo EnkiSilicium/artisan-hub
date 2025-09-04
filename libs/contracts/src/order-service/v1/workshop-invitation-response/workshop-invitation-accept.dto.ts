@@ -11,7 +11,7 @@ import { Optional } from '@nestjs/common';
 /**
  * Acceptance payload data for a workshop invitation.
  */
-export class AcceptWorkshopInvitationPayloadV1 {
+export class AcceptWorkshopInvitationPayload {
   @ApiProperty({ type: String, description: 'Additional description supplied by the workshop' })
   @IsString()
   @IsNotEmpty()
@@ -32,7 +32,7 @@ export class AcceptWorkshopInvitationPayloadV1 {
 }
 
 
-export class StagesDataV1 {
+export class StagesData {
 
   @ApiProperty({ type: String, description: 'Name of the stage' })
   @IsString()
@@ -65,15 +65,15 @@ export class StagesDataV1 {
 /**
  * DTO used to accept a workshop invitation.
  */
-export class AcceptWorkshopInvitationDtoV1 {
+export class AcceptWorkshopInvitationDto {
 
   @ValidateNested()
   @ApiProperty({
-    type: () => AcceptWorkshopInvitationPayloadV1,
+    type: () => AcceptWorkshopInvitationPayload,
     description: 'Structured description of the proposal (deadline/budget)',
   })
-  @Type(() => AcceptWorkshopInvitationPayloadV1)
-  invitationInfo!: AcceptWorkshopInvitationPayloadV1;
+  @Type(() => AcceptWorkshopInvitationPayload)
+  invitationInfo!: AcceptWorkshopInvitationPayload;
 
 
   @ApiProperty({
@@ -95,13 +95,13 @@ export class AcceptWorkshopInvitationDtoV1 {
   orderId!: string;
 
   @ValidateNested({ each: true })
-  @Type(() => StagesDataV1)
+  @Type(() => StagesData)
   @ApiProperty({
-    type: [StagesDataV1],
+    type: [StagesData],
     description: 'Optional list of stages for the order',
     required: false,
   })
   @Optional()
-  stages!: StagesDataV1[];
+  stages!: StagesData[];
 
 }
