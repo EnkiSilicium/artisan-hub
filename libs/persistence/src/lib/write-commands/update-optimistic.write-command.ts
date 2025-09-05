@@ -3,7 +3,7 @@ import {
   ProgrammerErrorRegistry,
   InfraErrorRegistry,
 } from 'error-handling/registries/common';
-import { assertImplementsEntityTechnicals } from 'libs/persistence/src/lib/assertions/assert-implements-entity-technicals.assertion.js';
+import { assertImplementsEntityTechnicals } from 'libs/persistence/src/lib/assertions/assert-implements-entity-technicals.assertion';
 import { isoNow } from 'shared-kernel';
 
 import type { DataSource, EntityManager, ObjectType } from 'typeorm';

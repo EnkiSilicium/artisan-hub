@@ -53,7 +53,7 @@ export class TypeOrmUoW {
       qr = this.ds.createQueryRunner();
       await qr.connect();
       await qr.startTransaction(opts?.isolation ?? 'READ COMMITTED');
-    } catch (error) {
+    } catch (error: any) {
       remapTypeOrmPgErrorToInfra(error);
     }
 
