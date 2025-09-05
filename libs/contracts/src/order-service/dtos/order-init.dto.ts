@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsString,
   IsNotEmpty,
@@ -7,18 +8,23 @@ import {
   ValidateNested,
   IsISO8601,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 
 /**
  * Payload for creating a new order request.
  */
 export class RequestOrderInitPayloadV1 {
-  @ApiProperty({ type: String, description: 'Human‑readable title of the order' })
+  @ApiProperty({
+    type: String,
+    description: 'Human‑readable title of the order',
+  })
   @IsString()
   @IsNotEmpty()
   title!: string;
 
-  @ApiProperty({ type: String, description: 'Detailed description of the order' })
+  @ApiProperty({
+    type: String,
+    description: 'Detailed description of the order',
+  })
   @IsString()
   @IsNotEmpty()
   description!: string;
@@ -58,7 +64,7 @@ export class OrderInitDtoV1 {
   @Type(() => RequestOrderInitPayloadV1)
   request!: RequestOrderInitPayloadV1;
 
-    @ApiProperty({
+  @ApiProperty({
     type: String,
     format: 'uuid',
     isArray: true,

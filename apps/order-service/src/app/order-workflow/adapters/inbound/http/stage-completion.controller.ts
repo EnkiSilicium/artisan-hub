@@ -1,8 +1,4 @@
-import {
-  Body,
-  Controller,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -17,12 +13,9 @@ import { StageCompletionService } from 'apps/order-service/src/app/order-workflo
 import {
   MarkStageCompletionDtoV1,
   ConfirmStageCompletionDtoV1,
-
   StageCompletionMarkResultDto,
   StageCompletionConfirmResultDto,
-
   StageCompletionPaths,
-
 } from 'contracts';
 
 @ApiTags('Order workflow')

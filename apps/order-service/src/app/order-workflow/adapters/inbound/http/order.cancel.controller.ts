@@ -1,9 +1,4 @@
-import {
-    Body,
-    Controller,
-    Post,
-    HttpCode,
-} from '@nestjs/common';
+import { Body, Controller, Post, HttpCode } from '@nestjs/common';
 import {
     ApiTags,
     ApiOperation,
@@ -15,13 +10,13 @@ import {
     ApiConflictResponse,
 } from '@nestjs/swagger';
 import { OrderCancelService } from 'apps/order-service/src/app/order-workflow/application/services/order/order-cancel.service';
-import { OrderCancelDtoV1, OrderInitDtoV1 } from 'contracts';
+import { OrderCancelDtoV1 } from 'contracts';
 
 @ApiTags('Order workflow')
 @ApiBearerAuth('JWT')
 @Controller({ path: 'order/cancel', version: '1' })
 export class OrderCancelController {
-    constructor(private readonly orderCancelService: OrderCancelService) { }
+  constructor(private readonly orderCancelService: OrderCancelService) {}
 
     @Post()
     @HttpCode(200)

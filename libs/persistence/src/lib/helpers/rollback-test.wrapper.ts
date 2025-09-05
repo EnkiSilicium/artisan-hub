@@ -1,12 +1,13 @@
 import { als } from 'libs/persistence/src/lib/helpers/transaction.helper';
-import { DataSource } from 'typeorm';
+
+import type { DataSource } from 'typeorm';
 
 /**
  * Wrapper used for repo testing - once the wrapped code is done, it rollbacks the
  * transaction effectively resetting the DB.
  * @param ds dataSource
- * @param fn 
- * @returns 
+ * @param fn
+ * @returns
  */
 export async function inRollbackedTestTx<T>(
   ds: DataSource,

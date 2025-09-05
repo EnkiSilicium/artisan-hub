@@ -1,3 +1,16 @@
+import { Order } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.entity';
+import { WorkshopInvitation } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.entity';
+import {
+  IsUUID,
+  IsString,
+  IsNotEmpty,
+  Length,
+  IsInt,
+  IsOptional,
+} from 'class-validator';
+import { OrderDomainErrorRegistry } from 'error-handling/registries/order';
+import { EntityTechnicalsInterface, IsoDateTransformer } from 'persistence';
+import { assertValid } from 'shared-kernel';
 import {
   Entity,
   PrimaryColumn,
@@ -10,23 +23,6 @@ import {
   VersionColumn,
   CreateDateColumn,
 } from 'typeorm';
-import {
-  IsUUID,
-  IsString,
-  IsNotEmpty,
-  Length,
-  IsInt,
-  IsOptional,
-} from 'class-validator';
-
-import {
-  EntityTechnicalsInterface,
-  IsoDateTransformer,
-} from 'persistence';
-import { Order } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.entity';
-import { WorkshopInvitation } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.entity';
-import { assertValid } from 'shared-kernel';
-import { OrderDomainErrorRegistry } from 'error-handling/registries/order';
 
 /**
  * A part of the Order containing lots of static data, such as description.
@@ -85,7 +81,6 @@ export class RequestEntity implements EntityTechnicalsInterface {
     transformer: IsoDateTransformer,
   })
   createdAt!: string;
-
 
   @IsOptional()
   @IsInt()

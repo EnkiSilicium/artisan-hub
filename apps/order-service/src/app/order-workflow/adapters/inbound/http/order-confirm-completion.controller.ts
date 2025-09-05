@@ -16,7 +16,7 @@ import { OrderInitDtoV1, OrderConfirmCompletionDtoV1 } from 'contracts';
 @ApiBearerAuth('JWT')
 @Controller({ path: 'order/complete', version: '1' })
 export class OrderComfirmCompletionController {
-    constructor(private readonly service: OrderComfirmCompletionService) {}
+  constructor(private readonly service: OrderComfirmCompletionService) {}
 
     @Post()
     @HttpCode(200)

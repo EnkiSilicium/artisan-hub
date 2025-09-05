@@ -1,27 +1,22 @@
 import 'reflect-metadata';
 import { VipProfile } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.entity';
-import { LastMonthEventSet } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/last-month-event-set.entity';
 import {
   makeVipProfile,
   makeLMEvent,
 } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.entity.mock-factory';
-import {
+import { WindowAlgoRegistry } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/window-algo.registry';
+
+import type {
   BonusEventName,
   BonusEventRegistryInterface,
   EventBonusInfo,
 } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.registy';
-import {
-  WindowAlgoRegistry,
-  WindowAlgoRegistryInterface,
-} from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/window-algo.registry';
-import {
-  VipProfileRegistryInterface,
-} from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.registry';
+import type { VipProfileRegistryInterface } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.registry';
+import type { WindowAlgoRegistryInterface } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/window-algo.registry';
 
 // ---------------- helpers ----------------
 const uuid = (n = 1) =>
   `${String(n).padStart(8, '0')}-1111-4111-8111-11111111111${n}`;
-
 
 // Base policy instances
 const baseWindowAlgoRegistry: WindowAlgoRegistryInterface = WindowAlgoRegistry;
@@ -50,7 +45,7 @@ const mkVip = (over: Partial<VipProfileRegistryInterface>) => ({
 const mkBonus = (
   over: Partial<BonusEventRegistryInterface>,
 ): BonusEventRegistryInterface => ({
-  ...(baseBonusPolicy as BonusEventRegistryInterface),
+  ...baseBonusPolicy,
   ...over,
 });
 

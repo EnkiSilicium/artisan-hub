@@ -1,6 +1,7 @@
+import { randomUUID } from 'crypto';
+
 import { RequestEntity } from 'apps/order-service/src/app/order-workflow/domain/entities/request/request.entity';
 import { isoNow } from 'shared-kernel';
-import { randomUUID } from 'crypto';
 
 export function makeRequest(over: Partial<RequestEntity> = {}): RequestEntity {
   const r = Object.create(RequestEntity.prototype) as RequestEntity;

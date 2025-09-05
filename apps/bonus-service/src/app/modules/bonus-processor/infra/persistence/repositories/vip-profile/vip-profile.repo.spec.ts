@@ -1,60 +1,55 @@
 import 'reflect-metadata';
-import { Test } from '@nestjs/testing';
-import { DataSource, In } from 'typeorm';
-import {
-  PostgreSqlContainer,
-  StartedPostgreSqlContainer,
-} from '@testcontainers/postgresql';
 import { randomUUID } from 'crypto';
 
-// Repo under test
-import { VipProfileRepo } from './vip-profile.repo';
-
-// Entities
-import { VipProfile } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.entity';
-import { LastMonthEventSet } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/last-month-event-set.entity';
+import { Test } from '@nestjs/testing';
+import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { AdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity';
+import { makeAdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity.mock-factory';
 import { BonusEventEntity } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity';
-
-import {
-  inRollbackedTestTx,
-  requireTxManager,
-  TypeOrmUoW,
-} from 'persistence';
+import { makeBonusEvent } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity.mock-factory';
+import { LastMonthEventSet } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/last-month-event-set.entity';
+import { VipProfile } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.entity';
 import {
   makeVipProfile,
   makeLMEvent,
 } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.entity.mock-factory';
-import { makeBonusEvent } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity.mock-factory';
-import { BonusEventName } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.registy';
-import { makeAdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity.mock-factory';
-import { KafkaProducerPort } from 'adapter';
+import { inRollbackedTestTx, requireTxManager, TypeOrmUoW } from 'persistence';
 import { isoNow } from 'shared-kernel';
+import { DataSource } from 'typeorm';
 
-const kafkaMock = { dispatch: jest.fn().mockResolvedValue(undefined) } as KafkaProducerPort<any>;
+import { VipProfileRepo } from './vip-profile.repo';
+
+import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import type { KafkaProducerPort } from 'adapter';
+
+const kafkaMock = {
+  dispatch: jest.fn().mockResolvedValue(undefined),
+} as KafkaProducerPort<any>;
 
 jest.setTimeout(60_000);
 
 /**
- * Bundle maker: for each LMES, create a matching BonusEventEntity with identical (eventId, commissionerId)
- * and the same eventName. Returns the pairs, and also persists required parents:
+ * Pairs LMES with corresponding BonusEventEntity records and persists required parents:
  *   - AdditiveBonus(commissionerId)
  *   - BonusEventEntity(eventId, commissionerId)
- * So later repo.update can safely insert LMES without FK violations.
+ * so repo.update can insert LMES without FK violations.
  */
-async function seedBonusParentsAndBundles(
+async function seedBonusParentsAndEvents(
   ds: DataSource,
   uow: TypeOrmUoW,
   commissionerId: string,
   lmes: LastMonthEventSet[],
 ): Promise<
-  Array<{ bonusEventEntity: BonusEventEntity; lastMonthEvent: LastMonthEventSet }>
+  Array<{
+    bonusEventEntity: BonusEventEntity;
+    lastMonthEvent: LastMonthEventSet;
+  }>
 > {
-  const bundles = lmes.map((ev) => {
+  const pairs = lmes.map((ev) => {
     const be = makeBonusEvent({
       eventId: ev.eventId,
       commissionerId,
-      eventName: ev.eventName as BonusEventName,
+      eventName: ev.eventName,
       injestedAt: isoNow(),
       version: 1,
     });
@@ -62,17 +57,15 @@ async function seedBonusParentsAndBundles(
   });
 
   await uow.run({}, async () => {
-    // Upsert AdditiveBonus parent (idempotent)
     await ds
       .createQueryBuilder()
       .insert()
       .into(AdditiveBonus)
       .values(makeAdditiveBonus({ commissionerId, version: 1 }))
-      .orIgnore() // ON CONFLICT DO NOTHING (postgres)
+      .orIgnore()
       .execute();
 
-    // Insert BonusEventEntity parents for each LMES
-    for (const { bonusEventEntity } of bundles) {
+    for (const { bonusEventEntity } of pairs) {
       await ds
         .createQueryBuilder()
         .insert()
@@ -83,7 +76,7 @@ async function seedBonusParentsAndBundles(
     }
   });
 
-  return bundles;
+  return pairs;
 }
 
 describe('VipProfileRepo (integration) — save semantics with rollback isolation', () => {
@@ -106,7 +99,12 @@ describe('VipProfileRepo (integration) — save semantics with rollback isolatio
       username: container.getUsername(),
       password: container.getPassword(),
       database: container.getDatabase(),
-      entities: [VipProfile, LastMonthEventSet, AdditiveBonus, BonusEventEntity],
+      entities: [
+        VipProfile,
+        LastMonthEventSet,
+        AdditiveBonus,
+        BonusEventEntity,
+      ],
       synchronize: true,
       entitySkipConstructor: true,
     });
@@ -148,7 +146,7 @@ describe('VipProfileRepo (integration) — save semantics with rollback isolatio
           await repo.insert(vp);
         });
 
-        await seedBonusParentsAndBundles(ds, uow, commissionerId, [
+        await seedBonusParentsAndEvents(ds, uow, commissionerId, [
           event1,
           event2,
         ]);
@@ -181,7 +179,7 @@ describe('VipProfileRepo (integration) — save semantics with rollback isolatio
           await repo.insert(vp);
         });
 
-        await seedBonusParentsAndBundles(ds, uow, commissionerId, [
+        await seedBonusParentsAndEvents(ds, uow, commissionerId, [
           event1,
           event2,
         ]);
@@ -215,7 +213,7 @@ describe('VipProfileRepo (integration) — save semantics with rollback isolatio
         await uow.run({}, async () => {
           await repo.insert(vp);
         });
-        await seedBonusParentsAndBundles(ds, uow, commissionerId, [
+        await seedBonusParentsAndEvents(ds, uow, commissionerId, [
           event1,
           event2,
         ]);
@@ -252,7 +250,7 @@ describe('VipProfileRepo (integration) — save semantics with rollback isolatio
         await uow.run({}, async () => {
           await repo.insert(vp);
         });
-        await seedBonusParentsAndBundles(ds, uow, commissionerId, [
+        await seedBonusParentsAndEvents(ds, uow, commissionerId, [
           event1,
           event2,
         ]);
@@ -285,7 +283,7 @@ describe('VipProfileRepo (integration) — save semantics with rollback isolatio
         await uow.run({}, async () => {
           await repo.insert(vp);
         });
-        await seedBonusParentsAndBundles(ds, uow, commissionerId, [
+        await seedBonusParentsAndEvents(ds, uow, commissionerId, [
           event1,
           event2,
         ]);

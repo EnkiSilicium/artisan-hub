@@ -7,15 +7,14 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
-import { lastValueFrom } from 'rxjs';
-import { defaultIfEmpty } from 'rxjs/operators';
-
 import { KAFKA_PRODUCER } from 'adapter'; // token bound to ClientKafka
 import { KafkaProducerPort } from 'adapter';
-import { KafkaTopics, OrderEventInstanceUnion } from 'contracts';
 import { OrderServiceTopicMap } from 'apps/order-service/src/app/order-workflow/adapters/outbound/messaging/kafka.topic-map';
+import { OrderEventInstanceUnion } from 'contracts';
 import { ProgrammerError } from 'error-handling/error-core';
 import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
+import { lastValueFrom } from 'rxjs';
+import { defaultIfEmpty } from 'rxjs/operators';
 
 @Injectable()
 export class OrderEventDispatcher
@@ -73,8 +72,7 @@ export class OrderEventDispatcher
 
   private topicFor(evt: OrderEventInstanceUnion): string {
     // Make bad mappings fail fast and loudly
-    const topic =
-      OrderServiceTopicMap[evt.eventName as keyof typeof OrderServiceTopicMap];
+    const topic = OrderServiceTopicMap[evt.eventName];
     if (!topic) {
       const known = Object.keys(OrderServiceTopicMap).join(', ');
       throw new ProgrammerError({
@@ -90,6 +88,7 @@ export class OrderEventDispatcher
 
   private keyFor(evt: any): string | undefined {
     // Tolerate old casings so partitioning doesn't silently degrade
+
     return (
       evt.orderId ??
       evt.orderID ??

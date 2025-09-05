@@ -1,3 +1,23 @@
+import { AdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity';
+import {
+  BonusEventName,
+  BonusEventRegistryInterface,
+} from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.registy';
+import { LastMonthEventSet } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/last-month-event-set.entity';
+import { VipProfileRegistryInterface } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.registry';
+import { WindowAlgoRegistryInterface } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/window-algo.registry';
+import {
+  IsUUID,
+  IsBoolean,
+  IsNumber,
+  Min,
+  IsInt,
+  IsOptional,
+} from 'class-validator';
+import { DomainError } from 'error-handling/error-core';
+import { BonusDomainErrorRegistry } from 'error-handling/registries/bonus';
+import { EntityTechnicalsInterface, IsoDateTransformer } from 'persistence';
+import { assertValid, isoNow } from 'shared-kernel';
 import {
   Entity,
   PrimaryColumn,
@@ -9,30 +29,6 @@ import {
   CreateDateColumn,
   OneToOne,
 } from 'typeorm';
-import {
-  IsUUID,
-  IsBoolean, IsNumber,
-  Min,
-  IsInt,
-  IsOptional
-} from 'class-validator';
-import {
-  EntityTechnicalsInterface,
-  IsoDateTransformer,
-
-
-} from 'persistence';
-import { LastMonthEventSet } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/last-month-event-set.entity';
-import { VipProfileRegistryInterface } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.registry';
-import { WindowAlgoRegistryInterface } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/window-algo.registry';
-import {
-  BonusEventName,
-  BonusEventRegistryInterface,
-} from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.registy';
-import { AdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity';
-import { assertValid, isoNow } from 'shared-kernel';
-import { DomainError } from 'error-handling/error-core';
-import { BonusDomainErrorRegistry } from 'error-handling/registries/bonus';
 
 /**
  * An aggregate root responsible for managing VIP status logic.
@@ -122,7 +118,9 @@ export class VipProfile implements EntityTechnicalsInterface {
   })
   lastMonthEvents!: LastMonthEventSet[];
 
-  @OneToOne(() => AdditiveBonus, (ab: AdditiveBonus) => ab.vipProfile, { eager: false })
+  @OneToOne(() => AdditiveBonus, (ab: AdditiveBonus) => ab.vipProfile, {
+    eager: false,
+  })
   additiveBonus!: AdditiveBonus;
 
   constructor(
@@ -415,7 +413,7 @@ export class VipProfile implements EntityTechnicalsInterface {
     const newPoints = this.lastPeriodPoints;
 
     const oldVipStatus = this.isVIP;
-    let newVipStatus: boolean = newPoints > vipPolicy.vipThreshold;
+    const newVipStatus: boolean = newPoints > vipPolicy.vipThreshold;
 
     this.isVIP = newVipStatus;
 

@@ -1,8 +1,4 @@
-import {
-  Body,
-  Controller,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -18,19 +14,14 @@ import { WorkshopInvitationResponseService } from 'apps/order-service/src/app/or
 import {
   AcceptWorkshopInvitationDtoV1,
   DeclineWorkshopInvitationDtoV1,
-
   WorkshopInvitationAcceptResultDto,
   WorkshopInvitationDeclineResultDto,
-
   WorkshopInvitationResponsePaths,
-
 } from 'contracts';
 
 @ApiTags('Order workflow')
-
 @ApiBearerAuth('JWT')
 @Controller({ path: WorkshopInvitationResponsePaths.Root, version: '1' })
-
 export class WorkshopInvitationResponseController {
   constructor(
     private readonly workshopInvitationResponseService: WorkshopInvitationResponseService,

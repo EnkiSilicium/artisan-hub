@@ -1,8 +1,8 @@
 // apps/order-service/modules/order-workflow/domain/__tests__/workshopInvitation.entity.spec.ts
 
 import { WorkshopInvitation } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.entity';
-import { WorkshopInvitationStatus } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.enum';
 import { makeWorkshopInvitation as makeWorkshopInvitationFactory } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.entity.mock-factory';
+import { WorkshopInvitationStatus } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.enum';
 import 'reflect-metadata';
 
 describe('WorkshopInvitation (domain entity)', () => {
@@ -127,7 +127,7 @@ describe('WorkshopInvitation (domain entity)', () => {
       const o = makeWorkshopInvitation({
         status: WorkshopInvitationStatus.Pending,
       });
-      
+
       expect(() =>
         o.accept({
           description: 'ok',

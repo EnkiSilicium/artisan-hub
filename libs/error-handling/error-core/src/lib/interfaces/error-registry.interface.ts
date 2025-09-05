@@ -1,4 +1,4 @@
-import { BaseDescriptor } from "error-handling/error-core";
+import type { BaseDescriptor } from 'error-handling/error-core';
 
 export interface ErrorRegistryInterface<C extends string> {
   readonly name: string; // `${Service}_${Kind}`
@@ -7,4 +7,3 @@ export interface ErrorRegistryInterface<C extends string> {
   readonly codes: Readonly<{ [K in C]: K }>; // enum-like object of literal codes
   readonly list: ReadonlyArray<BaseDescriptor<C>>; // original array (frozen)
 }
-

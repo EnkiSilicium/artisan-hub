@@ -1,15 +1,15 @@
 // apps/order-service/src/app/order-workflow/infra/auth/strategies/jwt.strategy.ts
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
-import { ActorName } from '../assertions/actor.enum';
 import { Principal } from 'apps/order-service/src/app/order-workflow/infra/auth/guards/order-http-jwt.guard';
 import { DomainError, ProgrammerError } from 'error-handling/error-core';
-import { Domain } from 'domain';
-import { OrderDomainErrorRegistry } from 'error-handling/registries/order';
-import type { Algorithm } from 'jsonwebtoken';
-import { error } from 'console';
 import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
+import { OrderDomainErrorRegistry } from 'error-handling/registries/order';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+
+import { ActorName } from '../assertions/actor.enum';
+
+import type { Algorithm } from 'jsonwebtoken';
 
 // Shape of the JWT payload you mint upstream
 export type JwtPayload = {
@@ -28,7 +28,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: extractKey([process.env.JWT_PUBLIC_KEY]),
-      algorithms: ["RS256"],
+      algorithms: ['RS256'],
       audience: process.env.JWT_AUD ?? undefined,
       issuer: process.env.JWT_ISS ?? undefined,
     });
@@ -46,30 +46,29 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
           actorName: payload?.actorName,
         },
       });
-      
     }
 
     //trick to return extra fields while guarding existing ones
-    return <Principal>{
+    return (<Principal>{
       actorName: payload.actorName,
       id: payload.sub,
       tokenId: payload.jti,
       claims: payload,
-    } satisfies Principal; 
+    }) satisfies Principal;
   }
 }
 
 function extractKey(possibleKeys: Array<string | undefined>) {
-  const filtered  = <string[]>possibleKeys.filter((key: string | undefined) => key)
+  const filtered = <string[]>(
+    possibleKeys.filter((key: string | undefined) => key)
+  );
 
-  if(!filtered.length) {
+  if (!filtered.length) {
     throw new ProgrammerError({
       errorObject: ProgrammerErrorRegistry.byCode.BUG,
-      details: {message: `JWT key undefined!`}
-    })
+      details: { message: `JWT key undefined!` },
+    });
   }
 
-  return filtered[0]
+  return filtered[0];
 }
-
-

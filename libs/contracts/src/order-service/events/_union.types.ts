@@ -1,6 +1,6 @@
-import { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
-import * as event from './index';
-import { GetInstanceType } from 'shared-kernel';
+import type * as event from './index';
+import type { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
+import type { GetInstanceType } from 'shared-kernel';
 
 export type OrderEventNameToCtor = {
   [K in keyof typeof event]: (typeof event)[K] extends new (

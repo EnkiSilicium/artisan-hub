@@ -1,5 +1,6 @@
-import { EntityTechnicalsInterface } from "libs/persistence/src/lib/interfaces/entity-techncials.interface";
-import { isoNow } from "shared-kernel";
+import { isoNow } from 'shared-kernel';
+
+import type { EntityTechnicalsInterface } from 'libs/persistence/src/lib/interfaces/entity-techncials.interface';
 
 /**
  * Repo helper - updates version to [newVersion] and lastUpdatedAt to [now].

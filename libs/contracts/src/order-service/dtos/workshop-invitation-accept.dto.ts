@@ -1,18 +1,21 @@
+import { Optional } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsString,
   IsNotEmpty,
   ValidateNested,
   IsISO8601,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-import { Optional } from '@nestjs/common';
 
 /**
  * Acceptance payload data for a workshop invitation.
  */
 export class AcceptWorkshopInvitationPayloadV1 {
-  @ApiProperty({ type: String, description: 'Additional description supplied by the workshop' })
+  @ApiProperty({
+    type: String,
+    description: 'Additional description supplied by the workshop',
+  })
   @IsString()
   @IsNotEmpty()
   description!: string;
@@ -31,22 +34,24 @@ export class AcceptWorkshopInvitationPayloadV1 {
   budget!: string;
 }
 
-
 export class StagesDataV1 {
-
   @ApiProperty({ type: String, description: 'Name of the stage' })
   @IsString()
   @IsNotEmpty()
   stageName!: string;
   @ApiProperty({
     type: String,
-    description: 'Approximate length of the stage in any format (e.g., "2 weeks")',
+    description:
+      'Approximate length of the stage in any format (e.g., "2 weeks")',
   })
   @IsString()
   @IsNotEmpty()
   approximateLength!: string;
 
-  @ApiProperty({ type: Boolean, description: 'Whether the stage needs confirmation' })
+  @ApiProperty({
+    type: Boolean,
+    description: 'Whether the stage needs confirmation',
+  })
   @IsNotEmpty()
   @IsString()
   needsConfirmation!: boolean;
@@ -60,13 +65,12 @@ export class StagesDataV1 {
   @IsNotEmpty()
   @IsString()
   stageOrder!: number;
-};
+}
 
 /**
  * DTO used to accept a workshop invitation.
  */
 export class AcceptWorkshopInvitationDtoV1 {
-
   @ValidateNested()
   @ApiProperty({
     type: () => AcceptWorkshopInvitationPayloadV1,
@@ -74,7 +78,6 @@ export class AcceptWorkshopInvitationDtoV1 {
   })
   @Type(() => AcceptWorkshopInvitationPayloadV1)
   invitationInfo!: AcceptWorkshopInvitationPayloadV1;
-
 
   @ApiProperty({
     type: String,
@@ -103,5 +106,4 @@ export class AcceptWorkshopInvitationDtoV1 {
   })
   @Optional()
   stages!: StagesDataV1[];
-
 }

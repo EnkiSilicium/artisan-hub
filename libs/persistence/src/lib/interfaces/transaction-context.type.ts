@@ -1,6 +1,6 @@
-import { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
-import { OutboxMessage } from 'libs/persistence/src/lib/entities/outbox-message.entity';
-import { EntityManager } from 'typeorm';
+import type { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
+import type { OutboxMessage } from 'libs/persistence/src/lib/entities/outbox-message.entity';
+import type { EntityManager } from 'typeorm';
 
 /**
  * Transaction context type - stored in async storage during UoW.
@@ -10,7 +10,6 @@ export type Ambient = {
   actorId?: string;
   correlationId?: string;
   nowIso?: string;
-
 
   manager?: EntityManager;
   beforeCommit?: Array<() => Promise<void> | void>;

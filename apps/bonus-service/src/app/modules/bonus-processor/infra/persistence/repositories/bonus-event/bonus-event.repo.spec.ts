@@ -1,30 +1,25 @@
 import 'reflect-metadata';
-import { Test } from '@nestjs/testing';
-import { DataSource } from 'typeorm';
-import {
-  PostgreSqlContainer,
-  StartedPostgreSqlContainer,
-} from '@testcontainers/postgresql';
 import { randomUUID } from 'crypto';
+
+import { Test } from '@nestjs/testing';
+import { PostgreSqlContainer } from '@testcontainers/postgresql';
+import { AdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity';
+import { makeAdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity.mock-factory';
+import { BonusEventEntity } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity';
+import { makeBonusEvent } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity.mock-factory';
+import { LastMonthEventSet } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/last-month-event-set.entity';
+import { VipProfile } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.entity';
+import { inRollbackedTestTx, requireTxManager, TypeOrmUoW } from 'persistence';
+import { DataSource } from 'typeorm';
 
 import { BonusEventRepo } from './bonus-event.repo';
 
-import { AdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity';
-import { BonusEventEntity } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity';
-import { VipProfile } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.entity';
-import { LastMonthEventSet } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/last-month-event-set.entity';
+import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import type { KafkaProducerPort } from 'adapter';
 
-import {
-  inRollbackedTestTx,
-
-  requireTxManager,
-  TypeOrmUoW,
-} from 'persistence';
-import { makeBonusEvent } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity.mock-factory';
-import { makeAdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity.mock-factory';
-import { KafkaProducerPort } from 'adapter';
-
-const kafkaMock = { dispatch: jest.fn().mockResolvedValue(undefined) } as KafkaProducerPort<any>;
+const kafkaMock = {
+  dispatch: jest.fn().mockResolvedValue(undefined),
+} as KafkaProducerPort<any>;
 
 jest.setTimeout(60_000);
 
@@ -48,7 +43,12 @@ describe('BonusEventRepo (integration)', () => {
       username: container.getUsername(),
       password: container.getPassword(),
       database: container.getDatabase(),
-      entities: [AdditiveBonus, BonusEventEntity, VipProfile, LastMonthEventSet],
+      entities: [
+        AdditiveBonus,
+        BonusEventEntity,
+        VipProfile,
+        LastMonthEventSet,
+      ],
       synchronize: true,
       entitySkipConstructor: true,
     });
@@ -82,7 +82,7 @@ describe('BonusEventRepo (integration)', () => {
           commissionerId: event.commissionerId,
         });
         const manager = requireTxManager(ds);
-        manager.insert(AdditiveBonus, additiveEntity);
+        await manager.insert(AdditiveBonus, additiveEntity);
 
         await uow.run({}, async () => {
           await repo.insert(event);
@@ -108,7 +108,7 @@ describe('BonusEventRepo (integration)', () => {
         });
         const additiveEntity = makeAdditiveBonus({ commissionerId });
         const manager = requireTxManager(ds);
-        manager.insert(AdditiveBonus, additiveEntity);
+        await manager.insert(AdditiveBonus, additiveEntity);
 
         await uow.run({}, async () => {
           await repo.insert(event1);

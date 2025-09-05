@@ -1,10 +1,12 @@
 import { AsyncLocalStorage } from 'async_hooks';
-import { EntityManager } from 'typeorm';
-import { Ambient } from 'libs/persistence/src/lib/interfaces/transaction-context.type';
-import { OutboxMessage } from 'libs/persistence/src/lib/entities/outbox-message.entity';
+
 import { ProgrammerError } from 'error-handling/error-core';
 import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
-import { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
+
+import type { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
+import type { OutboxMessage } from 'libs/persistence/src/lib/entities/outbox-message.entity';
+import type { Ambient } from 'libs/persistence/src/lib/interfaces/transaction-context.type';
+import type { EntityManager } from 'typeorm';
 
 export const als = new AsyncLocalStorage<Ambient>();
 /**
@@ -111,8 +113,12 @@ export function enqueueOutbox<e extends BaseEvent<string>>(
 
   if (hasTimeMarkers(message.payload)) {
     // recasting annoying typeorm date objects into ISO strings
-    message.payload.createdAt = <Date><unknown>message.payload.createdAt.toISOString();
-    message.payload.lastUpdatedAt = <Date><unknown>message.payload.lastUpdatedAt.toISOString();
+    message.payload.createdAt = <Date>(
+      (<unknown>message.payload.createdAt.toISOString())
+    );
+    message.payload.lastUpdatedAt = <Date>(
+      (<unknown>message.payload.lastUpdatedAt.toISOString())
+    );
   }
 
   s.outboxBuffer.push(message);

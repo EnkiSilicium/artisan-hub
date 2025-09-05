@@ -1,22 +1,20 @@
-import { TestingModule, Test } from '@nestjs/testing';
+import { randomUUID } from 'crypto';
+
+import { Test } from '@nestjs/testing';
+import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { Order } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.entity';
 import { makeOrder } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.entity.mock-factory';
-import {
-  TypeOrmUoW,
-  inRollbackedTestTx,
-} from 'persistence';
-import { randomUUID } from 'crypto';
-import { DataSource } from 'typeorm';
-import {
-  PostgreSqlContainer,
-  StartedPostgreSqlContainer,
-} from '@testcontainers/postgresql';
-import { OrderRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/order/order.repo';
 import { RequestEntity } from 'apps/order-service/src/app/order-workflow/domain/entities/request/request.entity';
 import { Stage } from 'apps/order-service/src/app/order-workflow/domain/entities/stage/stage.entity';
 import { WorkshopInvitation } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.entity';
-import { KafkaProducerPort } from 'adapter';
+import { OrderRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/order/order.repo';
 import { InfraError, ProgrammerError } from 'error-handling/error-core';
+import { TypeOrmUoW, inRollbackedTestTx } from 'persistence';
+import { DataSource } from 'typeorm';
+
+import type { TestingModule } from '@nestjs/testing';
+import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import type { KafkaProducerPort } from 'adapter';
 
 describe('OrderRepo (integration)', () => {
   let moduleRef: TestingModule;
@@ -44,7 +42,9 @@ describe('OrderRepo (integration)', () => {
     });
     await ds.initialize();
 
-    const kafkaMock = { dispatch: jest.fn().mockResolvedValue(undefined) } as KafkaProducerPort<any>;
+    const kafkaMock = {
+      dispatch: jest.fn().mockResolvedValue(undefined),
+    } as KafkaProducerPort<any>;
 
     moduleRef = await Test.createTestingModule({
       providers: [
@@ -54,10 +54,7 @@ describe('OrderRepo (integration)', () => {
         {
           provide: TypeOrmUoW,
           useFactory: (dataSource: DataSource, kafka: any) =>
-            new (require('libs/persistence/src/lib/unit-of-work/typeorm.uow').TypeOrmUoW)(
-              dataSource,
-              kafka,
-            ),
+            new TypeOrmUoW(dataSource, kafka),
           inject: [DataSource, 'KAFKA_PUBLISHER'],
         },
       ],
