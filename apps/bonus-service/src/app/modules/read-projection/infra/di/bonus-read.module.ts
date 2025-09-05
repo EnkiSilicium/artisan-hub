@@ -8,9 +8,13 @@ import { bonusReadWinstonConfig } from 'apps/bonus-service/src/app/modules/read-
 import { BonusReadProjection } from 'apps/bonus-service/src/app/modules/read-projection/infra/persistence/projections/bonus-read.projection';
 import { BonusReadRepo } from 'apps/bonus-service/src/app/modules/read-projection/infra/persistence/repositories/bonus-read.repository';
 import { BonusReadRefreshWorker } from 'apps/bonus-service/src/app/modules/read-projection/infra/workers/bonus-read-refresh.worker';
+import { BONUS_READ_REFRESH_QUEUE } from 'apps/bonus-service/src/app/modules/read-projection/infra/workers/bonus-read-refresh.token';
 import {
   HttpErrorInterceptor,
+  KafkaErrorInterceptor,
   HttpErrorInterceptorOptions,
+  KafkaErrorInterceptorOptions,
+
 } from 'error-handling/interceptor';
 import { WinstonModule } from 'nest-winston';
 import { OpenTelemetryModule } from 'nestjs-otel';
@@ -26,6 +30,10 @@ import { LoggingInterceptor } from 'observability';
         port: Number(process.env.REDIS_PORT || 6379),
       },
     }),
+
+    BullModule.registerQueue({
+      name: BONUS_READ_REFRESH_QUEUE,
+
     OpenTelemetryModule.forRoot({
       metrics: {
         apiMetrics: {
@@ -39,8 +47,7 @@ import { LoggingInterceptor } from 'observability';
         },
       },
     }),
-    BullModule.registerQueue({
-      name: 'bonus-read-refresh',
+
     }),
     // ClientsModule.register([
     //     {

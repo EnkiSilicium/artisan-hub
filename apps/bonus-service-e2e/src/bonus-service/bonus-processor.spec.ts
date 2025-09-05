@@ -1,8 +1,11 @@
 import { randomUUID } from 'crypto';
 
 import axios from 'axios';
-import { KafkaTopics } from 'contracts';
+
+import { ApiPaths, BonusReadPaths, KafkaTopics } from 'contracts';
+
 import { Kafka } from 'kafkajs';
+
 import { isoNow } from 'shared-kernel';
 
 import type { Producer } from 'kafkajs';
@@ -60,9 +63,13 @@ describe('Bonus processor integration (Option B)', () => {
     await pollUntil(
       async () => {
         try {
-          await axios.get(`${readBaseUrl}/api/bonus-read`, {
-            params: { limit: 1, offset: 0 },
-          });
+
+          await axios.get(
+            `${readBaseUrl}/${ApiPaths.Root}/${BonusReadPaths.Root}`,
+            { params: { limit: 1, offset: 0 } },
+          );
+
+
           return true;
         } catch {
           return false;
@@ -158,7 +165,9 @@ describe('Bonus processor integration (Option B)', () => {
       async () => {
         //refreshing
         const refresh = await axios.post(
-          `${readBaseUrl}/api/bonus-read/refresh`,
+
+          `${readBaseUrl}/${ApiPaths.Root}/${BonusReadPaths.Root}/${BonusReadPaths.Refresh}`,
+
           {
             params: { commissionerId, limit: 1, offset: 0 },
           },
@@ -166,9 +175,14 @@ describe('Bonus processor integration (Option B)', () => {
         console.log(
           `[E2E] Read API refresh response: ${JSON.stringify(refresh.data)}`,
         );
-        const res = await axios.get(`${readBaseUrl}/api/bonus-read`, {
-          params: { commissionerId, limit: 1, offset: 0 },
-        });
+
+        const res = await axios.get(
+          `${readBaseUrl}/${ApiPaths.Root}/${BonusReadPaths.Root}`,
+          {
+            params: { commissionerId, limit: 1, offset: 0 },
+          },
+        );
+
         console.log(`[E2E] Read API response: ${JSON.stringify(res.data)}`);
         const total = res.data?.total ?? 0;
         const firstPoints = res.data?.items?.[0]?.totalPoints ?? 0;
@@ -181,9 +195,15 @@ describe('Bonus processor integration (Option B)', () => {
       { timeoutMs: 90_000, intervalMs: 600 },
     );
 
-    const res = await axios.get(`${readBaseUrl}/api/bonus-read`, {
-      params: { commissionerId, limit: 1, offset: 0 },
-    });
+
+    const res = await axios.get(
+      `${readBaseUrl}/${ApiPaths.Root}/${BonusReadPaths.Root}`,
+      {
+        params: { commissionerId, limit: 1, offset: 0 },
+      },
+    );
+    {
+    }
 
     console.log(`[E2E] Final Read API response: ${JSON.stringify(res.data)}`);
     expect(res.data.total).toBeGreaterThan(0);

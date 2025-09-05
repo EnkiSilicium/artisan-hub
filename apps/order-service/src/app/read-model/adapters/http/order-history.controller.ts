@@ -14,10 +14,16 @@ import {
   ApiAcceptedResponse,
 } from '@nestjs/swagger';
 import { OrderStagesReadService } from 'apps/order-service/src/app/read-model/application/query-handlers/history.query-handler';
-import { OrderHistoryQueryResultDto, ReadOrderStagesQueryDto } from 'contracts';
+
+import {
+  OrderHistoryQueryResultDto,
+  ReadOrderStagesQueryDto,
+  OrderHistoryPaths,
+} from 'contracts';
+
 
 @ApiTags('Orders read')
-@Controller('orders/stages')
+@Controller(`${OrderHistoryPaths.Root}/${OrderHistoryPaths.Stages}`)
 export class OrderHistoryController {
   constructor(private readonly svc: OrderStagesReadService) {}
 
@@ -44,7 +50,7 @@ export class OrderHistoryController {
     });
   }
 
-  @Post('refresh')
+  @Post(OrderHistoryPaths.Refresh)
   @HttpCode(202)
   @ApiOperation({
     summary: 'Refresh the read model',

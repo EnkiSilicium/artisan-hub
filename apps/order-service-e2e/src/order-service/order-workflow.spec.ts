@@ -6,15 +6,26 @@ import { KafkaTopics } from 'contracts';
 import { Kafka, logLevel } from 'kafkajs';
 import { isoNow } from 'shared-kernel';
 
-import type { AxiosResponse } from 'axios';
-import type {
+import {
   AcceptWorkshopInvitationDtoV1,
   ConfirmStageCompletionDtoV1,
+  KafkaTopics,
   MarkStageCompletionDtoV1,
   OrderHistoryQueryResultDto,
+  OrderHistoryQueryResultFlatDto,
   OrderInitDtoV1,
+  ApiPaths,
+  OrderInitPaths,
+  WorkshopInvitationResponsePaths,
+  StageCompletionPaths,
+  OrderHistoryPaths,
 } from 'contracts';
+
+
+import type { AxiosResponse } from 'axios';
+
 import type { Consumer } from 'kafkajs';
+
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -134,12 +145,14 @@ async function readStages(
   READ: string,
   commissionerId: string,
 ): Promise<OrderHistoryQueryResultDto> {
-  const urlRefresh = `${READ}/api/orders/stages/refresh`;
+
+  const urlRefresh = `${READ}/${ApiPaths.Root}/${OrderHistoryPaths.Root}/${OrderHistoryPaths.Stages}/${OrderHistoryPaths.Refresh}`;
+
   console.log(`[E2E][HTTP] POST ${urlRefresh}`);
   const resRefresh = await axios.post(urlRefresh, {}, { timeout: 2500 });
   console.log(`[E2E][HTTP] <- ${resRefresh.status} from ${urlRefresh}`);
 
-  const urlRead = `${READ}/api/orders/stages`;
+  const urlRead = `${READ}/${ApiPaths.Root}/${OrderHistoryPaths.Root}/${OrderHistoryPaths.Stages}`;
   console.log(
     `[E2E][HTTP] GET ${urlRead}?commissionerId=${commissionerId}&limit=10&offset=0`,
   );
@@ -162,15 +175,16 @@ describe('Order workflow integration (read model + Kafka)', () => {
     console.log(`[E2E] CMD_BASE=${CMD}`);
     console.log(`[E2E] READ_BASE=${READ}`);
 
-    //console.log(`[E2E][HTTP] GET ${CMD}/api/health (or /)`);
-    //await pollUntil(async () => (await axios.get(`${CMD}/api/health`).catch(() => axios.get(`${CMD}/`))).status < 500);
+    //console.log(`[E2E][HTTP] GET ${CMD}/${ApiPaths.Root}/health (or /)`);
+    //await pollUntil(async () => (await axios.get(`${CMD}/${ApiPaths.Root}/health`).catch(() => axios.get(`${CMD}/`))).status < 500);
 
     console.log(`[E2E] Waiting for read model to be ready...`);
-    console.log(`[E2E][HTTP] GET ${READ}/api/orders/stages?limit=1&offset=0`);
+    const readStagesUrl = `${READ}/${ApiPaths.Root}/${OrderHistoryPaths.Root}/${OrderHistoryPaths.Stages}`;
+    console.log(`[E2E][HTTP] GET ${readStagesUrl}?limit=1&offset=0`);
     await pollUntil(
       async () =>
         (
-          await axios.get(`${READ}/api/orders/stages`, {
+          await axios.get(readStagesUrl, {
             params: { limit: 1, offset: 0 },
           })
         ).status === 200,
@@ -202,7 +216,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
           `[E2E] commissionerId=${commissionerId} workshops=${workshops.join(',')}`,
         );
 
-        const postOrderUrl = `${CMD}/api/order`;
+        const postOrderUrl = `${CMD}/${ApiPaths.Root}/${OrderInitPaths.Root}`;
         console.log(`[E2E] Running order creation...`);
         console.log(`[E2E][HTTP] POST ${postOrderUrl}`);
         const response: AxiosResponse = await axios.post(postOrderUrl, {
@@ -240,7 +254,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
 
         for (const ws of workshops) {
           console.log(`[E2E] Declining invitation for workshop ${ws}...`);
-          const url = `${CMD}/api/workshop-invitation/decline`;
+          const url = `${CMD}/${ApiPaths.Root}/${WorkshopInvitationResponsePaths.Root}/${WorkshopInvitationResponsePaths.Decline}`;
           console.log(
             `[E2E][HTTP] POST ${url} orderId=${orderId} workshopId=${ws}`,
           );
@@ -292,7 +306,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
         if (name && vOrderId && vOrderId === orderId) seen.add(name);
       },
       async () => {
-        const postOrderUrl = `${CMD}/api/order`;
+        const postOrderUrl = `${CMD}/${ApiPaths.Root}/${OrderInitPaths.Root}`;
         console.log(
           `[E2E] commissionerId=${commissionerId} workshops=${workshops.join(',')}`,
         );
@@ -327,7 +341,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
         });
         console.log(`[E2E] Order retrieved: ${orderId}`);
 
-        const acceptUrl = `${CMD}/api/workshop-invitation/accept`;
+        const acceptUrl = `${CMD}/${ApiPaths.Root}/${WorkshopInvitationResponsePaths.Root}/${WorkshopInvitationResponsePaths.Accept}`;
         console.log(
           `[E2E][HTTP] POST ${acceptUrl} orderId=${orderId} workshopId=${workshops[0]}`,
         );
@@ -369,7 +383,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
         } satisfies AcceptWorkshopInvitationDtoV1);
 
         console.log(`[E2E] Declining invitation for the other workshop...`);
-        const declineUrl = `${CMD}/api/workshop-invitation/decline`;
+        const declineUrl = `${CMD}/${ApiPaths.Root}/${WorkshopInvitationResponsePaths.Root}/${WorkshopInvitationResponsePaths.Decline}`;
         console.log(
           `[E2E][HTTP] POST ${declineUrl} orderId=${orderId} workshopId=${workshops[1]}`,
         );
@@ -387,36 +401,48 @@ describe('Order workflow integration (read model + Kafka)', () => {
 
         console.log(`[E2E] Marking & confirming stages...`);
         const mark = (stage: string) =>
-          axios.post(`${CMD}/api/stage-completion/mark`, {
-            orderId,
-            workshopId: workshops[0],
-            commissionerId,
-            stageName: stage,
-          } satisfies MarkStageCompletionDtoV1);
+          axios.post(
+            `${CMD}/${ApiPaths.Root}/${StageCompletionPaths.Root}/${StageCompletionPaths.Mark}`,
+            {
+              orderId,
+              workshopId: workshops[0],
+              commissionerId,
+              stageName: stage,
+            } satisfies MarkStageCompletionDtoV1,
+          );
         const confirm = (stage: string) =>
-          axios.post(`${CMD}/api/stage-completion/confirm`, {
-            orderId,
-            workshopId: workshops[0],
-            commissionerId,
-            stageName: stage,
-          } satisfies ConfirmStageCompletionDtoV1);
 
-        console.log(`[E2E][HTTP] POST ${CMD}/api/stage-completion/mark Design`);
+        axios.post(
+            `${CMD}/${ApiPaths.Root}/${StageCompletionPaths.Root}/${StageCompletionPaths.Confirm}`,
+            {
+              orderId,
+              workshopId: workshops[0],
+              commissionerId,
+              stageName: stage,
+            } satisfies ConfirmStageCompletionDtoV1,
+          );
+
+
+        console.log(
+          `[E2E][HTTP] POST ${CMD}/${ApiPaths.Root}/${StageCompletionPaths.Root}/${StageCompletionPaths.Mark} Design`,
+        );
         await mark('Design');
         console.log(`Design marked (autoconfirm expected)`);
 
-        console.log(`[E2E][HTTP] POST ${CMD}/api/stage-completion/mark Build`);
+        console.log(
+          `[E2E][HTTP] POST ${CMD}/${ApiPaths.Root}/${StageCompletionPaths.Root}/${StageCompletionPaths.Mark} Build`,
+        );
         await mark('Build');
         console.log(`Build marked`);
 
         console.log(
-          `[E2E][HTTP] POST ${CMD}/api/stage-completion/confirm Build`,
+          `[E2E][HTTP] POST ${CMD}/${ApiPaths.Root}/${StageCompletionPaths.Root}/${StageCompletionPaths.Confirm} Build`,
         );
         await confirm('Build');
         console.log(`Build confirmed`);
 
         console.log(
-          `[E2E][HTTP] POST ${CMD}/api/stage-completion/mark Deliver`,
+          `[E2E][HTTP] POST ${CMD}/${ApiPaths.Root}/${StageCompletionPaths.Root}/${StageCompletionPaths.Mark} Deliver`,
         );
         await mark('Deliver');
         console.log(`Deliver marked (autoconfirm expected)`);
@@ -469,7 +495,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
         if (name && vOrderId && vOrderId === orderId) seen.add(name);
       },
       async () => {
-        const postOrderUrl = `${CMD}/api/order`;
+        const postOrderUrl = `${CMD}/${ApiPaths.Root}/${OrderInitPaths.Root}`;
 
         console.log(`[E2E] Running order creation...`);
         console.log(
@@ -510,7 +536,9 @@ describe('Order workflow integration (read model + Kafka)', () => {
           console.log(
             `[E2E] Declining the one to whom it shall not concern...`,
           );
-          const url = `${CMD}/api/workshop-invitation/decline`;
+
+          const url = `${CMD}/${ApiPaths.Root}/${WorkshopInvitationResponsePaths.Root}/${WorkshopInvitationResponsePaths.Decline}`;
+
           console.log(
             `[E2E][HTTP] POST ${url} orderId=${orderId} workshopId=${notInvited}`,
           );
@@ -554,7 +582,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
         if (name && vOrderId && vOrderId === orderId) seen.add(name);
       },
       async () => {
-        const postOrderUrl = `${CMD}/api/order`;
+        const postOrderUrl = `${CMD}/${ApiPaths.Root}/${OrderInitPaths.Root}`;
         console.log(`[E2E] Running order creation...`);
         console.log(
           `[E2E] commissionerId=${commissionerId} workshops=${workshops.join(',')}`,
@@ -592,7 +620,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
         let status = 0;
         try {
           console.log(`[E2E] Marking stage before acceptance...`);
-          const url = `${CMD}/api/stage-completion/mark`;
+          const url = `${CMD}/${ApiPaths.Root}/${StageCompletionPaths.Root}/${StageCompletionPaths.Mark}`;
           console.log(`[E2E][HTTP] POST ${url} (pre-accept)`);
           await axios.post(url, {
             orderId,
@@ -636,7 +664,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
         if (name && vOrderId && vOrderId === orderId) seen.add(name);
       },
       async () => {
-        const postOrderUrl = `${CMD}/api/order`;
+        const postOrderUrl = `${CMD}/${ApiPaths.Root}/${OrderInitPaths.Root}`;
         console.log(
           `[E2E] commissionerId=${commissionerId} workshops=${workshops.join(',')}`,
         );
@@ -670,7 +698,9 @@ describe('Order workflow integration (read model + Kafka)', () => {
         console.log(
           `[E2E] Accepting invitation for workshop ${workshops[0]}...`,
         );
-        const acceptUrl = `${CMD}/api/workshop-invitation/accept`;
+
+        const acceptUrl = `${CMD}/${ApiPaths.Root}/${WorkshopInvitationResponsePaths.Root}/${WorkshopInvitationResponsePaths.Accept}`;
+
         console.log(
           `[E2E][HTTP] POST ${acceptUrl} orderId=${orderId} workshopId=${workshops[0]} (needsConfirmation for Build)`,
         );
@@ -706,7 +736,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
         let status1 = 0;
         try {
           console.log(`[E2E] Confirming Design (no confirmation needed)...`);
-          const url1 = `${CMD}/api/stage-completion/confirm`;
+          const url1 = `${CMD}/${ApiPaths.Root}/${StageCompletionPaths.Root}/${StageCompletionPaths.Confirm}`;
           console.log(`[E2E][HTTP] POST ${url1} (Design no-confirm-required)`);
           await axios.post(url1, {
             orderId,
@@ -726,7 +756,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
         let status2 = 0;
         try {
           console.log(`[E2E] Confirming Build (before marking)...`);
-          const url2 = `${CMD}/api/stage-completion/confirm`;
+          const url2 = `${CMD}/${ApiPaths.Root}/${StageCompletionPaths.Root}/${StageCompletionPaths.Confirm}`;
           console.log(`[E2E][HTTP] POST ${url2} (Build before mark)`);
           await axios.post(url2, {
             orderId,
