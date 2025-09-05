@@ -1,4 +1,11 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  UsePipes,
+  ValidationPipe,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -17,6 +24,8 @@ import {
   StageCompletionConfirmResultDto,
   StageCompletionPaths,
 } from 'contracts';
+import { validator } from 'adapter';
+import { OrderHttpJwtGuard } from 'apps/order-service/src/app/order-workflow/infra/auth/guards/order-http-jwt.guard';
 
 @ApiTags('Order workflow')
 @ApiBearerAuth('JWT')
@@ -27,6 +36,8 @@ export class StageCompletionController {
   ) {}
 
   @Post(StageCompletionPaths.Mark)
+  @UseGuards(OrderHttpJwtGuard)
+  @UsePipes(new ValidationPipe(validator))
   @ApiOperation({
     summary: 'Mark a stage as completed',
     description: 'Marks a specific stage as completed for an order.',
@@ -52,6 +63,8 @@ export class StageCompletionController {
   }
 
   @Post(StageCompletionPaths.Confirm)
+  @UseGuards(OrderHttpJwtGuard)
+  @UsePipes(new ValidationPipe(validator))
   @ApiOperation({
     summary: 'Confirm a completed stage',
     description: 'Confirms that a previously completed stage is accepted.',

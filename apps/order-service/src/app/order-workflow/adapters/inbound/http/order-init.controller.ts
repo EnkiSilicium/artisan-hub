@@ -1,4 +1,11 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  UsePipes,
+  ValidationPipe,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -14,6 +21,9 @@ import { OrderInitService } from 'apps/order-service/src/app/order-workflow/appl
 
 import { OrderInitResultDto } from 'contracts';
 import { OrderInitDtoV1, OrderInitPaths } from 'contracts';
+import { validator } from 'adapter';
+import { OrderHttpJwtGuard } from 'apps/order-service/src/app/order-workflow/infra/auth/guards/order-http-jwt.guard';
+
 
 @ApiTags('Order workflow')
 @ApiBearerAuth('JWT')
@@ -22,6 +32,8 @@ export class OrderInitController {
   constructor(private readonly orderInitService: OrderInitService) {}
 
   @Post()
+  @UseGuards(OrderHttpJwtGuard)
+  @UsePipes(new ValidationPipe(validator))
   @ApiOperation({
     summary: 'Create a new order',
     description:

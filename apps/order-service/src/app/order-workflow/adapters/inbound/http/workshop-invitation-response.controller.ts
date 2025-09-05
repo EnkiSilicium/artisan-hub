@@ -1,4 +1,11 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  UsePipes,
+  ValidationPipe,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -18,6 +25,8 @@ import {
   WorkshopInvitationDeclineResultDto,
   WorkshopInvitationResponsePaths,
 } from 'contracts';
+import { validator } from 'adapter';
+import { OrderHttpJwtGuard } from 'apps/order-service/src/app/order-workflow/infra/auth/guards/order-http-jwt.guard';
 
 @ApiTags('Order workflow')
 @ApiBearerAuth('JWT')
@@ -28,6 +37,8 @@ export class WorkshopInvitationResponseController {
   ) {}
 
   @Post(WorkshopInvitationResponsePaths.Accept)
+  @UseGuards(OrderHttpJwtGuard)
+  @UsePipes(new ValidationPipe(validator))
   @ApiOperation({
     summary: 'Accept a workshop invitation',
     description:
@@ -64,6 +75,8 @@ export class WorkshopInvitationResponseController {
   }
 
   @Post(WorkshopInvitationResponsePaths.Decline)
+  @UseGuards(OrderHttpJwtGuard)
+  @UsePipes(new ValidationPipe(validator))
   @ApiOperation({
     summary: 'Decline a workshop invitation',
     description:

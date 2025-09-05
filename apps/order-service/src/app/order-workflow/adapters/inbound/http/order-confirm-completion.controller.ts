@@ -1,4 +1,4 @@
-import { Body, Controller, Post, HttpCode } from '@nestjs/common';
+import { Body, Controller, Post, HttpCode, UsePipes, ValidationPipe, UseGuards } from '@nestjs/common';
 import {
     ApiTags,
     ApiOperation,
@@ -11,6 +11,8 @@ import {
 } from '@nestjs/swagger';
 import { OrderComfirmCompletionService } from 'apps/order-service/src/app/order-workflow/application/services/order/order-confirm-completion.service';
 import { OrderInitDtoV1, OrderConfirmCompletionDtoV1 } from 'contracts';
+import { validator } from 'adapter';
+import { OrderHttpJwtGuard } from 'apps/order-service/src/app/order-workflow/infra/auth/guards/order-http-jwt.guard';
 
 @ApiTags('Order workflow')
 @ApiBearerAuth('JWT')
@@ -19,6 +21,8 @@ export class OrderComfirmCompletionController {
   constructor(private readonly service: OrderComfirmCompletionService) {}
 
     @Post()
+    @UseGuards(OrderHttpJwtGuard)
+    @UsePipes(new ValidationPipe(validator))
     @HttpCode(200)
     @ApiOperation({
         summary: 'Confirm order completion',
