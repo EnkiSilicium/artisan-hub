@@ -9,6 +9,10 @@ import type { Producer } from 'kafkajs';
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Polls an async predicate until it resolves to true or the timeout elapses,
+ * logging intermittent failures to surface eventual-consistency issues.
+ */
 async function pollUntil(
   predicate: () => Promise<boolean>,
   {
@@ -55,7 +59,6 @@ describe('Bonus processor integration (Option B)', () => {
       process.env.READ_BASE_URL ??
       axios.defaults.baseURL ??
       'http://127.0.0.1:3002';
-
     // Make sure read API is up before we proceed
     await pollUntil(
       async () => {
@@ -152,11 +155,9 @@ describe('Bonus processor integration (Option B)', () => {
 
     // Brief grace period to let the processor ingest both
     await wait(300);
-
     // Poll read projection until it shows points > 0
     await pollUntil(
       async () => {
-        //refreshing
         const refresh = await axios.post(
           `${readBaseUrl}/api/bonus-read/refresh`,
           {

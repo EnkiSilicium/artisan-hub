@@ -3,10 +3,6 @@ import { randomUUID } from 'crypto';
 
 import { Test } from '@nestjs/testing';
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
-
-// Repo under test
-
-// Entities
 import { AdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity';
 import { makeAdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity.mock-factory';
 import { BonusEventEntity } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity';
@@ -33,13 +29,12 @@ const kafkaMock = {
 jest.setTimeout(60_000);
 
 /**
- * Bundle maker: for each LMES, create a matching BonusEventEntity with identical (eventId, commissionerId)
- * and the same eventName. Returns the pairs, and also persists required parents:
+ * Pairs LMES with corresponding BonusEventEntity records and persists required parents:
  *   - AdditiveBonus(commissionerId)
  *   - BonusEventEntity(eventId, commissionerId)
- * So later repo.update can safely insert LMES without FK violations.
+ * so repo.update can insert LMES without FK violations.
  */
-async function seedBonusParentsAndBundles(
+async function seedBonusParentsAndEvents(
   ds: DataSource,
   uow: TypeOrmUoW,
   commissionerId: string,
@@ -50,7 +45,7 @@ async function seedBonusParentsAndBundles(
     lastMonthEvent: LastMonthEventSet;
   }>
 > {
-  const bundles = lmes.map((ev) => {
+  const pairs = lmes.map((ev) => {
     const be = makeBonusEvent({
       eventId: ev.eventId,
       commissionerId,
@@ -62,17 +57,15 @@ async function seedBonusParentsAndBundles(
   });
 
   await uow.run({}, async () => {
-    // Upsert AdditiveBonus parent (idempotent)
     await ds
       .createQueryBuilder()
       .insert()
       .into(AdditiveBonus)
       .values(makeAdditiveBonus({ commissionerId, version: 1 }))
-      .orIgnore() // ON CONFLICT DO NOTHING (postgres)
+      .orIgnore()
       .execute();
 
-    // Insert BonusEventEntity parents for each LMES
-    for (const { bonusEventEntity } of bundles) {
+    for (const { bonusEventEntity } of pairs) {
       await ds
         .createQueryBuilder()
         .insert()
@@ -83,7 +76,7 @@ async function seedBonusParentsAndBundles(
     }
   });
 
-  return bundles;
+  return pairs;
 }
 
 describe('VipProfileRepo (integration) — save semantics with rollback isolation', () => {
@@ -153,7 +146,7 @@ describe('VipProfileRepo (integration) — save semantics with rollback isolatio
           await repo.insert(vp);
         });
 
-        await seedBonusParentsAndBundles(ds, uow, commissionerId, [
+        await seedBonusParentsAndEvents(ds, uow, commissionerId, [
           event1,
           event2,
         ]);
@@ -186,7 +179,7 @@ describe('VipProfileRepo (integration) — save semantics with rollback isolatio
           await repo.insert(vp);
         });
 
-        await seedBonusParentsAndBundles(ds, uow, commissionerId, [
+        await seedBonusParentsAndEvents(ds, uow, commissionerId, [
           event1,
           event2,
         ]);
@@ -220,7 +213,7 @@ describe('VipProfileRepo (integration) — save semantics with rollback isolatio
         await uow.run({}, async () => {
           await repo.insert(vp);
         });
-        await seedBonusParentsAndBundles(ds, uow, commissionerId, [
+        await seedBonusParentsAndEvents(ds, uow, commissionerId, [
           event1,
           event2,
         ]);
@@ -257,7 +250,7 @@ describe('VipProfileRepo (integration) — save semantics with rollback isolatio
         await uow.run({}, async () => {
           await repo.insert(vp);
         });
-        await seedBonusParentsAndBundles(ds, uow, commissionerId, [
+        await seedBonusParentsAndEvents(ds, uow, commissionerId, [
           event1,
           event2,
         ]);
@@ -290,7 +283,7 @@ describe('VipProfileRepo (integration) — save semantics with rollback isolatio
         await uow.run({}, async () => {
           await repo.insert(vp);
         });
-        await seedBonusParentsAndBundles(ds, uow, commissionerId, [
+        await seedBonusParentsAndEvents(ds, uow, commissionerId, [
           event1,
           event2,
         ]);
