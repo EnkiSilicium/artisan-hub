@@ -2,9 +2,7 @@ import { DomainError, ProgrammerError } from 'error-handling/error-core';
 import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
 import { OrderDomainErrorRegistry } from 'error-handling/registries/order';
 
-import { ActorEntityFieldMap } from './actor-entity-field.map';
-
-import type { ActorName } from 'apps/order-service/src/app/order-workflow/infra/auth/assertions/actor.enum';
+import { ActorEntityFieldMap, ActorName } from 'auth';
 
 export function assertBelongsTo(
   actor: { actorName: ActorName; id: string },
