@@ -6,6 +6,9 @@ import {
   ApiCreatedResponse,
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiNotFoundResponse,
+  ApiConflictResponse,
+  ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 import { WorkshopInvitationResponseService } from 'apps/order-service/src/app/order-workflow/application/services/workshop/workshop-invitation-response.service';
 import {
@@ -36,13 +39,16 @@ export class WorkshopInvitationResponseController {
     type: WorkshopInvitationAcceptResultDto,
   })
   @ApiBadRequestResponse({ description: 'Validation failed' })
-  async accept(@Body() body: AcceptWorkshopInvitationDtoV1) {
-    const orderId = body.orderId;
-    const workshopId = body.workshopId;
-    const stages = body.stages?.map((stage) => ({
-      ...stage,
-      ...{ orderId, workshopId },
-    }));
+  @ApiNotFoundResponse({ description: 'Order or invitation not found (NOT_FOUND)' })
+  @ApiConflictResponse({ description: 'Illegal state transition (ILLEGAL_TRANSITION)' })
+  @ApiUnprocessableEntityResponse({ description: 'Validation failed (VALIDATION)' })
+  async accept(
+    @Body() body: AcceptWorkshopInvitationDtoV1,
+  ) {
+    
+    const orderId = body.orderId
+    const workshopId = body.workshopId
+    const stages = body.stages?.map(stage => ({...stage, ...{orderId, workshopId}}))
     return await this.workshopInvitationResponseService.acceptWorkshopInvitation(
       {
         orderId: orderId,
@@ -69,7 +75,11 @@ export class WorkshopInvitationResponseController {
     type: WorkshopInvitationDeclineResultDto,
   })
   @ApiBadRequestResponse({ description: 'Validation failed' })
-  async decline(@Body() body: DeclineWorkshopInvitationDtoV1) {
+  @ApiNotFoundResponse({ description: 'Order or invitation not found (NOT_FOUND)' })
+  @ApiConflictResponse({ description: 'Illegal state transition (ILLEGAL_TRANSITION)' })
+  async decline(
+    @Body() body: DeclineWorkshopInvitationDtoV1,
+  ) {
     return await this.workshopInvitationResponseService.declineWorkshopInvitation(
       {
         orderId: body.orderId,
