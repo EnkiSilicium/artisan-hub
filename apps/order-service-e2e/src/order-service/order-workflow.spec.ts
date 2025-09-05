@@ -25,6 +25,7 @@ import {
 import type { AxiosResponse } from 'axios';
 
 import type { Consumer } from 'kafkajs';
+import { inspect } from 'util';
 
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -43,7 +44,7 @@ async function pollUntil(
       failures++;
       if (failures === 1 || failures % 3 === 0) {
         const message = e?.response
-          ? `HTTP ${e.response.status} ${e.response.statusText} body=${JSON.stringify(e.response.data)}`
+          ? `HTTP ${e.response.status} ${e.response.statusText} body=${inspect((e.response.data))}`
           : e?.code
             ? `${e.code}: ${e.message}`
             : e?.message || String(e);
@@ -131,7 +132,7 @@ async function withConsumer<T>(
     if (axios.isAxiosError(error) || error?.isAxiosError === true) {
       const { response, code, message, status } = error;
       console.error(
-        `[E2E] AxiosError${code ? `: ${code}` : ''} -> ${status ?? response?.status} (${message})\n${JSON.stringify(response?.data)}`,
+        `[E2E] AxiosError${code ? `: ${code}` : ''} -> ${status ?? response?.status} (${message})\n${inspect((response?.data))}`,
       );
     }
     throw error;
@@ -161,7 +162,7 @@ async function readStages(
     timeout: 2500,
   });
   console.log(`[E2E][HTTP] <- ${res.status} from ${urlRead}`);
-  console.log(`[E2E][HTTP]     data=${JSON.stringify(res.data)}`);
+  console.log(`[E2E][HTTP] data=${inspect(inspect((res.data)))}`);
   return res.data;
 }
 
@@ -230,7 +231,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
           },
         } satisfies OrderInitDtoV1);
         console.log(
-          `[E2E] order init response: ${response.status} ${JSON.stringify(response.data)}`,
+          `[E2E] order init response: ${response.status} ${inspect((response.data))}`,
         );
 
         expect(response.status).toBeGreaterThanOrEqual(200);
@@ -336,7 +337,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
           `Timed out waiting for order to appear in read model for commissioner ${commissionerId}`,
         ).then(async () => {
           const d = await readStages(READ, commissionerId);
-          console.log(`[E2E][HTTP] final readStages <- ${JSON.stringify(d)}`);
+          console.log(`[E2E][HTTP] final readStages <- ${inspect((d))}`);
           return d.items[0].orderId;
         });
         console.log(`[E2E] Order retrieved: ${orderId}`);
@@ -525,7 +526,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
           `Timed out waiting for order to appear in read model for commissioner ${commissionerId}`,
         ).then(async () => {
           const d = await readStages(READ, commissionerId);
-          console.log(`[E2E][HTTP] final readStages <- ${JSON.stringify(d)}`);
+          console.log(`[E2E][HTTP] final readStages <- ${inspect((d))}`);
           return d.items[0].orderId;
         });
 
@@ -611,7 +612,7 @@ describe('Order workflow integration (read model + Kafka)', () => {
           `Timed out waiting for order to appear in read model for commissioner ${commissionerId}`,
         ).then(async () => {
           const d = await readStages(READ, commissionerId);
-          console.log(`[E2E][HTTP] final readStages <- ${JSON.stringify(d)}`);
+          console.log(`[E2E][HTTP] final readStages <- ${inspect((d))}`);
           return d.items[0].orderId;
         });
 
