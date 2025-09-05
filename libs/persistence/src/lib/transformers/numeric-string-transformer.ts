@@ -1,4 +1,4 @@
-import { ValueTransformer } from 'typeorm';
+import type { ValueTransformer } from 'typeorm';
 
 /** Maps string <-> number for numeric/decimal columns to avoid float drift in userland. */
 export const NumericStringTransformer: ValueTransformer = {

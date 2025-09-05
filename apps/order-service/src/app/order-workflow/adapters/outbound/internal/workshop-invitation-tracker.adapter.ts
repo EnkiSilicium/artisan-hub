@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
+
 import { WorkshopInvitationTrackerPort } from '../../../application/ports/initialize-tracker.port';
 import { WorkshopInvitationTracker } from '../../../infra/workshop-invitation-tracker/workshop-invitation-tracker.service';
 
 @Injectable()
-export class WorkshopInvitationTrackerAdapter implements WorkshopInvitationTrackerPort {
+export class WorkshopInvitationTrackerAdapter
+  implements WorkshopInvitationTrackerPort
+{
   constructor(private readonly tracker: WorkshopInvitationTracker) {}
 
   async initializeTracker(
@@ -14,4 +17,3 @@ export class WorkshopInvitationTrackerAdapter implements WorkshopInvitationTrack
     await this.tracker.initialize(orderId, commissionerId, total);
   }
 }
-

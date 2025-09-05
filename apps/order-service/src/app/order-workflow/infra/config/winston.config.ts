@@ -1,6 +1,10 @@
-import { LoggerFactoryOverrides, makeWinstonOptions } from 'libs/observability/src/lib/config/winston-config.factory';
+import { makeWinstonOptions } from 'observability';
+
+import type { LoggerFactoryOverrides } from 'observability';
 
 const orderLoggerFactoryOverrides: LoggerFactoryOverrides = {
-    serviceName: "order-workflow",
+  serviceName: 'order-workflow',
 };
-export const orderWorkflowWinstonConfig = makeWinstonOptions(orderLoggerFactoryOverrides);
+export const orderWorkflowWinstonConfig = makeWinstonOptions(
+  orderLoggerFactoryOverrides,
+);

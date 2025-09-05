@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsIn, Equals, IsISO8601 } from "class-validator";
+import { IsString, IsNotEmpty, IsIn, Equals, IsISO8601 } from 'class-validator';
 
 export class CancelSubmittedEvent {
   @IsString()

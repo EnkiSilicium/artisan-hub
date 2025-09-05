@@ -1,4 +1,6 @@
-import { KafkaTopics, OrderEventInstanceUnion } from 'contracts';
+import { KafkaTopics } from 'contracts';
+
+import type { OrderEventInstanceUnion } from 'contracts';
 
 export const OrderServiceTopicMap: Record<
   OrderEventInstanceUnion['eventName'],
@@ -16,5 +18,5 @@ export const OrderServiceTopicMap: Record<
   StageConfirmationMarked: KafkaTopics.StageTransitions,
   StageConfirmed: KafkaTopics.StageTransitions,
   OrderCancelled: KafkaTopics.OrderTransitions,
-  OrderMarkedAsCompleted: KafkaTopics.OrderTransitions
+  OrderMarkedAsCompleted: KafkaTopics.OrderTransitions,
 } as const;

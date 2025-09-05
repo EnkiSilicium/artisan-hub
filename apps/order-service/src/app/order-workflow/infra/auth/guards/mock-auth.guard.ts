@@ -1,12 +1,11 @@
-import { CanActivate, Injectable, Logger } from "@nestjs/common";
-
+import { CanActivate, Injectable, Logger } from '@nestjs/common';
 
 @Injectable()
 export class MockAuthGuard implements CanActivate {
-    canActivate(): boolean {
-        Logger.warn({
-            message: `WARNING: auth disabled!`
-        })
-        return true;
-    }
+  canActivate(): boolean {
+    Logger.warn({
+      message: `WARNING: auth disabled!`,
+    });
+    return true;
+  }
 }

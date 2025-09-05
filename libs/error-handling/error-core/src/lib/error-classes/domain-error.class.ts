@@ -1,7 +1,6 @@
-import { AppError } from "error-handling/error-core";
-import { BaseDescriptor } from "error-handling/error-core";
+import { AppError } from 'error-handling/error-core';
 
-
+import type { BaseDescriptor } from 'error-handling/error-core';
 
 /**
  * Service-specific domain errors, such as validation errors, invalid transitions etc.

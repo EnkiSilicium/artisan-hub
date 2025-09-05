@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 
 import { Controller, UseInterceptors } from '@nestjs/common';
 import {
@@ -6,20 +7,17 @@ import {
   KafkaContext,
   Payload,
 } from '@nestjs/microservices';
-
-import { KafkaTopics } from 'contracts';
 import { BonusEventService } from 'apps/bonus-service/src/app/modules/bonus-processor/application/services/bonus-event/bonus-event.service';
-import { createHash, randomUUID } from 'crypto';
-import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
-import { isoNow } from 'shared-kernel';
+import { KafkaTopics } from 'contracts';
 import { ProgrammerError } from 'error-handling/error-core';
 import { KafkaErrorInterceptor } from 'error-handling/interceptor';
+import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
 import { LoggingInterceptor } from 'observability';
+import { isoNow } from 'shared-kernel';
 
 @Controller()
 export class BonusEventsConsumer {
   constructor(private readonly bonusService: BonusEventService) {}
-
 
   @UseInterceptors(KafkaErrorInterceptor, LoggingInterceptor)
   @EventPattern(KafkaTopics.OrderTransitions)
@@ -28,7 +26,7 @@ export class BonusEventsConsumer {
     @Ctx() ctx: KafkaContext,
   ) {
     const eventId = getHashId(payload);
-    await this.route({...payload, eventId}, ctx);
+    await this.route({ ...payload, eventId }, ctx);
   }
 
   @EventPattern(KafkaTopics.StageTransitions)
@@ -38,7 +36,6 @@ export class BonusEventsConsumer {
   ) {
     await this.route(payload, ctx);
   }
-
 
   // If event is invalid, it's detected at the application/domain layer.
   private async route(event: any, ctx: KafkaContext): Promise<void> {
@@ -70,9 +67,9 @@ export class BonusEventsConsumer {
   }
 }
 
-
-
 export function getHashId(payload: unknown): string {
-  return createHash('sha256').update(JSON.stringify({ payload })).digest('base64url').slice(0, 10);
+  return createHash('sha256')
+    .update(JSON.stringify({ payload }))
+    .digest('base64url')
+    .slice(0, 10);
 }
-

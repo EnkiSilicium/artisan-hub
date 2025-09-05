@@ -1,2 +1,4 @@
-export const extractStrEnvWithFallback = (v: any, d: any) =>
-  v == null || v === '' ? d : v;
+export const extractStrEnvWithFallback = (
+  env: any,
+  fallback: string,
+): string => (env == null || env === '' ? fallback : env);

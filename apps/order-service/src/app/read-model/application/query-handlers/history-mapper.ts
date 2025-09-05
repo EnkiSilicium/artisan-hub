@@ -1,5 +1,5 @@
-import { OrderHistoryProjection } from 'apps/order-service/src/app/read-model/infra/persistence/projections/order-histrory.projection';
-import {
+import type { OrderHistoryProjection } from 'apps/order-service/src/app/read-model/infra/persistence/projections/order-histrory.projection';
+import type {
   OrderHistoryQueryResultDto,
   OrderHistoryQueryResultFlatDto,
 } from 'contracts';

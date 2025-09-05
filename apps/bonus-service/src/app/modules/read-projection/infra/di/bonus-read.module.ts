@@ -1,9 +1,8 @@
+import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { BullModule } from '@nestjs/bullmq';
 import { BonusReadController } from 'apps/bonus-service/src/app/modules/read-projection/adapters/inbound/http/bonus-read.controller';
 import { BonusReadHandler } from 'apps/bonus-service/src/app/modules/read-projection/application/bonus-read/bonus-read.query-handler';
-import { bonusReadOtelConfig } from 'apps/bonus-service/src/app/modules/read-projection/infra/config/otel.config';
 import { bonusReadTypeOrmOptions } from 'apps/bonus-service/src/app/modules/read-projection/infra/config/typeorm-config';
 import { bonusReadWinstonConfig } from 'apps/bonus-service/src/app/modules/read-projection/infra/config/winston.config';
 import { BonusReadProjection } from 'apps/bonus-service/src/app/modules/read-projection/infra/persistence/projections/bonus-read.projection';
@@ -15,6 +14,7 @@ import {
   KafkaErrorInterceptor,
   HttpErrorInterceptorOptions,
   KafkaErrorInterceptorOptions,
+
 } from 'error-handling/interceptor';
 import { WinstonModule } from 'nest-winston';
 import { OpenTelemetryModule } from 'nestjs-otel';
@@ -24,16 +24,30 @@ import { LoggingInterceptor } from 'observability';
   imports: [
     TypeOrmModule.forRoot(bonusReadTypeOrmOptions),
 
-    OpenTelemetryModule.forRoot(bonusReadOtelConfig),
-
     BullModule.forRoot({
       connection: {
         host: process.env.REDIS_HOST || 'localhost',
         port: Number(process.env.REDIS_PORT || 6379),
       },
     }),
+
     BullModule.registerQueue({
       name: BONUS_READ_REFRESH_QUEUE,
+
+    OpenTelemetryModule.forRoot({
+      metrics: {
+        apiMetrics: {
+          enable: true, // Includes api metrics
+          defaultAttributes: {
+            // You can set default labels for api metrics
+            service: 'order-read',
+          },
+          ignoreUndefinedRoutes: false, //Records metrics for all URLs, even undefined ones
+          prefix: 'metrics', // Add a custom prefix to all API metrics
+        },
+      },
+    }),
+
     }),
     // ClientsModule.register([
     //     {

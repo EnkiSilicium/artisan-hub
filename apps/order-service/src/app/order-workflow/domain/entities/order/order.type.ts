@@ -1,13 +1,9 @@
-import {
+import type {
   OrderStates,
   OrderActions,
 } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.enum';
-import { StateRegistry } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.state';
-import { OrderTransitions } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.transitions';
-
-
-
-
+import type { StateRegistry } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.state';
+import type { OrderTransitions } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.transitions';
 
 //Helper-types
 type ConstructorType<T> = new (...args: any[]) => T;
@@ -22,7 +18,6 @@ export type StateById = {
 
 export type StateClassUnion = StateById[OrderStates];
 
-
 //Important business-logic types
 export type Handlers<S extends OrderStates> = {
   [A in NextActions<S>]: LegalOutcome<S, A>;
@@ -33,11 +28,10 @@ export type Handlers<S extends OrderStates> = {
 export type Outcome<S extends OrderStates, A extends OrderActions> =
   A extends NextActions<S> ? LegalOutcome<S, A> : IllegalOutcome;
 
-
 type TransitionsOf<S extends OrderStates> = (typeof OrderTransitions)[S];
 
-
-export type NextActions<S extends OrderStates> = Extract< //Extraction removes undefined - compiler fix
+export type NextActions<S extends OrderStates> = Extract<
+  //Extraction removes undefined - compiler fix
   keyof TransitionsOf<S>,
   OrderActions
 >;
@@ -68,17 +62,13 @@ export class IllegalOutcome implements AbstractOutcome {
   nextState: undefined;
 }
 
-
-
-
-
 export abstract class BaseState<s extends OrderStates> {
   readonly stateName: s;
   abstract readonly handlers: Handlers<s>;
 
   /**
    * The return type is automatically computed to be either
-   * LegalOutcome or IllegalOutcome by the compiler 
+   * LegalOutcome or IllegalOutcome by the compiler
    * */
   handle<a extends OrderActions>(action: a): Outcome<s, a> {
     function isKeyOf<T extends object, K extends PropertyKey>(
@@ -99,5 +89,3 @@ export abstract class BaseState<s extends OrderStates> {
     return outcome as Outcome<s, a>;
   }
 }
-
-

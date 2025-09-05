@@ -1,9 +1,14 @@
-// bonus-processor.e2e.spec.ts
-import { Kafka, Producer } from 'kafkajs';
-import axios from 'axios';
-import { ApiPaths, BonusReadPaths, KafkaTopics } from 'contracts';
-import { isoNow } from 'shared-kernel';
 import { randomUUID } from 'crypto';
+
+import axios from 'axios';
+
+import { ApiPaths, BonusReadPaths, KafkaTopics } from 'contracts';
+
+import { Kafka } from 'kafkajs';
+
+import { isoNow } from 'shared-kernel';
+
+import type { Producer } from 'kafkajs';
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -23,9 +28,9 @@ async function pollUntil(
       failures++;
       if (failures === 1 || failures % 3 === 0) {
         const message = e?.response
-          ? `HTTP ${e.response.status} ${e.response.statusText} body=${JSON.stringify(e.response.data)}`
+          ? `HTTP ${e?.response?.status} ${e?.response?.statusText} body=${JSON.stringify(e?.response?.data)}`
           : e?.code
-            ? `${e.code}: ${e.message}`
+            ? `${e?.code}: ${e?.message}`
             : e?.message || String(e);
 
         console.warn(`[E2E] pollUntil error: ${message}`);
@@ -58,10 +63,13 @@ describe('Bonus processor integration (Option B)', () => {
     await pollUntil(
       async () => {
         try {
+
           await axios.get(
             `${readBaseUrl}/${ApiPaths.Root}/${BonusReadPaths.Root}`,
             { params: { limit: 1, offset: 0 } },
           );
+
+
           return true;
         } catch {
           return false;
@@ -157,7 +165,9 @@ describe('Bonus processor integration (Option B)', () => {
       async () => {
         //refreshing
         const refresh = await axios.post(
+
           `${readBaseUrl}/${ApiPaths.Root}/${BonusReadPaths.Root}/${BonusReadPaths.Refresh}`,
+
           {
             params: { commissionerId, limit: 1, offset: 0 },
           },
@@ -165,12 +175,14 @@ describe('Bonus processor integration (Option B)', () => {
         console.log(
           `[E2E] Read API refresh response: ${JSON.stringify(refresh.data)}`,
         );
+
         const res = await axios.get(
           `${readBaseUrl}/${ApiPaths.Root}/${BonusReadPaths.Root}`,
           {
             params: { commissionerId, limit: 1, offset: 0 },
           },
         );
+
         console.log(`[E2E] Read API response: ${JSON.stringify(res.data)}`);
         const total = res.data?.total ?? 0;
         const firstPoints = res.data?.items?.[0]?.totalPoints ?? 0;
@@ -183,6 +195,7 @@ describe('Bonus processor integration (Option B)', () => {
       { timeoutMs: 90_000, intervalMs: 600 },
     );
 
+
     const res = await axios.get(
       `${readBaseUrl}/${ApiPaths.Root}/${BonusReadPaths.Root}`,
       {
@@ -191,6 +204,7 @@ describe('Bonus processor integration (Option B)', () => {
     );
     {
     }
+
     console.log(`[E2E] Final Read API response: ${JSON.stringify(res.data)}`);
     expect(res.data.total).toBeGreaterThan(0);
     expect(res.data.items[0].totalPoints).toBeGreaterThan(0);

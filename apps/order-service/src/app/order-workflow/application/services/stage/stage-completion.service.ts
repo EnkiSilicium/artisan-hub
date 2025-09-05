@@ -1,3 +1,5 @@
+import { randomUUID } from 'crypto';
+
 import { Injectable } from '@nestjs/common';
 import {
   AcceptCompletionMarkedCommand,
@@ -8,7 +10,6 @@ import { Order } from 'apps/order-service/src/app/order-workflow/domain/entities
 import { StagesAggregate } from 'apps/order-service/src/app/order-workflow/domain/entities/stage/stage.entity';
 import { OrderRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/order/order.repo';
 import { StagesAggregateRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/stage/stage.repo';
-import { TypeOrmUoW, enqueueOutbox } from 'persistence';
 import {
   StageCompletionMarkResultDto,
   StageCompletionConfirmResultDto,
@@ -16,9 +17,9 @@ import {
   StageConfirmedEventV1,
   AllStagesCompletedEventV1,
 } from 'contracts';
-import { randomUUID } from 'crypto';
+import { OrderMarkedAsCompletedEventV1 } from 'contracts';
+import { TypeOrmUoW, enqueueOutbox } from 'persistence';
 import { isoNow } from 'shared-kernel';
-import { OrderMarkedAsCompletedEventV1 } from 'libs/contracts/src/order-service/events/order-marked-as-completed.event';
 
 @Injectable()
 export class StageCompletionService {
@@ -26,15 +27,13 @@ export class StageCompletionService {
     public readonly uow: TypeOrmUoW,
     private readonly ordersRepo: OrderRepo,
     private readonly stagesAggregateRepo: StagesAggregateRepo,
-  ) { }
-
+  ) {}
 
   async acceptCompletionMarked(
     cmd: AcceptCompletionMarkedCommand,
   ): Promise<StageCompletionMarkResultDto> {
-
     return this.uow.runWithRetry({}, async () => {
-      const order = cmd.order ?? await this.ordersRepo.findById(cmd.orderId);
+      const order = cmd.order ?? (await this.ordersRepo.findById(cmd.orderId));
       assertIsFound(order, Order, {
         orderId: cmd.orderId,
       });
@@ -49,14 +48,11 @@ export class StageCompletionService {
         workshopId: cmd.workshopId,
       });
 
-
       const { allCompleted, stageCompleted } = stages.acceptCompletionMarked({
         stageName: cmd.payload.stageName,
       });
 
-
       await this.stagesAggregateRepo.save(stages);
-
 
       const stageMarkedEventPayload: StageConfirmationMarkedEventV1 = {
         commissionerId: order.commissionerId,
@@ -75,9 +71,6 @@ export class StageCompletionService {
           ...stageMarkedEventPayload,
         },
       });
-
-
-
 
       if (stageCompleted) {
         const stageConfirmedEventPayload: StageConfirmedEventV1 = {
@@ -98,11 +91,9 @@ export class StageCompletionService {
         });
       }
 
-
       if (allCompleted) {
         order.markAsCompleted();
         await this.ordersRepo.update(order);
-
 
         const allStageConfirmedEventPayload: AllStagesCompletedEventV1 = {
           commissionerId: order.commissionerId,
@@ -128,7 +119,7 @@ export class StageCompletionService {
           orderId: order.orderId,
           schemaV: 1,
           workshopId: cmd.workshopId,
-          aggregateVersion: order.version
+          aggregateVersion: order.version,
         };
         enqueueOutbox({
           id: randomUUID(),
@@ -139,7 +130,6 @@ export class StageCompletionService {
         });
       }
 
-
       return {
         orderId: cmd.orderId,
         workshopId: cmd.workshopId,
@@ -148,14 +138,13 @@ export class StageCompletionService {
         allStagesCompleted: allCompleted,
       };
     });
-
   }
 
   async confirmCompletion(
     cmd: ConfirmStageCompletionCommand,
   ): Promise<StageCompletionConfirmResultDto> {
     return this.uow.runWithRetry({}, async () => {
-      const order = cmd.order ?? await this.ordersRepo.findById(cmd.orderId);
+      const order = cmd.order ?? (await this.ordersRepo.findById(cmd.orderId));
       assertIsFound(order, Order, {
         orderId: cmd.orderId,
       });
@@ -170,13 +159,11 @@ export class StageCompletionService {
         workshopId: cmd.workshopId,
       });
 
-
       const { allCompleted } = stages.confirmStage({
         stageName: cmd.payload.stageName,
       });
 
       await this.stagesAggregateRepo.save(stages);
-
 
       const stageConfirmedEventPayload: StageConfirmedEventV1 = {
         commissionerId: order.commissionerId,
@@ -196,7 +183,6 @@ export class StageCompletionService {
       });
 
       if (allCompleted) {
-
         order.markAsCompleted();
 
         await this.ordersRepo.update(order);
@@ -224,7 +210,7 @@ export class StageCompletionService {
           orderId: order.orderId,
           schemaV: 1,
           workshopId: cmd.workshopId,
-          aggregateVersion: order.version
+          aggregateVersion: order.version,
         };
         enqueueOutbox({
           id: randomUUID(),
@@ -234,7 +220,6 @@ export class StageCompletionService {
           },
         });
       }
-
 
       return {
         orderId: cmd.orderId,

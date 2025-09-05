@@ -1,8 +1,4 @@
-import {
-  Body,
-  Controller,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -12,12 +8,10 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { OrderInitService } from 'apps/order-service/src/app/order-workflow/application/services/order/order-init.service';
-  // Re-exported DTO from libs/contracts
+// Re-exported DTO from libs/contracts
 
 import { OrderInitResultDto } from 'contracts';
-
 import { OrderInitDtoV1, OrderInitPaths } from 'contracts';
-
 
 @ApiTags('Order workflow')
 @ApiBearerAuth('JWT')
@@ -28,9 +22,8 @@ export class OrderInitController {
   @Post()
   @ApiOperation({
     summary: 'Create a new order',
-    description: 'Creates a new order with an initial request and selected workshops. WARNING: not rate-limited!',
-
-
+    description:
+      'Creates a new order with an initial request and selected workshops. WARNING: not rate-limited!',
   })
   @ApiBody({ type: OrderInitDtoV1 })
   @ApiCreatedResponse({

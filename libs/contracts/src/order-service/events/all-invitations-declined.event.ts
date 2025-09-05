@@ -1,8 +1,10 @@
-import { IsString, IsNotEmpty, Equals, IsISO8601 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsString, IsNotEmpty, Equals, IsISO8601 } from 'class-validator';
 import { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
 
-export class AllInvitationsDeclinedEventV1 implements BaseEvent<'AllInvitationsDeclined'> {
+export class AllInvitationsDeclinedEventV1
+  implements BaseEvent<'AllInvitationsDeclined'>
+{
   @ApiProperty({ enum: ['AllInvitationsDeclined'] })
   @IsString()
   @IsNotEmpty()

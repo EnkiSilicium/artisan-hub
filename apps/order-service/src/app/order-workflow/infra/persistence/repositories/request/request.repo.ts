@@ -1,18 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { RequestEntity } from 'apps/order-service/src/app/order-workflow/domain/entities/request/request.entity';
-import { requireTxManager, setNewTimeAndVersion, updateWithVersionGuard } from 'persistence';
 import { remapTypeOrmPgErrorToInfra } from 'error-handling/remapper/typeorm-postgres';
-import { DataSource } from 'typeorm';
+import {
+  requireTxManager,
+  setNewTimeAndVersion,
+  updateWithVersionGuard,
+} from 'persistence';
 import { isoNow } from 'shared-kernel';
+import { DataSource } from 'typeorm';
 
 @Injectable()
 export class RequestRepo {
-  constructor(private readonly ds: DataSource) { }
+  constructor(private readonly ds: DataSource) {}
 
-  async findById(
-    orderId: string,
-    required = true,
-  ): Promise<RequestEntity | null> {
+  async findById(orderId: string): Promise<RequestEntity | null> {
     const manager = requireTxManager(this.ds);
     try {
       const row = await manager.findOne(RequestEntity, {

@@ -14,7 +14,10 @@ export class OrderHistoryQueryResultFlatDto {
   @ApiProperty({ type: String, description: 'Commissioner ID' })
   commissionerId!: string;
 
-  @ApiProperty({ type: Boolean, description: 'Whether the order has been terminated' })
+  @ApiProperty({
+    type: Boolean,
+    description: 'Whether the order has been terminated',
+  })
   isTerminated!: boolean;
 
   @ApiProperty({

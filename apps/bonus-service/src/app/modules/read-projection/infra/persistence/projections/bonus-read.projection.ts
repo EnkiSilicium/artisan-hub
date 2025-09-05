@@ -1,6 +1,6 @@
 // read-model/mv-vip-additive.view.ts
-import { ViewColumn, ViewEntity } from 'typeorm';
 import { Injectable } from '@nestjs/common';
+import { ViewColumn, ViewEntity } from 'typeorm';
 
 @Injectable()
 @ViewEntity({
@@ -51,5 +51,4 @@ export class BonusReadProjection {
   @ViewColumn() gradePolicyVersion!: number;
   @ViewColumn() bonusCreatedAt!: string;
   @ViewColumn() bonusLastUpdatedAt!: string;
-
 }

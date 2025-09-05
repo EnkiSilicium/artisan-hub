@@ -10,6 +10,9 @@ export class StageCompletionConfirmResultDto {
   @ApiProperty({ type: String, description: 'Stage name' })
   stageName!: string;
 
-  @ApiProperty({ type: Boolean, description: 'Whether all stages are completed' })
+  @ApiProperty({
+    type: Boolean,
+    description: 'Whether all stages are completed',
+  })
   allStagesCompleted!: boolean;
 }

@@ -1,15 +1,14 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, DataSource } from 'typeorm';
+import { Logger } from '@nestjs/common';
+import { KafkaProducerPort } from 'adapter';
 import { Job } from 'bullmq';
+import { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
+import { OutboxMessage } from 'libs/persistence/src/lib/entities/outbox-message.entity';
 import {
   OUTBOX_JOB_PUBLISH,
   OUTBOX_QUEUE,
 } from 'libs/persistence/src/lib/tokens/outbox.tokens';
-import { OutboxMessage } from 'libs/persistence/src/lib/entities/outbox-message.entity';
-import { KafkaProducerPort } from 'adapter';
-import { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
-import { Logger } from '@nestjs/common';
+import { In, DataSource } from 'typeorm';
 
 interface PublishJobData {
   events: EventPayload[];
@@ -97,7 +96,7 @@ export class OutboxProcessor extends WorkerHost {
     if (idsToDelete.length === 0) {
       // try extracting ids from events if they carry "outboxId"
       idsToDelete = events
-        .map((e) => (e as any).outboxId)
+        .map((e): any => (e as any)?.outboxId)
         .filter((v: unknown): v is string => typeof v === 'string');
     }
 

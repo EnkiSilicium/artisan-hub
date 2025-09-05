@@ -8,8 +8,8 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { OrderInitRequestPayload } from 'libs/contracts/src/commissioner/events/order-init-requested.event';
 import { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
+import { OrderInitRequestPayload } from 'libs/contracts/src/commissioner/events/order-init-requested.event';
 
 export class OrderPlacedEventV1 implements BaseEvent<'OrderPlaced'> {
   @IsString()

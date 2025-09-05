@@ -1,22 +1,31 @@
 // bonus-event-dispatcher.clientkafka.ts
-import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
+import { KAFKA_PRODUCER } from 'adapter'; // token bound to ClientKafka
+import { KafkaProducerPort } from 'adapter';
+import { BonusServiceTopicMap } from 'apps/bonus-service/src/app/modules/bonus-processor/adapters/outbound/messaging/kafka.topic-map';
+import { BonusEventInstanceUnion } from 'contracts';
+import { ProgrammerError } from 'error-handling/error-core';
+import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
 import { lastValueFrom } from 'rxjs';
 import { defaultIfEmpty } from 'rxjs/operators';
 
-import { KAFKA_PRODUCER } from 'adapter'; // token bound to ClientKafka
-import { KafkaProducerPort } from 'adapter';
-import { BonusEventInstanceUnion, KafkaTopics } from 'contracts';
-import { BonusServiceTopicMap } from 'apps/bonus-service/src/app/modules/bonus-processor/adapters/outbound/messaging/kafka.topic-map';
-import { ProgrammerError } from 'error-handling/error-core';
-import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
-
 @Injectable()
 export class BonusEventDispatcher
-  implements KafkaProducerPort<BonusEventInstanceUnion>, OnModuleInit, OnModuleDestroy {
+  implements
+    KafkaProducerPort<BonusEventInstanceUnion>,
+    OnModuleInit,
+    OnModuleDestroy
+{
   private readonly logger = new Logger(BonusEventDispatcher.name);
 
-  constructor(@Inject(KAFKA_PRODUCER) private readonly client: ClientKafka) { }
+  constructor(@Inject(KAFKA_PRODUCER) private readonly client: ClientKafka) {}
 
   async onModuleInit() {
     // ClientKafka needs an explicit connect in app code (Nest won't auto-connect producers)
@@ -40,13 +49,13 @@ export class BonusEventDispatcher
     // Emit each event. ClientKafka expects: emit(topic: string, data: { key, value, headers? })
     // It returns an Observable we must subscribe to (convert to Promise).
     const ops = events.map(async (evt) => {
-      const topic = this.topicFor(evt);               // validated string topic
-      const key = this.keyFor(evt);                   // stable key => ordered per key
+      const topic = this.topicFor(evt); // validated string topic
+      const key = this.keyFor(evt); // stable key => ordered per key
 
       const record = {
-        key,                                          // string | Buffer
-        value: evt,                                   // your BaseEvent payload (plus any extra fields)
-        headers: { 'x-event-name': evt.eventName },   // strings are fine; Buffers also OK
+        key, // string | Buffer
+        value: evt, // your BaseEvent payload (plus any extra fields)
+        headers: { 'x-event-name': evt.eventName }, // strings are fine; Buffers also OK
         // partition: 0,                               // optional: force a partition (not recommended in prod)
         // timestamp: Date.now().toString(),           // optional
       };
@@ -63,7 +72,7 @@ export class BonusEventDispatcher
 
   private topicFor(evt: BonusEventInstanceUnion): string {
     // Make bad mappings fail fast and loudly
-    const topic = BonusServiceTopicMap[evt.eventName as keyof typeof BonusServiceTopicMap];
+    const topic = BonusServiceTopicMap[evt.eventName];
     if (!topic) {
       const known = Object.keys(BonusServiceTopicMap).join(', ');
       throw new ProgrammerError({

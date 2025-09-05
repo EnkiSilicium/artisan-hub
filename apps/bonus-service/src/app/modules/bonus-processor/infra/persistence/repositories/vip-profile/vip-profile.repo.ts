@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { LastMonthEventSet } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/last-month-event-set.entity';
 import { VipProfile } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.entity';
+import { remapTypeOrmPgErrorToInfra } from 'error-handling/remapper/typeorm-postgres';
 import {
   currentManager,
   requireTxManager,
   setNewTimeAndVersion,
 } from 'persistence';
-import { remapTypeOrmPgErrorToInfra } from 'error-handling/remapper/typeorm-postgres';
-import { DataSource, EntityManager, In } from 'typeorm';
 import { isoNow } from 'shared-kernel';
+import { DataSource, EntityManager, In } from 'typeorm';
 
 @Injectable()
 export class VipProfileRepo {

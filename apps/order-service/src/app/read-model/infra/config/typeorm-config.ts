@@ -1,32 +1,33 @@
 import { OrderHistoryProjection } from 'apps/order-service/src/app/read-model/infra/persistence/projections/order-histrory.projection';
 import { OutboxMessage } from 'persistence';
-import { DataSourceOptions } from 'typeorm';
+
+import type { DataSourceOptions } from 'typeorm';
 
 export const OrderReadTypeOrmOptions: DataSourceOptions = {
   type: 'postgres',
   ...(process.env.PG_URL
     ? {
-      url: process.env.PG_URL,
-      ssl:
-        process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : false,
-    }
+        url: process.env.PG_URL,
+        ssl:
+          process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : false,
+      }
     : {
-      host: process.env.PG_HOST ?? 'localhost',
-      port: parseInt(process.env.PG_PORT ?? '5432', 10),
-      username: process.env.PG_USER ?? 'app',
-      password: process.env.PG_PASSWORD ?? 'app',
-      database: process.env.PG_DB ?? 'app',
-      schema: process.env.DB_SCHEMA || 'public',
-      ssl:
-        process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : false,
-    }),
+        host: process.env.PG_HOST ?? 'localhost',
+        port: parseInt(process.env.PG_PORT ?? '5432', 10),
+        username: process.env.PG_USER ?? 'app',
+        password: process.env.PG_PASSWORD ?? 'app',
+        database: process.env.PG_DB ?? 'app',
+        schema: process.env.DB_SCHEMA || 'public',
+        ssl:
+          process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : false,
+      }),
   entities: [OrderHistoryProjection, OutboxMessage],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
   entitySkipConstructor: true,
-  
+
   // toggles
   synchronize: true, // dev only
-  migrationsRun: true, 
+  migrationsRun: true,
   logging: process.env.TYPEORM_LOGGING
     ? (process.env.TYPEORM_LOGGING.split(',') as DataSourceOptions['logging'])
     : ['error', 'warn'],

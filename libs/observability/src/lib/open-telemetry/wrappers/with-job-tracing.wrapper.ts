@@ -5,10 +5,13 @@ import {
   trace,
   SpanKind,
   SpanStatusCode,
-  Context,
 } from '@opentelemetry/api';
+
+import { TRACE_FIELD } from '../utils/inject-trace-into-data';
+
+import type { TraceCarrier } from '../utils/inject-trace-into-data';
+import type { Context } from '@opentelemetry/api';
 import type { Job } from 'bullmq';
-import { TraceCarrier, TRACE_FIELD } from "../utils/inject-trace-into-data";
 
 /**
  * Decorator for BullMQ worker methods (e.g., WorkerHost.process).
@@ -17,21 +20,30 @@ import { TraceCarrier, TRACE_FIELD } from "../utils/inject-trace-into-data";
  * Hardcoded: tracer 'bullmq-worker', span name = job.name, kind = CONSUMER.
  */
 export function WithJobTracing(name: string | undefined): MethodDecorator {
-  return (_target, _key, descriptor: PropertyDescriptor) => {
-    const original = descriptor.value;
+  return (_target: Object, _key: string | symbol, descriptor: PropertyDescriptor) => {
+    const original: (...args: any[]) => any = descriptor.value;
 
     descriptor.value = async function wrapped(job: Job, ...args: any[]) {
-      const tracer = trace.getTracer( name ?? 'Worker');
+      const tracer = trace.getTracer(name ?? 'Worker');
 
       // Try to extract parent context from job.data.__trace
       const carrier: TraceCarrier | undefined = job?.data?.[TRACE_FIELD];
-      const hasCarrier = !!carrier && (carrier.traceparent || carrier.tracestate || carrier.baggage);
+      const hasCarrier =
+        !!carrier &&
+        (carrier.traceparent || carrier.tracestate || carrier.baggage);
       const parentCtx: Context | undefined = hasCarrier
-        ? propagation.extract(context.active(), carrier as Record<string, string>)
+        ? propagation.extract(
+            context.active(),
+            carrier as Record<string, string>,
+          )
         : undefined;
 
       // Start span with parent if present; otherwise as a new root
-      const span = tracer.startSpan(job.name, { kind: SpanKind.CONSUMER }, parentCtx);
+      const span = tracer.startSpan(
+        job.name,
+        { kind: SpanKind.CONSUMER },
+        parentCtx,
+      );
       const runCtx = trace.setSpan(parentCtx ?? context.active(), span);
 
       // If we had no carrier, inject one now so future retries keep the same trace
@@ -39,7 +51,10 @@ export function WithJobTracing(name: string | undefined): MethodDecorator {
         const newCarrier: TraceCarrier = {};
         propagation.inject(runCtx, newCarrier);
         try {
-          await job.updateData({ ...(job.data ?? {}), [TRACE_FIELD]: newCarrier });
+          await job.updateData({
+            ...(job.data ?? {}),
+            [TRACE_FIELD]: newCarrier,
+          });
         } catch {
           // Non-fatal; the current attempt is still traced
         }

@@ -1,13 +1,13 @@
 // read-model/mv-vip-additive.repo.ts
-import { BonusReadProjection } from 'apps/bonus-service/src/app/modules/read-projection/infra/persistence/projections/bonus-read.projection';
-import { BonusReadQuery } from 'apps/bonus-service/src/app/modules/read-projection/application/bonus-read/bonus-read.query';
-import { DataSource, SelectQueryBuilder } from 'typeorm';
 import { Injectable } from '@nestjs/common';
+import { BonusReadQuery } from 'apps/bonus-service/src/app/modules/read-projection/application/bonus-read/bonus-read.query';
+import { BonusReadProjection } from 'apps/bonus-service/src/app/modules/read-projection/infra/persistence/projections/bonus-read.projection';
 import { remapTypeOrmPgErrorToInfra } from 'error-handling/remapper/typeorm-postgres';
+import { DataSource, SelectQueryBuilder } from 'typeorm';
 
 @Injectable()
 export class BonusReadRepo {
-  constructor(private readonly ds: DataSource) { }
+  constructor(private readonly ds: DataSource) {}
 
   private qb(): SelectQueryBuilder<BonusReadProjection> {
     return this.ds.getRepository(BonusReadProjection).createQueryBuilder('v');
@@ -70,10 +70,7 @@ export class BonusReadRepo {
       return { total, rows };
     } catch (error) {
       remapTypeOrmPgErrorToInfra(error);
-
     }
-
-
   }
 
   private async countFor(
@@ -87,12 +84,9 @@ export class BonusReadRepo {
   /** Materialized view must be refreshed explicitly. */
   async refresh(): Promise<void> {
     try {
-      await this.ds.query(
-        'REFRESH MATERIALIZED VIEW mv_bonus_profile',
-      );
+      await this.ds.query('REFRESH MATERIALIZED VIEW mv_bonus_profile');
     } catch (error) {
       remapTypeOrmPgErrorToInfra(error);
-
     }
   }
 }

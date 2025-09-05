@@ -1,8 +1,12 @@
-import { AdditiveBonus } from './additive-bonus.entity';
-import { isoNow } from 'shared-kernel';
 import { randomUUID } from 'crypto';
 
-export function makeAdditiveBonus(over: Partial<AdditiveBonus> = {}): AdditiveBonus {
+import { isoNow } from 'shared-kernel';
+
+import { AdditiveBonus } from './additive-bonus.entity';
+
+export function makeAdditiveBonus(
+  over: Partial<AdditiveBonus> = {},
+): AdditiveBonus {
   const ab = Object.create(AdditiveBonus.prototype) as AdditiveBonus;
   Object.assign(ab, {
     commissionerId: over.commissionerId ?? randomUUID(),

@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { RequestEntity } from 'apps/order-service/src/app/order-workflow/domain/entities/request/request.entity';
 import { Stage } from 'apps/order-service/src/app/order-workflow/domain/entities/stage/stage.entity';
 import { WorkshopInvitationStatus } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.enum';
@@ -6,17 +7,15 @@ import {
   ValidateIf,
   IsString,
   IsNotEmpty,
-  IsISO8601,
   IsEnum,
   Length,
   IsOptional,
   IsInt,
-  IsDate,
 } from 'class-validator';
-import {
-  EntityTechnicalsInterface,
-  IsoDateTransformer,
-} from 'persistence';
+import { DomainError } from 'error-handling/error-core';
+import { OrderDomainErrorRegistry } from 'error-handling/registries/order';
+import { EntityTechnicalsInterface, IsoDateTransformer } from 'persistence';
+import { assertValid } from 'shared-kernel';
 import {
   Check,
   Index,
@@ -30,10 +29,6 @@ import {
   VersionColumn,
   OneToMany,
 } from 'typeorm';
-import { assertValid } from 'shared-kernel';
-import { DomainError } from 'error-handling/error-core';
-import { OrderDomainErrorRegistry } from 'error-handling/registries/order';
-import { Logger } from '@nestjs/common';
 
 //  - pending|declined -> description, deadline, budget are NULL
 @Check(
@@ -85,13 +80,13 @@ export class WorkshopInvitation implements EntityTechnicalsInterface {
 
   // These are nullable in DB because "pending/declined" must not carry payload.
   // Validators require them only for 'accepted'.
-  @ValidateIf((o) => o.status === WorkshopInvitationStatus.Accepted)
+  @ValidateIf((o) => o?.status === WorkshopInvitationStatus.Accepted)
   @IsString({ groups: [WorkshopInvitationStatus.Accepted, 'description'] })
   @IsNotEmpty({ groups: [WorkshopInvitationStatus.Accepted, 'description'] })
   @Column('text', { name: 'description', nullable: true })
   description!: string | null;
 
-  @ValidateIf((o) => o.status === WorkshopInvitationStatus.Accepted)
+  @ValidateIf((o) => o?.status === WorkshopInvitationStatus.Accepted)
   //@IsISO8601({}, { groups: [WorkshopInvitationStatus.Accepted, 'deadline'] })
   @IsNotEmpty({ groups: [WorkshopInvitationStatus.Accepted, 'deadline'] })
   @Column({
@@ -102,7 +97,7 @@ export class WorkshopInvitation implements EntityTechnicalsInterface {
   })
   deadline!: string | null;
 
-  @ValidateIf((o) => o.status === WorkshopInvitationStatus.Accepted)
+  @ValidateIf((o) => o?.status === WorkshopInvitationStatus.Accepted)
   @IsString({ groups: [WorkshopInvitationStatus.Accepted, 'budget'] })
   @IsNotEmpty({ groups: [WorkshopInvitationStatus.Accepted, 'budget'] })
   @Column('varchar', { name: 'budget', length: 64, nullable: true })
@@ -173,10 +168,12 @@ export class WorkshopInvitation implements EntityTechnicalsInterface {
     //this.lastUpdatedAt = this.placedAt
     assertValid(this, OrderDomainErrorRegistry);
     Logger.verbose({
-      message: `Workshop invitation created!`, meta: {
-        orderId: this.orderId, workshopId: this.workshopId,
-      }
-    })
+      message: `Workshop invitation created!`,
+      meta: {
+        orderId: this.orderId,
+        workshopId: this.workshopId,
+      },
+    });
   }
 
   accept(data: { description: string; deadline: string; budget: string }) {
@@ -195,10 +192,12 @@ export class WorkshopInvitation implements EntityTechnicalsInterface {
     Object.assign(this, o);
 
     Logger.verbose({
-      message: `Workshop invitation accepted!`, meta: {
-        orderId: this.orderId, workshopId: this.workshopId,
-      }
-    })
+      message: `Workshop invitation accepted!`,
+      meta: {
+        orderId: this.orderId,
+        workshopId: this.workshopId,
+      },
+    });
   }
 
   decline() {

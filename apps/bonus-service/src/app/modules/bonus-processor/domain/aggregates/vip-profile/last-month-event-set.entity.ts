@@ -1,3 +1,16 @@
+import { BonusEventNameEnum } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.registy';
+import { VipProfile } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.entity';
+import {
+  IsUUID,
+  IsString,
+  IsEnum,
+  Min,
+  IsInt,
+  IsOptional,
+} from 'class-validator';
+import { BonusDomainErrorRegistry } from 'error-handling/registries/bonus';
+import { EntityTechnicalsInterface, IsoDateTransformer } from 'persistence';
+import { assertValid } from 'shared-kernel';
 import {
   Entity,
   PrimaryColumn,
@@ -10,27 +23,10 @@ import {
   UpdateDateColumn,
   CreateDateColumn,
 } from 'typeorm';
-import {
-  IsUUID,
-  IsString,
-  IsEnum,
-  Min,
-  IsInt,
-  IsOptional,
-} from 'class-validator';
+
 import { BonusEventEntity } from '../common/bonus-event.entity';
-import {
-  EntityTechnicalsInterface,
-  IsoDateTransformer,
-} from 'persistence';
-import { VipProfile } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.entity';
-import { BonusEventNameEnum } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.registy';
-import { BonusDomainErrorRegistry } from 'error-handling/registries/bonus';
-import { assertValid } from 'shared-kernel';
+
 import type { BonusEventName } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.registy';
-
-
-
 
 /**
  * Subentity of VipProfile - the respective tables contains all the events over the last [window-period].

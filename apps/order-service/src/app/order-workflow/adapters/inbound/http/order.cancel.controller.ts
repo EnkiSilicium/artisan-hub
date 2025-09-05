@@ -1,40 +1,35 @@
+import { Body, Controller, Post, HttpCode } from '@nestjs/common';
 import {
-    Body,
-    Controller,
-    Post,
-    HttpCode,
-} from '@nestjs/common';
-import {
-    ApiTags,
-    ApiOperation,
-    ApiBody,
-    ApiCreatedResponse,
-    ApiBadRequestResponse,
-    ApiBearerAuth,
+  ApiTags,
+  ApiOperation,
+  ApiBody,
+  ApiCreatedResponse,
+  ApiBadRequestResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { OrderCancelService } from 'apps/order-service/src/app/order-workflow/application/services/order/order-cancel.service';
-import { OrderCancelDtoV1, OrderInitDtoV1 } from 'contracts';
+import { OrderCancelDtoV1 } from 'contracts';
 
 @ApiTags('Order workflow')
 @ApiBearerAuth('JWT')
 @Controller({ path: 'order/cancel', version: '1' })
 export class OrderCancelController {
-    constructor(private readonly orderCancelService: OrderCancelService) { }
+  constructor(private readonly orderCancelService: OrderCancelService) {}
 
-    @Post()
-    @HttpCode(200)
-    @ApiOperation({
-        summary: 'Cancel an order',
-        description: 'Cancels an existing order based on the provided order ID.',
-    })
-    @ApiBody({ type: OrderInitDtoV1 })
-    @ApiCreatedResponse({ description: 'Order canceled successfully' })
-    @ApiBadRequestResponse({ description: 'Validation failed' })
-    async postOrderCancel(@Body() body: OrderCancelDtoV1) {
-        return await this.orderCancelService.orderCancel({
-            orderId: body.orderId,
-            cancelledBy: body.cancelledBy,
-            reason: body.reason,
-        });
-    }
+  @Post()
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Cancel an order',
+    description: 'Cancels an existing order based on the provided order ID.',
+  })
+  @ApiBody({ type: OrderCancelDtoV1 })
+  @ApiCreatedResponse({ description: 'Order canceled successfully' })
+  @ApiBadRequestResponse({ description: 'Validation failed' })
+  async postOrderCancel(@Body() body: OrderCancelDtoV1) {
+    return await this.orderCancelService.orderCancel({
+      orderId: body.orderId,
+      cancelledBy: body.cancelledBy,
+      reason: body.reason,
+    });
+  }
 }

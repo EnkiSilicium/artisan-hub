@@ -1,7 +1,11 @@
-import { LoggerFactoryOverrides, makeWinstonOptions } from 'libs/observability/src/lib/config/winston-config.factory';
+import { makeWinstonOptions } from 'observability';
+
+import type { LoggerFactoryOverrides } from 'observability';
 
 const bonusReadLoggerFactoryOverrides: LoggerFactoryOverrides = {
-    serviceName: "bonus-read",
-    production: true
+  serviceName: 'bonus-read',
+  production: true,
 };
-export const bonusReadWinstonConfig = makeWinstonOptions(bonusReadLoggerFactoryOverrides);
+export const bonusReadWinstonConfig = makeWinstonOptions(
+  bonusReadLoggerFactoryOverrides,
+);

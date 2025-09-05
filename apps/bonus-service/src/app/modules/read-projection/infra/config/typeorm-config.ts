@@ -1,6 +1,7 @@
 import { BonusReadProjection } from 'apps/bonus-service/src/app/modules/read-projection/infra/persistence/projections/bonus-read.projection';
 import { OutboxMessage } from 'persistence';
-import { DataSourceOptions } from 'typeorm';
+
+import type { DataSourceOptions } from 'typeorm';
 
 export const bonusReadTypeOrmOptions: DataSourceOptions = {
   type: 'postgres',

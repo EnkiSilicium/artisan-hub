@@ -1,7 +1,8 @@
 // read-model/mv-order-rq-inv-stage.repo.ts
 import { OrderHistoryProjection } from 'apps/order-service/src/app/read-model/infra/persistence/projections/order-histrory.projection';
 import { remapTypeOrmPgErrorToInfra } from 'error-handling/remapper/typeorm-postgres';
-import { DataSource, SelectQueryBuilder } from 'typeorm';
+
+import type { DataSource, SelectQueryBuilder } from 'typeorm';
 
 export type OrderStageFlatQuery = {
   commissionerId?: string;

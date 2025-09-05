@@ -1,23 +1,23 @@
 // infra/typeorm/pg-infra-remapper.ts
-import { QueryFailedError } from 'typeorm';
 import * as PG from '@drdgvhbh/postgres-error-codes';
-import { ErrorRegistryInterface } from 'error-handling/error-core';
-import { InfraError } from 'error-handling/error-core'
+import { InfraError } from 'error-handling/error-core';
 import { ProgrammerError } from 'error-handling/error-core';
-import {InfraErrorRegistry} from 'error-handling/registries/common'
-
 import { DomainError } from 'error-handling/error-core';
+import { InfraErrorRegistry } from 'error-handling/registries/common';
+import { QueryFailedError } from 'typeorm';
+
+import type { AppError, ErrorRegistryInterface } from 'error-handling/error-core';
 
 /**
  * Takes in the driver/connection/custom-infra error and rethrows a remapped version of it
  * (of Infra domain error type).
  *
- * @param error any. If already mapped, rethrows. 
+ * @param error any. If already mapped, rethrows.
  * @param context event.g., { dependency:'postgres', operation:'updateGuarded', table:'orders' }
  * @returns never - always throws
  */
 export function remapTypeOrmPgErrorToInfra(
-  error: unknown,
+  error: Error,
   context: Record<string, unknown> = {},
 ): never {
   const infraRegistry: ErrorRegistryInterface<string> = InfraErrorRegistry;
@@ -34,14 +34,14 @@ export function remapTypeOrmPgErrorToInfra(
   }
 
   if (error instanceof DomainError) {
-    throw error
+    throw error;
   }
 
   const throwInfra = (
     codeKey: keyof typeof CODES,
     extra: Record<string, unknown> = {},
   ) => {
-    const code = CODES[codeKey as string];
+    const code = CODES[codeKey];
     throw new InfraError({
       errorObject: byCode[code],
       details: { ...context, ...extra },
@@ -51,7 +51,7 @@ export function remapTypeOrmPgErrorToInfra(
 
   // 1) Node/driver socket errors (not wrapped by QueryFailedError)
   // UNAVAILABLE — dependency cannot be reached at all.
-  const nodeCode = (error as any)?.code ? String((error as any).code) : '';
+  const nodeCode = (error as AppError)?.code ? String((error as AppError).code) : '';
   if (
     /^(ECONNRESET|ECONNREFUSED|EPIPE|ENETUNREACH|EHOSTUNREACH)$/i.test(nodeCode)
   ) {
@@ -64,7 +64,7 @@ export function remapTypeOrmPgErrorToInfra(
 
   // 2) TypeORM-wrapped PG error
   if (error instanceof QueryFailedError) {
-    const drv: any = (error as any).driverError ?? {};
+    const drv: any = error.driverError ?? {};
     const sqlstate: string = drv.code ?? '';
     const message: string = drv.message ?? String(error.message ?? '');
     const table: string | undefined = drv.table;
@@ -145,7 +145,7 @@ export function remapTypeOrmPgErrorToInfra(
   }
 
   // 3) Non-QueryFailedError with timeout/connection smell
-  const message = String((error as any)?.message ?? '');
+  const message = String(error?.message ?? '');
   if (/timeout/i.test(message)) return throwInfra('TIMEOUT', { message });
   if (/connection.*(closed|lost|refused)/i.test(message))
     return throwInfra('UNAVAILABLE', { message });
