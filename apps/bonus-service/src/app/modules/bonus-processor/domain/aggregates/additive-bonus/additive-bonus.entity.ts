@@ -1,49 +1,29 @@
 import {
-  Entity,
-  PrimaryColumn,
-  Column,
-  OneToMany,
-  OneToOne,
-  JoinColumn,
-  ManyToOne,
-  Index,
-  Check,
-  VersionColumn,
-  UpdateDateColumn,
-  CreateDateColumn,
-} from 'typeorm';
-import {
-  IsUUID,
-  IsString,
-  IsBoolean,
-  IsIn,
-  IsEnum,
-  IsNumber,
-  Min,
-  IsInt,
-  IsISO8601,
-  IsOptional,
-} from 'class-validator';
-
-import {
-  EntityTechnicalsInterface,
-  IsoDateTransformer,
-  NumericStringTransformer,
-} from 'persistence';
-import { BonusEventEntity } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity';
-import {
   GradeName,
-  GradePolicy,
   GradePolicyInterface,
 } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/grade.policy';
+import { BonusEventEntity } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity';
 import {
   BonusEventName,
   BonusEventRegistryInterface,
 } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.registy';
 import { VipProfile } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.entity';
-import { assertValid } from 'shared-kernel';
+import { IsUUID, IsEnum, Min, IsInt, IsOptional } from 'class-validator';
 import { DomainError } from 'error-handling/error-core';
-import {BonusDomainErrorRegistry} from 'error-handling/registries/bonus'
+import { BonusDomainErrorRegistry } from 'error-handling/registries/bonus';
+import { EntityTechnicalsInterface, IsoDateTransformer } from 'persistence';
+import { assertValid } from 'shared-kernel';
+import {
+  Entity,
+  PrimaryColumn,
+  Column,
+  OneToMany,
+  OneToOne,
+  Check,
+  VersionColumn,
+  UpdateDateColumn,
+  CreateDateColumn,
+} from 'typeorm';
 
 //@Index('pk_additive_bonus_commissioner', ['commissionerId'], { unique: true })
 @Check(`"total_points" >= 0`)

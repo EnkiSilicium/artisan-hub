@@ -1,3 +1,5 @@
+import { randomUUID } from 'crypto';
+
 import { Injectable } from '@nestjs/common';
 import {
   AcceptWorkshopInvitationCommand,
@@ -14,15 +16,13 @@ import { WorkshopInvitation } from 'apps/order-service/src/app/order-workflow/do
 import { OrderRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/order/order.repo';
 import { StagesAggregateRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/stage/stage.repo';
 import { WorkshopInvitationRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/workshop-invitation/workshop-invitation.repo';
-import { TypeOrmUoW, enqueueOutbox } from 'persistence';
-
 import {
   WorkshopInvitationAcceptResultDto,
   WorkshopInvitationDeclineResultDto,
   InvitationAcceptedEventV1,
   InvitationDeclinedEventV1,
 } from 'contracts';
-import { randomUUID } from 'crypto';
+import { TypeOrmUoW, enqueueOutbox } from 'persistence';
 import { isoNow } from 'shared-kernel';
 
 @Injectable()
@@ -33,13 +33,12 @@ export class WorkshopInvitationResponseService {
     private readonly workshopInvitationsRepo: WorkshopInvitationRepo,
     private readonly stagesAggregateRepo: StagesAggregateRepo,
   ) {}
-  
-  
+
   async acceptWorkshopInvitation(
     cmd: AcceptWorkshopInvitationCommand,
   ): Promise<WorkshopInvitationAcceptResultDto> {
     return this.uow.runWithRetry({}, async () => {
-      const order = cmd.order ?? await this.orderRepo.findById(cmd.orderId);
+      const order = cmd.order ?? (await this.orderRepo.findById(cmd.orderId));
 
       assertIsFound(order, Order, {
         orderId: cmd.orderId,
@@ -54,7 +53,6 @@ export class WorkshopInvitationResponseService {
         workshopId: cmd.workshopId,
       });
 
-
       const stageDefault: constructStageData =
         stagesTemplateFactory.produceDefault(cmd.orderId, cmd.workshopId);
       const stages = cmd.payload.stages
@@ -63,7 +61,6 @@ export class WorkshopInvitationResponseService {
 
       workshopInvitation.accept(cmd.payload);
       order.transitionToPendingCompletion();
-
 
       await this.stagesAggregateRepo.save(stages);
       await this.workshopInvitationsRepo.update(workshopInvitation);
@@ -92,7 +89,7 @@ export class WorkshopInvitationResponseService {
     cmd: DeclineWorkshopInvitationCommand,
   ): Promise<WorkshopInvitationDeclineResultDto> {
     return this.uow.runWithRetry({}, async () => {
-      const order = cmd.order ?? await this.orderRepo.findById(cmd.orderId);
+      const order = cmd.order ?? (await this.orderRepo.findById(cmd.orderId));
       assertIsFound(order, Order, {
         orderId: cmd.orderId,
         workshopId: cmd.workshopId,
@@ -108,7 +105,6 @@ export class WorkshopInvitationResponseService {
       });
 
       workshopInvitation.decline();
-
 
       //order.cancelOrder();
 

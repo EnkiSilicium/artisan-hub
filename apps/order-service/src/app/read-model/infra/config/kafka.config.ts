@@ -1,9 +1,11 @@
-import { KafkaFactoryInputs, makeKafkaConfigBundle } from 'persistence';
+import { makeKafkaConfigBundle } from 'persistence';
 
-
+import type { KafkaFactoryInputs } from 'persistence';
 
 const orderKafkaFactoryInputs: KafkaFactoryInputs = {
-    groupId: "order-read",
-    clientId: "order-read",
+  groupId: 'order-read',
+  clientId: 'order-read',
 };
-export const orderReadKafkaConfig = makeKafkaConfigBundle(orderKafkaFactoryInputs);
+export const orderReadKafkaConfig = makeKafkaConfigBundle(
+  orderKafkaFactoryInputs,
+);

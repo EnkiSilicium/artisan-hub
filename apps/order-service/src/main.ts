@@ -1,24 +1,30 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { INestApplication } from '@nestjs/common';
-import { Transport, MicroserviceOptions } from '@nestjs/microservices';
+import { Transport } from '@nestjs/microservices';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
-import { OrderWorkflowModule } from 'apps/order-service/src/app/order-workflow/infra/di/order-workflow.module';
 import { orderWorkflowKafkaConfig } from 'apps/order-service/src/app/order-workflow/infra/config/kafka.config';
+import { OrderWorkflowModule } from 'apps/order-service/src/app/order-workflow/infra/di/order-workflow.module';
 import { OrderReadModule } from 'apps/order-service/src/app/read-model/infra/di/order-read.module';
-import { HttpErrorInterceptor, KafkaErrorInterceptor } from 'error-handling/interceptor';
-import { LoggingInterceptor } from 'observability';
 import { ApiPaths } from 'contracts';
-import otelSDK from 'libs/observability/src/lib/open-telemetry/tracing';
+import {
+  HttpErrorInterceptor,
+  KafkaErrorInterceptor,
+} from 'error-handling/interceptor';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { LoggingInterceptor } from 'observability';
+import { otelSDK } from 'observability';
 
+import type { INestApplication } from '@nestjs/common';
+import type { MicroserviceOptions } from '@nestjs/microservices';
 
-
-function setupSwagger(app: INestApplication, {
-  title,
-  version = '1.0.0',
-  path = '../docs',
-}: { title: string; version?: string; path?: string; }) {
+function setupSwagger(
+  app: INestApplication,
+  {
+    title,
+    version = '1.0.0',
+    path = '../docs',
+  }: { title: string; version?: string; path?: string },
+) {
   const config = new DocumentBuilder()
     .setTitle(title)
     .setVersion(version)
@@ -39,11 +45,12 @@ function setupSwagger(app: INestApplication, {
   SwaggerModule.setup(path, app, doc, { customSiteTitle: title });
 }
 
-
 async function startOrderWorkflowApp() {
   const httpPort = Number(process.env.ORDER_WRKFLOW_HTTP_PORT ?? 3001);
 
-  const app = await NestFactory.create(OrderWorkflowModule, { bufferLogs: true });
+  const app = await NestFactory.create(OrderWorkflowModule, {
+    bufferLogs: true,
+  });
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   app.enableShutdownHooks();
   app.setGlobalPrefix(process.env.HTTP_PREFIX ?? ApiPaths.Root);
@@ -52,8 +59,6 @@ async function startOrderWorkflowApp() {
     app.get(HttpErrorInterceptor),
     app.get(LoggingInterceptor),
   );
-
-
 
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.KAFKA,
@@ -67,16 +72,20 @@ async function startOrderWorkflowApp() {
 
   await app.startAllMicroservices();
 
-  setupSwagger(app, { title: 'Order workflow API', path: 'docs', version: '1.0' });
-
+  setupSwagger(app, {
+    title: 'Order workflow API',
+    path: 'docs',
+    version: '1.0',
+  });
 
   await app.listen(httpPort);
   const url = await app.getUrl();
-  console.log(`[OrderWorkflowApp] HTTP listening: ${url}  |  Swagger: ${url}/docs`);
+  console.log(
+    `[OrderWorkflowApp] HTTP listening: ${url}  |  Swagger: ${url}/docs`,
+  );
 }
 
 async function startOrderReadApp() {
-  
   const httpPort = Number(process.env.ORDER_READ_HTTP_PORT ?? 3002);
 
   const app = await NestFactory.create(OrderReadModule, { bufferLogs: true });
@@ -84,46 +93,37 @@ async function startOrderReadApp() {
   app.enableShutdownHooks();
   app.setGlobalPrefix(process.env.HTTP_PREFIX ?? ApiPaths.Root);
   app.useGlobalInterceptors(
-
     app.get(HttpErrorInterceptor),
     app.get(LoggingInterceptor),
-
   );
-
-
 
   setupSwagger(app, { title: 'Order Read API', path: 'docs', version: '1.0' });
 
   await app.listen(httpPort);
   const url = await app.getUrl();
-  console.log(`[OrderWorkflowApp] HTTP listening: ${url}  |  Swagger: ${url}/docs`);
-
+  console.log(
+    `[OrderWorkflowApp] HTTP listening: ${url}  |  Swagger: ${url}/docs`,
+  );
 }
 
-
 async function bootstrap() {
-  await otelSDK.start();
+  otelSDK.start();
 
-  await startOrderWorkflowApp()
+  await startOrderWorkflowApp();
   //read assumes entities defined in DB
-  await startOrderReadApp()
-
-  
+  await startOrderReadApp();
 
   // Graceful shutdown on signals
   const shutdown = async (signal: string) => {
-
-    console.log(`\nReceived ${signal}. Shutting down...`)
+    console.log(`\nReceived ${signal}. Shutting down...`);
     process.exit(0);
   };
-
 
   process.on('SIGINT', () => shutdown('SIGINT'));
   process.on('SIGTERM', () => shutdown('SIGTERM'));
 }
 
 bootstrap().catch((err) => {
-  // eslint-disable-next-line no-console
   console.error('Fatal on bootstrap:', err);
   process.exit(1);
 });

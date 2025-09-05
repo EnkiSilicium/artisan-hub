@@ -13,26 +13,24 @@ import {
   ApiCreatedResponse,
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiNotFoundResponse,
+  ApiConflictResponse,
+  ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 import { WorkshopInvitationResponseService } from 'apps/order-service/src/app/order-workflow/application/services/workshop/workshop-invitation-response.service';
 import {
   AcceptWorkshopInvitationDtoV1,
   DeclineWorkshopInvitationDtoV1,
-
   WorkshopInvitationAcceptResultDto,
   WorkshopInvitationDeclineResultDto,
-
   WorkshopInvitationResponsePaths,
-
 } from 'contracts';
 import { validator } from 'adapter';
 import { OrderHttpJwtGuard } from 'apps/order-service/src/app/order-workflow/infra/auth/guards/order-http-jwt.guard';
 
 @ApiTags('Order workflow')
-
 @ApiBearerAuth('JWT')
 @Controller({ path: WorkshopInvitationResponsePaths.Root, version: '1' })
-
 export class WorkshopInvitationResponseController {
   constructor(
     private readonly workshopInvitationResponseService: WorkshopInvitationResponseService,
@@ -52,6 +50,9 @@ export class WorkshopInvitationResponseController {
     type: WorkshopInvitationAcceptResultDto,
   })
   @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiNotFoundResponse({ description: 'Order or invitation not found (NOT_FOUND)' })
+  @ApiConflictResponse({ description: 'Illegal state transition (ILLEGAL_TRANSITION)' })
+  @ApiUnprocessableEntityResponse({ description: 'Validation failed (VALIDATION)' })
   async accept(
     @Body() body: AcceptWorkshopInvitationDtoV1,
   ) {
@@ -87,6 +88,8 @@ export class WorkshopInvitationResponseController {
     type: WorkshopInvitationDeclineResultDto,
   })
   @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiNotFoundResponse({ description: 'Order or invitation not found (NOT_FOUND)' })
+  @ApiConflictResponse({ description: 'Illegal state transition (ILLEGAL_TRANSITION)' })
   async decline(
     @Body() body: DeclineWorkshopInvitationDtoV1,
   ) {

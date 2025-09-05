@@ -1,7 +1,11 @@
-import { KafkaFactoryInputs, makeKafkaConfigBundle } from 'persistence';
+import { makeKafkaConfigBundle } from 'persistence';
+
+import type { KafkaFactoryInputs } from 'persistence';
 
 export const bonusReadKafkaFactoryInputs: KafkaFactoryInputs = {
-    groupId: "bonus-read",
-    clientId: "bonus-read",
+  groupId: 'bonus-read',
+  clientId: 'bonus-read',
 };
-export const bonusReadKafkaConfig = makeKafkaConfigBundle(bonusReadKafkaFactoryInputs);
+export const bonusReadKafkaConfig = makeKafkaConfigBundle(
+  bonusReadKafkaFactoryInputs,
+);

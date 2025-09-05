@@ -12,14 +12,23 @@ import {
   Min,
 } from 'class-validator';
 
-const SORT_FIELDS = ['vipCreatedAt', 'vipLastUpdatedAt', 'bonusLastUpdatedAt', 'totalPoints'] as const;
-const SORT_DIRS   = ['asc', 'desc'] as const;
+const SORT_FIELDS = [
+  'vipCreatedAt',
+  'vipLastUpdatedAt',
+  'bonusLastUpdatedAt',
+  'totalPoints',
+] as const;
+const SORT_DIRS = ['asc', 'desc'] as const;
 
 /**
  * Query DTO for reading VIP/additive bonus information.  All fields are optional.
  */
 export class BonusReadQueryDto {
-  @ApiPropertyOptional({ type: String, format: 'uuid', description: 'Filter by commissioner ID' })
+  @ApiPropertyOptional({
+    type: String,
+    format: 'uuid',
+    description: 'Filter by commissioner ID',
+  })
   @IsOptional()
   @IsUUID()
   commissionerId?: string;

@@ -3,7 +3,8 @@ import { BonusEventEntity } from 'apps/bonus-service/src/app/modules/bonus-proce
 import { LastMonthEventSet } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/last-month-event-set.entity';
 import { VipProfile } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.entity';
 import { OutboxMessage } from 'persistence';
-import { DataSourceOptions } from 'typeorm';
+
+import type { DataSourceOptions } from 'typeorm';
 
 export const bonusProcessorTypeOrmOptions: DataSourceOptions = {
   type: 'postgres',
@@ -20,17 +21,21 @@ export const bonusProcessorTypeOrmOptions: DataSourceOptions = {
         password: process.env.PG_PASSWORD ?? 'app',
         database: process.env.PG_DB ?? 'app',
         schema: process.env.DB_SCHEMA || 'public',
-        
+
         ssl:
           process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : false,
       }),
-  entities: [AdditiveBonus, VipProfile, LastMonthEventSet, BonusEventEntity, OutboxMessage],
+  entities: [
+    AdditiveBonus,
+    VipProfile,
+    LastMonthEventSet,
+    BonusEventEntity,
+    OutboxMessage,
+  ],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
   entitySkipConstructor: true,
-  // toggles
-  //synchronize: process.env.TYPEORM_SYNC === 'true', // dev only
   synchronize: true,
-  migrationsRun: process.env.TYPEORM_MIGRATIONS_RUN === 'true', // prod friendly
+  migrationsRun: process.env.TYPEORM_MIGRATIONS_RUN === 'true',
   logging: process.env.TYPEORM_LOGGING
     ? (process.env.TYPEORM_LOGGING.split(',') as DataSourceOptions['logging'])
     : ['error', 'warn'],

@@ -1,13 +1,15 @@
-import { MicroserviceOptions, Transport } from '@nestjs/microservices';
-import {
+import { Transport } from '@nestjs/microservices';
+import { logLevel } from '@nestjs/microservices/external/kafka.interface';
+import { extractBoolEnv, extractStrEnvWithFallback } from 'shared-kernel';
+
+import type { MicroserviceOptions } from '@nestjs/microservices';
+import type {
   KafkaConfig,
   ConsumerConfig,
   ProducerConfig,
   ConsumerRunConfig,
   SASLOptions,
-  logLevel,
 } from '@nestjs/microservices/external/kafka.interface';
-import { extractBoolEnv, extractStrEnvWithFallback } from 'shared-kernel';
 
 export type AwsIamAuth = {
   enabled?: boolean;

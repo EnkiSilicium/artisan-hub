@@ -1,8 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { WorkshopInvitation } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.entity';
-
 import { remapTypeOrmPgErrorToInfra } from 'error-handling/remapper/typeorm-postgres';
-import { currentManager, requireTxManager, setNewTimeAndVersion, updateWithVersionGuard } from 'persistence';
+import {
+  currentManager,
+  requireTxManager,
+  setNewTimeAndVersion,
+  updateWithVersionGuard,
+} from 'persistence';
 import { isoNow } from 'shared-kernel';
 import { DataSource, EntityManager } from 'typeorm';
 

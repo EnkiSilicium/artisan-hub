@@ -11,17 +11,16 @@ import { validator } from 'adapter';
 export class MockController {
     constructor(private readonly bonusService: BonusEventService) { }
 
-
+    //TODO: make "class BaseBonusEvent extends BonusEvent<keyof BonusEventRegistry>" with class validators
     @UseInterceptors(LoggingInterceptor, HttpErrorInterceptor)
     @Patch()
     @UsePipes(new ValidationPipe(validator))
-    process(@Body() body: any) {
+    process(@Body() body: { commissionerId: any; eventName: any }) {
         return this.bonusService.process({
             commissionerId: body.commissionerId,
             eventName: body.eventName,
             eventId: getHashId(body),
             injestedAt: isoNow(),
-        })
-
+        });
     }
 }

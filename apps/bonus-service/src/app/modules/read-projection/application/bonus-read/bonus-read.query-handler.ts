@@ -2,8 +2,9 @@
 import { Injectable } from '@nestjs/common';
 import { toBonusReadresultDto } from 'apps/bonus-service/src/app/modules/read-projection/application/bonus-read/bonus-read.mapper';
 import { BonusReadRepo } from 'apps/bonus-service/src/app/modules/read-projection/infra/persistence/repositories/bonus-read.repository';
-import { BonusReadQuery } from './bonus-read.query';
 import { DataSource } from 'typeorm';
+
+import { BonusReadQuery } from './bonus-read.query';
 
 @Injectable()
 export class BonusReadHandler {

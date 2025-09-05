@@ -8,10 +8,17 @@ export class BonusReadFlatDto {
   commissionerId!: string;
 
   // VIP profile
-  @ApiProperty({ type: Boolean, description: 'Whether the commissioner is currently VIP' })
+  @ApiProperty({
+    type: Boolean,
+    description: 'Whether the commissioner is currently VIP',
+  })
   isVIP!: boolean;
 
-  @ApiProperty({ type: String, format: 'date-time', description: 'Time of last VIP tick' })
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    description: 'Time of last VIP tick',
+  })
   vipLastTickAt!: string;
 
   @ApiProperty({ type: Number, description: 'Latest VIP bucket index' })
@@ -23,13 +30,24 @@ export class BonusReadFlatDto {
   @ApiProperty({ type: Number, description: 'Window algorithm policy version' })
   windowAlgoPolicyVersion!: number;
 
-  @ApiProperty({ type: Number, description: 'Bonus policy version used for VIP' })
+  @ApiProperty({
+    type: Number,
+    description: 'Bonus policy version used for VIP',
+  })
   vipBonusPolicyVersion!: number;
 
-  @ApiProperty({ type: String, format: 'date-time', description: 'Time the VIP status was created' })
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    description: 'Time the VIP status was created',
+  })
   vipCreatedAt!: string;
 
-  @ApiProperty({ type: String, format: 'date-time', description: 'Time the VIP status was last updated' })
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    description: 'Time the VIP status was last updated',
+  })
   vipLastUpdatedAt!: string;
 
   // Additive bonus
@@ -39,16 +57,27 @@ export class BonusReadFlatDto {
   @ApiProperty({ type: String, description: 'Grade achieved' })
   grade!: string;
 
-  @ApiProperty({ type: Number, description: 'Bonus policy version for additive bonus' })
+  @ApiProperty({
+    type: Number,
+    description: 'Bonus policy version for additive bonus',
+  })
   bonusPolicyVersion!: number;
 
   @ApiProperty({ type: Number, description: 'Grade policy version in effect' })
   gradePolicyVersion!: number;
 
-  @ApiProperty({ type: String, format: 'date-time', description: 'Timestamp when bonus was created' })
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    description: 'Timestamp when bonus was created',
+  })
   bonusCreatedAt!: string;
 
-  @ApiProperty({ type: String, format: 'date-time', description: 'Timestamp when bonus was last updated' })
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    description: 'Timestamp when bonus was last updated',
+  })
   bonusLastUpdatedAt!: string;
 }
 

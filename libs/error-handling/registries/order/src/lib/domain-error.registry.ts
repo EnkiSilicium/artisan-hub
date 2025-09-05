@@ -1,5 +1,6 @@
-import { makeRegistry } from "error-handling/error-core";
-import { BaseDescriptor } from "error-handling/error-core";
+import { makeRegistry } from 'error-handling/error-core';
+
+import type { BaseDescriptor } from 'error-handling/error-core';
 
 export const OrderDomainErrorDefs = [
   {
@@ -51,9 +52,6 @@ export const OrderDomainErrorDefs = [
     v: 1,
   },
 ] as const satisfies readonly BaseDescriptor<string>[];
-
-
-
 
 export const OrderDomainErrorRegistry = makeRegistry(
   'DOMAIN',

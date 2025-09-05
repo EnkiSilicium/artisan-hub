@@ -1,10 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsString,
-  IsNotEmpty,
-  IsArray,
-  ArrayNotEmpty,
-} from 'class-validator';
+import { IsString, IsNotEmpty } from 'class-validator';
 
 /**
  * DTO used to decline a workshop invitation.
@@ -27,5 +22,4 @@ export class DeclineWorkshopInvitationDtoV1 {
   @IsString()
   @IsNotEmpty()
   orderId!: string;
-
 }

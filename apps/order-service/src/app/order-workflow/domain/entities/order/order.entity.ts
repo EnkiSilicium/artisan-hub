@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import {
   OrderActions,
   OrderStates,
@@ -11,24 +12,19 @@ import {
   Outcome,
   LegalOutcome,
   StateById,
-  BaseState,
 } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.type';
-import type { StateClassUnion } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.type';
 import { RequestEntity } from 'apps/order-service/src/app/order-workflow/domain/entities/request/request.entity';
 import {
   IsUUID,
-  IsString,
-  Length,
-  IsISO8601,
   IsInt,
   IsBoolean,
   IsObject,
   IsOptional,
 } from 'class-validator';
-import {
-  EntityTechnicalsInterface,
-  IsoDateTransformer,
-} from 'persistence';
+import { DomainError } from 'error-handling/error-core';
+import { OrderDomainErrorRegistry } from 'error-handling/registries/order';
+import { EntityTechnicalsInterface, IsoDateTransformer } from 'persistence';
+import { assertValid, isoNow } from 'shared-kernel';
 import {
   Index,
   Entity,
@@ -39,12 +35,8 @@ import {
   VersionColumn,
   OneToOne,
 } from 'typeorm';
-import { assertValid, isoNow } from 'shared-kernel';
-import { DomainError } from 'error-handling/error-core';
-import { OrderDomainErrorRegistry } from 'error-handling/registries/order';
-import { Logger } from '@nestjs/common';
 
-
+import type { StateClassUnion } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.type';
 
 /**
  * Primary aggregate root/state-machine owning the Order workflow.
@@ -105,10 +97,12 @@ export class Order implements EntityTechnicalsInterface {
     assertValid(this, OrderDomainErrorRegistry);
 
     Logger.verbose({
-      message: `Order aggregate created`, meta: {
-        orderId: this.orderId, commissionerId: this.commissionerId,
-      }
-    })
+      message: `Order aggregate created`,
+      meta: {
+        orderId: this.orderId,
+        commissionerId: this.commissionerId,
+      },
+    });
   }
 
   transitionToPendingCompletion() {
@@ -125,10 +119,12 @@ export class Order implements EntityTechnicalsInterface {
 
     this.lastUpdatedAt = isoNow();
     Logger.verbose({
-      message: `Transitioned to ${OrderStates.PendingCompletion}`, meta: {
-        orderId: this.orderId, commissionerId: this.commissionerId,
-      }
-    })
+      message: `Transitioned to ${OrderStates.PendingCompletion}`,
+      meta: {
+        orderId: this.orderId,
+        commissionerId: this.commissionerId,
+      },
+    });
   }
 
   markAsCompleted() {
@@ -145,11 +141,12 @@ export class Order implements EntityTechnicalsInterface {
 
     this.lastUpdatedAt = isoNow();
     Logger.verbose({
-      message: `Order marked as completed!`, meta: {
-        orderId: this.orderId, commissionerId: this.commissionerId,
-      }
-    })
-
+      message: `Order marked as completed!`,
+      meta: {
+        orderId: this.orderId,
+        commissionerId: this.commissionerId,
+      },
+    });
   }
 
   complete() {
@@ -167,10 +164,12 @@ export class Order implements EntityTechnicalsInterface {
     this.lastUpdatedAt = isoNow();
     this.isTerminated = true;
     Logger.verbose({
-      message: `Order completed!`, meta: {
-        orderId: this.orderId, commissionerId: this.commissionerId,
-      }
-    })
+      message: `Order completed!`,
+      meta: {
+        orderId: this.orderId,
+        commissionerId: this.commissionerId,
+      },
+    });
   }
 
   cancelOrder() {
@@ -210,10 +209,12 @@ export class Order implements EntityTechnicalsInterface {
     this.lastUpdatedAt = isoNow();
     this.isTerminated = true;
     Logger.verbose({
-      message: `Order cancelled!`, meta: {
-        orderId: this.orderId, commissionerId: this.commissionerId,
-      }
-    })
+      message: `Order cancelled!`,
+      meta: {
+        orderId: this.orderId,
+        commissionerId: this.commissionerId,
+      },
+    });
   }
   /**
    * Asserts that the current state equals `assumed`. Narrows `state` on success.

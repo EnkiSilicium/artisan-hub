@@ -6,6 +6,8 @@ import {
     ApiCreatedResponse,
     ApiBadRequestResponse,
     ApiBearerAuth,
+    ApiNotFoundResponse,
+    ApiConflictResponse,
 } from '@nestjs/swagger';
 import { OrderComfirmCompletionService } from 'apps/order-service/src/app/order-workflow/application/services/order/order-confirm-completion.service';
 import { OrderInitDtoV1, OrderConfirmCompletionDtoV1 } from 'contracts';
@@ -16,7 +18,7 @@ import { OrderHttpJwtGuard } from 'apps/order-service/src/app/order-workflow/inf
 @ApiBearerAuth('JWT')
 @Controller({ path: 'order/complete', version: '1' })
 export class OrderComfirmCompletionController {
-    constructor(private readonly service: OrderComfirmCompletionService) {}
+  constructor(private readonly service: OrderComfirmCompletionService) {}
 
     @Post()
     @UseGuards(OrderHttpJwtGuard)
@@ -30,6 +32,8 @@ export class OrderComfirmCompletionController {
     @ApiBody({ type: OrderInitDtoV1 })
     @ApiCreatedResponse({ description: 'Order canceled successfully' })
     @ApiBadRequestResponse({ description: 'Validation failed' })
+    @ApiNotFoundResponse({ description: 'Order not found (NOT_FOUND)' })
+    @ApiConflictResponse({ description: 'Illegal state transition (ILLEGAL_TRANSITION)' })
     @ApiBearerAuth('JWT')
     async postOrderCancel(@Body() body: OrderConfirmCompletionDtoV1) {
         return await this.service.confirmCompletion({

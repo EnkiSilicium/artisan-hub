@@ -1,6 +1,4 @@
-
 export enum ActorName {
-    Commissioner = "commissioner",
-    Workshop = "workshop"
+  Commissioner = 'commissioner',
+  Workshop = 'workshop',
 }
-

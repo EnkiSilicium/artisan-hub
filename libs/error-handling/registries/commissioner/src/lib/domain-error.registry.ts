@@ -1,5 +1,6 @@
-import { makeRegistry } from "error-handling/error-core";
-import { BaseDescriptor } from "error-handling/error-core";
+import { makeRegistry } from 'error-handling/error-core';
+
+import type { BaseDescriptor } from 'error-handling/error-core';
 
 export const CommissionerDomainErrorDefs = [
   {

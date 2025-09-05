@@ -12,4 +12,3 @@ export enum OrderActions {
   MarkAsComplete = 'MarkAsComplete',
   Complete = 'Complete',
 }
-  

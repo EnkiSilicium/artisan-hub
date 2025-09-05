@@ -11,20 +11,21 @@ import {
 import {
   ApiTags,
   ApiOperation,
-  ApiQuery,
   ApiOkResponse,
   ApiAcceptedResponse,
 } from '@nestjs/swagger';
 import { OrderStagesReadService } from 'apps/order-service/src/app/read-model/application/query-handlers/history.query-handler';
+
 import {
   OrderHistoryQueryResultDto,
   ReadOrderStagesQueryDto,
+  OrderHistoryPaths,
 } from 'contracts';
 import { validator } from 'adapter';
 import { OrderHttpJwtGuard } from 'apps/order-service/src/app/order-workflow/infra/auth/guards/order-http-jwt.guard';
 
 @ApiTags('Orders read')
-@Controller('orders/stages')
+@Controller(`${OrderHistoryPaths.Root}/${OrderHistoryPaths.Stages}`)
 export class OrderHistoryController {
   constructor(private readonly svc: OrderStagesReadService) {}
 
@@ -52,7 +53,7 @@ export class OrderHistoryController {
     });
   }
 
-  @Post('refresh')
+  @Post(OrderHistoryPaths.Refresh)
   @UseGuards(OrderHttpJwtGuard)
   @UsePipes(new ValidationPipe(validator))
   @HttpCode(202)

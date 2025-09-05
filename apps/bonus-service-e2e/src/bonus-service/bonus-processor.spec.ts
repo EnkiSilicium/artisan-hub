@@ -1,12 +1,21 @@
-// bonus-processor.e2e.spec.ts
-import { Kafka, Producer } from 'kafkajs';
-import axios from 'axios';
-import { KafkaTopics } from 'contracts';
-import { isoNow } from 'shared-kernel';
 import { randomUUID } from 'crypto';
+
+import axios from 'axios';
+
+import { ApiPaths, BonusReadPaths, KafkaTopics } from 'contracts';
+
+import { Kafka } from 'kafkajs';
+
+import { isoNow } from 'shared-kernel';
+
+import type { Producer } from 'kafkajs';
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Polls an async predicate until it resolves to true or the timeout elapses,
+ * logging intermittent failures to surface eventual-consistency issues.
+ */
 async function pollUntil(
   predicate: () => Promise<boolean>,
   {
@@ -23,11 +32,11 @@ async function pollUntil(
       failures++;
       if (failures === 1 || failures % 3 === 0) {
         const message = e?.response
-          ? `HTTP ${e.response.status} ${e.response.statusText} body=${JSON.stringify(e.response.data)}`
+          ? `HTTP ${e?.response?.status} ${e?.response?.statusText} body=${JSON.stringify(e?.response?.data)}`
           : e?.code
-            ? `${e.code}: ${e.message}`
+            ? `${e?.code}: ${e?.message}`
             : e?.message || String(e);
-        
+
         console.warn(`[E2E] pollUntil error: ${message}`);
       }
       await wait(intervalMs);
@@ -53,16 +62,24 @@ describe('Bonus processor integration (Option B)', () => {
       process.env.READ_BASE_URL ??
       axios.defaults.baseURL ??
       'http://127.0.0.1:3002';
-
     // Make sure read API is up before we proceed
-    await pollUntil(async () => {
-      try {
-        await axios.get(`${readBaseUrl}/api/bonus-read`, { params: { limit: 1, offset: 0 } });
-        return true;
-      } catch {
-        return false;
-      }
-    }, { timeoutMs: 60_000, intervalMs: 500 });
+    await pollUntil(
+      async () => {
+        try {
+
+          await axios.get(
+            `${readBaseUrl}/${ApiPaths.Root}/${BonusReadPaths.Root}`,
+            { params: { limit: 1, offset: 0 } },
+          );
+
+
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      { timeoutMs: 60_000, intervalMs: 500 },
+    );
 
     // Kafka client with auto topic creation at produce time
     kafka = new Kafka({
@@ -75,101 +92,122 @@ describe('Bonus processor integration (Option B)', () => {
   }, 90_000);
 
   afterAll(async () => {
-    try { await producer.disconnect(); } catch { }
+    try {
+      await producer.disconnect();
+    } catch {}
   });
 
-  it(
-    'processes order events and updates bonus profiles',
-    async () => {
-      const commissionerId = randomUUID();
-      const orderId = randomUUID();
-      const workshopId = randomUUID();
-      const eventId = randomUUID();
+  it('processes order events and updates bonus profiles', async () => {
+    const commissionerId = randomUUID();
+    const orderId = randomUUID();
+    const workshopId = randomUUID();
+    const eventId = randomUUID();
 
-      // OrderPlaced
-      const placed = {
-        eventName: 'OrderPlaced',
-        eventId: eventId,
-        orderId: orderId,
-        commissionerId: commissionerId,
-        selectedWorkshops: [workshopId],
-        request: {
-          title: 't',
-          description: 'd',
-          deadline: isoNow(),
-          budget: '10',
+    // OrderPlaced
+    const placed = {
+      eventName: 'OrderPlaced',
+      eventId: eventId,
+      orderId: orderId,
+      commissionerId: commissionerId,
+      selectedWorkshops: [workshopId],
+      request: {
+        title: 't',
+        description: 'd',
+        deadline: isoNow(),
+        budget: '10',
+      },
+      schemaV: 1,
+      placedAt: isoNow(),
+    };
+
+    console.log(
+      `[E2E] Sending OrderPlaced for order ${orderId}, commissioner ${commissionerId}`,
+    );
+    console.log(`[E2E] Event: ${JSON.stringify(placed)}`);
+
+    await producer.send({
+      topic: KafkaTopics.OrderTransitions,
+      messages: [
+        {
+          key: Buffer.from(orderId),
+          value: JSON.stringify({ ...placed }),
+          headers: { 'x-event-name': Buffer.from('OrderPlaced') },
         },
-        schemaV: 1,
-        placedAt: isoNow(),
-      };
+      ],
+    });
 
-      console.log(`[E2E] Sending OrderPlaced for order ${orderId}, commissioner ${commissionerId}`);
-      console.log(`[E2E] Event: ${JSON.stringify(placed)}`);
+    // OrderCompleted
+    const completed = {
+      eventName: 'OrderCompleted',
+      orderId: orderId,
+      commissionerId: commissionerId,
+      workshopId: workshopId,
+      confirmedAt: isoNow(),
+      schemaV: 1,
+    };
+    console.log(
+      `[E2E] Sending OrderCompleted for order ${orderId}, commissioner ${commissionerId}`,
+    );
+    console.log(`[E2E] Event: ${JSON.stringify(completed)}`);
+    await producer.send({
+      topic: KafkaTopics.OrderTransitions,
+      messages: [
+        {
+          key: Buffer.from(orderId),
+          value: JSON.stringify(completed),
+          headers: { 'x-event-name': Buffer.from('OrderCompleted') },
+        },
+      ],
+    });
 
-      await producer.send({
-        topic: KafkaTopics.OrderTransitions,
-        messages: [
+    // Brief grace period to let the processor ingest both
+    await wait(300);
+    // Poll read projection until it shows points > 0
+    await pollUntil(
+      async () => {
+        const refresh = await axios.post(
+
+          `${readBaseUrl}/${ApiPaths.Root}/${BonusReadPaths.Root}/${BonusReadPaths.Refresh}`,
+
           {
-            key: Buffer.from(orderId),
-            value: JSON.stringify({ ...placed }),
-            headers: { 'x-event-name': Buffer.from('OrderPlaced') },
+            params: { commissionerId, limit: 1, offset: 0 },
           },
-        ],
-      });
+        );
+        console.log(
+          `[E2E] Read API refresh response: ${JSON.stringify(refresh.data)}`,
+        );
 
-      // OrderCompleted
-      const completed = {
-        eventName: 'OrderCompleted',
-        orderId: orderId,
-        commissionerId: commissionerId,
-        workshopId: workshopId,
-        confirmedAt: isoNow(),
-        schemaV: 1,
-      };
-      console.log(`[E2E] Sending OrderCompleted for order ${orderId}, commissioner ${commissionerId}`);
-      console.log(`[E2E] Event: ${JSON.stringify(completed)}`);
-      await producer.send({
-        topic: KafkaTopics.OrderTransitions,
-        messages: [
+        const res = await axios.get(
+          `${readBaseUrl}/${ApiPaths.Root}/${BonusReadPaths.Root}`,
           {
-            key: Buffer.from(orderId),
-            value: JSON.stringify(completed),
-            headers: { 'x-event-name': Buffer.from('OrderCompleted') },
+            params: { commissionerId, limit: 1, offset: 0 },
           },
-        ],
-      });
+        );
 
-      // Brief grace period to let the processor ingest both
-      await wait(300);
-
-
-
-      // Poll read projection until it shows points > 0
-      await pollUntil(async () => {
-        //refreshing
-        const refresh = await axios.post(`${readBaseUrl}/api/bonus-read/refresh`, {
-          params: { commissionerId, limit: 1, offset: 0 },
-        });
-        console.log(`[E2E] Read API refresh response: ${JSON.stringify(refresh.data)}`);
-        const res = await axios.get(`${readBaseUrl}/api/bonus-read`, {
-          params: { commissionerId, limit: 1, offset: 0 },
-        });
         console.log(`[E2E] Read API response: ${JSON.stringify(res.data)}`);
         const total = res.data?.total ?? 0;
         const firstPoints = res.data?.items?.[0]?.totalPoints ?? 0;
         const sussess = total > 0 && firstPoints > 0;
-        console.log(`[E2E] Commissioner ${commissionerId} has total ${total} profiles, first profile points ${firstPoints}, success=${sussess}`);
+        console.log(
+          `[E2E] Commissioner ${commissionerId} has total ${total} profiles, first profile points ${firstPoints}, success=${sussess}`,
+        );
         return sussess;
-      }, { timeoutMs: 90_000, intervalMs: 600 });
+      },
+      { timeoutMs: 90_000, intervalMs: 600 },
+    );
 
-      const res = await axios.get(`${readBaseUrl}/api/bonus-read`, {
+
+    const res = await axios.get(
+      `${readBaseUrl}/${ApiPaths.Root}/${BonusReadPaths.Root}`,
+      {
         params: { commissionerId, limit: 1, offset: 0 },
-      }); { }
-      console.log(`[E2E] Final Read API response: ${JSON.stringify(res.data)}`);
-      expect(res.data.total).toBeGreaterThan(0);
-      expect(res.data.items[0].totalPoints).toBeGreaterThan(0);
+      },
+    );
+    {
+    }
 
-    },
-    180_000,
-  );
+    console.log(`[E2E] Final Read API response: ${JSON.stringify(res.data)}`);
+    expect(res.data.total).toBeGreaterThan(0);
+    expect(res.data.items[0].totalPoints).toBeGreaterThan(0);
+  }, 180_000);
 });

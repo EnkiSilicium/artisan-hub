@@ -1,3 +1,5 @@
+import { randomUUID } from 'crypto';
+
 import { Injectable } from '@nestjs/common';
 import { WorkshopInvitationTrackerPort } from 'apps/order-service/src/app/order-workflow/application/ports/initialize-tracker.port';
 import { WorkshopPort } from 'apps/order-service/src/app/order-workflow/application/ports/workshop.port';
@@ -8,9 +10,8 @@ import { WorkshopInvitation } from 'apps/order-service/src/app/order-workflow/do
 import { OrderRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/order/order.repo';
 import { RequestRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/request/request.repo';
 import { WorkshopInvitationRepo } from 'apps/order-service/src/app/order-workflow/infra/persistence/repositories/workshop-invitation/workshop-invitation.repo';
-import { TypeOrmUoW, enqueueOutbox } from 'persistence';
 import { OrderInitResultDto, OrderPlacedEventV1 } from 'contracts';
-import { randomUUID } from 'crypto';
+import { TypeOrmUoW, enqueueOutbox } from 'persistence';
 import { isoNow } from 'shared-kernel';
 
 @Injectable()

@@ -8,16 +8,21 @@ import {
   Inject,
 } from '@nestjs/common';
 import { ClientKafka, KafkaContext } from '@nestjs/microservices';
-import { Observable, EMPTY, from, throwError, lastValueFrom, firstValueFrom } from 'rxjs';
-import { catchError, mergeMap, map, ignoreElements, defaultIfEmpty } from 'rxjs/operators';
+import { KAFKA_PRODUCER } from 'adapter';
+import { AppError } from 'error-handling/error-core';
 
 // Your error base + concrete types
-import { AppError } from 'error-handling/error-core';
 import { DomainError } from 'error-handling/error-core';
 import { InfraError } from 'error-handling/error-core';
 import { ProgrammerError } from 'error-handling/error-core';
-import { KAFKA_PRODUCER } from 'adapter'
-
+import { Observable, from, throwError, firstValueFrom } from 'rxjs';
+import {
+  catchError,
+  mergeMap,
+  map,
+  ignoreElements,
+  defaultIfEmpty,
+} from 'rxjs/operators';
 
 export class KafkaErrorInterceptorOptions {
   maxRetries!: number; // e.g. 5
@@ -38,13 +43,11 @@ export class KafkaErrorInterceptorOptions {
  */
 @Injectable()
 export class KafkaErrorInterceptor implements NestInterceptor {
-
   @Inject(KAFKA_PRODUCER)
-  private readonly dlqProducer!: ClientKafka
+  private readonly dlqProducer!: ClientKafka;
 
   private readonly dlqSuffix: string;
   private readonly attemptsHeader: string;
-
 
   constructor(
     private readonly opts: KafkaErrorInterceptorOptions = { maxRetries: 5 },
@@ -54,8 +57,7 @@ export class KafkaErrorInterceptor implements NestInterceptor {
   }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-
-    Logger.debug({ message: `${KafkaErrorInterceptor.name} active` })
+    Logger.debug({ message: `${KafkaErrorInterceptor.name} active` });
     // Only handle Kafka (RPC) traffic; let HTTP go through the HTTP pipeline.
     if (context.getType() !== 'rpc') return next.handle();
 
@@ -85,7 +87,7 @@ export class KafkaErrorInterceptor implements NestInterceptor {
           undefined,
           KafkaErrorInterceptor.name,
         );
-        Logger.log({ message: "KafkaErrorInterceptor handling" })
+        Logger.log({ message: 'KafkaErrorInterceptor handling' });
 
         const attempts = this.getAttempts(message);
         const max = this.opts.maxRetries ?? 5;
@@ -124,7 +126,7 @@ export class KafkaErrorInterceptor implements NestInterceptor {
           map(() => undefined as void),
           catchError((dlqErr) => {
             Logger.error({ dlqErr }, undefined, 'KafkaErrorInterceptor.DLQ');
-            return throwError(() => error);       // DLQ failed → keep uncommitted
+            return throwError(() => error); // DLQ failed → keep uncommitted
           }),
         );
       }),
@@ -180,7 +182,6 @@ export class KafkaErrorInterceptor implements NestInterceptor {
     });
 
     await firstValueFrom(obs.pipe(ignoreElements(), defaultIfEmpty(undefined)));
-
   }
 
   /** Convert either an AppError or an arbitrary thrown value into a DLQ error summary. */
@@ -211,8 +212,8 @@ export class KafkaErrorInterceptor implements NestInterceptor {
     // Unknown error: keep it compact but useful.
     const message =
       typeof unknownErr === 'object' &&
-        unknownErr !== null &&
-        'message' in unknownErr
+      unknownErr !== null &&
+      'message' in unknownErr
         ? String((unknownErr as any).message)
         : String(unknownErr);
 
