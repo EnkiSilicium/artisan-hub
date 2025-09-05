@@ -47,13 +47,12 @@ import {
     OpenTelemetryModule.forRoot({
       metrics: {
         apiMetrics: {
-          enable: true, // Includes api metrics
+          enable: true,
           defaultAttributes: {
-            // You can set default labels for api metrics
             service: 'bonus-processor',
           },
-          ignoreUndefinedRoutes: false, //Records metrics for all URLs, even undefined ones
-          prefix: 'metrics', // Add a custom prefix to all API metrics
+          ignoreUndefinedRoutes: false,
+          prefix: 'metrics',
         },
       },
     }),

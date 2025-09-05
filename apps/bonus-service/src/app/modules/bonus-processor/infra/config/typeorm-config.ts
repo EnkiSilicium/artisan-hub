@@ -34,10 +34,8 @@ export const bonusProcessorTypeOrmOptions: DataSourceOptions = {
   ],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
   entitySkipConstructor: true,
-  // toggles
-  //synchronize: process.env.TYPEORM_SYNC === 'true', // dev only
   synchronize: true,
-  migrationsRun: process.env.TYPEORM_MIGRATIONS_RUN === 'true', // prod friendly
+  migrationsRun: process.env.TYPEORM_MIGRATIONS_RUN === 'true',
   logging: process.env.TYPEORM_LOGGING
     ? (process.env.TYPEORM_LOGGING.split(',') as DataSourceOptions['logging'])
     : ['error', 'warn'],
