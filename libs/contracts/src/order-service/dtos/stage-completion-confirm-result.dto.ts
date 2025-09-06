@@ -21,10 +21,7 @@ export class StageCompletionConfirmResultDto {
   @ApiProperty({
     type: Boolean,
     description: 'Whether all stages are completed',
-<<<<<<< HEAD
     example: false,
-=======
->>>>>>> EnkiSilicium/master
   })
   allStagesCompleted!: boolean;
 }
