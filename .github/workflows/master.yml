@@ -10,12 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      # Nx in CI: no background daemon; keep memory sane
+      
       NX_DAEMON: "false"
       NODE_OPTIONS: "--max-old-space-size=4096"
-      # Testcontainers: force image pulls to reduce flakiness in CI (optional)
-      TESTCONTAINERS_PULl_ALWAYS: "true"   # note: lib ignores unknown keys; correct is TESTCONTAINERS_PULL_ALWAYS
-      TESTCONTAINERS_PULL_ALWAYS: "true"
+     
+      TESTCONTAINERS_PULl_ALWAYS: "true"  
 
     steps:
       - name: Checkout
@@ -32,7 +31,7 @@ jobs:
       - name: Install
         run: npm ci
 
-      # Cache Nx local outputs so the runner “recreates” cache locally on restore
+     
       - name: Restore Nx cache
         uses: actions/cache@v4
         with:
@@ -51,12 +50,7 @@ jobs:
           # If you run Elasticsearch/OpenSearch in tests, uncomment:
           # sudo sysctl -w vm.max_map_count=262144
 
-      # Optional: pre-pull common images your tests need to avoid cold pulls during test run
-      # - name: Pre-pull images (optional)
-      #   run: |
-      #     docker pull testcontainers/ryuk:0.5.1 || true
-      #     docker pull postgres:16-alpine || true
-      #     docker pull redis:7-alpine || true
+
 
       - name: Type check (affected on PR; all on main)
         shell: bash
