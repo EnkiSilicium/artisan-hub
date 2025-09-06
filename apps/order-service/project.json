@@ -9,24 +9,18 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "webpack-cli build",
-        "args": [
-          "--node-env=production"
-        ],
+        "args": ["--node-env=production"],
         "cwd": "apps/order-service",
         "target": "node"
       },
       "configurations": {
         "development": {
-          "args": [
-            "--node-env=development"
-          ]
+          "args": ["--node-env=development"]
         }
       }
     },
     "prune-lockfile": {
-      "dependsOn": [
-        "build"
-      ],
+      "dependsOn": ["build"],
       "cache": true,
       "executor": "@nx/js:prune-lockfile",
       "outputs": [
@@ -38,32 +32,23 @@
       }
     },
     "copy-workspace-modules": {
-      "dependsOn": [
-        "build"
-      ],
+      "dependsOn": ["build"],
       "cache": true,
-      "outputs": [
-        "{workspaceRoot}/dist/apps/order-service/workspace_modules"
-      ],
+      "outputs": ["{workspaceRoot}/dist/apps/order-service/workspace_modules"],
       "executor": "@nx/js:copy-workspace-modules",
       "options": {
         "buildTarget": "build"
       }
     },
     "prune": {
-      "dependsOn": [
-        "prune-lockfile",
-        "copy-workspace-modules"
-      ],
+      "dependsOn": ["prune-lockfile", "copy-workspace-modules"],
       "executor": "nx:noop"
     },
     "serve": {
       "continuous": true,
       "executor": "@nx/js:node",
       "defaultConfiguration": "development",
-      "dependsOn": [
-        "build"
-      ],
+      "dependsOn": ["build"],
       "options": {
         "buildTarget": "order-service:build",
         "runBuildTargetDependencies": false
@@ -77,15 +62,26 @@
         }
       }
     },
-    "test": {
-      "executor": "@nx/jest:jest",
-      "outputs": [
-        "{workspaceRoot}/coverage/apps/order-service"
-      ],
+
+    "test-entities": {
+      "executor": "nx:run-commands",
       "options": {
-        "jestConfig": "apps/order-service/jest.config.ts",
-        "passWithNoTests": true
+        "env": { "JEST_ONLY": "entities" },
+        "command": "node ./node_modules/jest/bin/jest.js --config apps/order-service/jest.config.ts --passWithNoTests",
+        "cwd": "."
+      }
+    },
+
+    "test-repos": {
+      "executor": "nx:run-commands",
+      "options": {
+        "env": { "JEST_ONLY": "repos" },
+        "command": "node ./node_modules/jest/bin/jest.js --config apps/order-service/jest.config.ts --passWithNoTests",
+        "cwd": "."
       }
     }
+
+
+    
   }
 }
