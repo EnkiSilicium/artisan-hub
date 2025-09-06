@@ -72,6 +72,27 @@ jobs:
             npx nx run-many -t test --all --parallel --exclude=artisan-hub
           fi
 
+      - name: Unit tests (affected on PR; all on main)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            npx nx affected -t test-entities --parallel --base="${{ github.event.pull_request.base.sha }}" --head="${{ github.sha }}" --exclude=artisan-hub
+          else
+            npx nx run-many -t test-entities --all --parallel --exclude=artisan-hub
+          fi
+
+
+      - name: Unit tests (affected on PR; all on main)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            npx nx affected -t test-repos --parallel --base="${{ github.event.pull_request.base.sha }}" --head="${{ github.sha }}" --exclude=artisan-hub
+          else
+            npx nx run-many -t test-repos --all --parallel --exclude=artisan-hub
+          fi
+
 
       - name: E2E tests
         shell: bash
