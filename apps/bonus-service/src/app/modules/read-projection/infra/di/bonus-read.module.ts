@@ -33,6 +33,7 @@ import { LoggingInterceptor } from 'observability';
 
     BullModule.registerQueue({
       name: BONUS_READ_REFRESH_QUEUE,
+    }),
 
     OpenTelemetryModule.forRoot({
       metrics: {
@@ -40,7 +41,7 @@ import { LoggingInterceptor } from 'observability';
           enable: true, // Includes api metrics
           defaultAttributes: {
             // You can set default labels for api metrics
-            service: 'order-read',
+            service: 'bonus-read',
           },
           ignoreUndefinedRoutes: false, //Records metrics for all URLs, even undefined ones
           prefix: 'metrics', // Add a custom prefix to all API metrics
@@ -48,7 +49,7 @@ import { LoggingInterceptor } from 'observability';
       },
     }),
 
-    }),
+
     // ClientsModule.register([
     //     {
     //         name: KAFKA_PRODUCER,
