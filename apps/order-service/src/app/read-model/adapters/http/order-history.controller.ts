@@ -6,6 +6,7 @@ import {
   Query,
   UsePipes,
   ValidationPipe,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -14,10 +15,16 @@ import {
   ApiAcceptedResponse,
 } from '@nestjs/swagger';
 import { OrderStagesReadService } from 'apps/order-service/src/app/read-model/application/query-handlers/history.query-handler';
-import { OrderHistoryQueryResultDto, ReadOrderStagesQueryDto } from 'contracts';
+
+import {
+  OrderHistoryQueryResultDto,
+  ReadOrderStagesQueryDto,
+  OrderHistoryPaths,
+} from 'contracts';
+import { validator } from 'adapter';
 
 @ApiTags('Orders read')
-@Controller('orders/stages')
+@Controller(`${OrderHistoryPaths.Root}/${OrderHistoryPaths.Stages}`)
 export class OrderHistoryController {
   constructor(private readonly svc: OrderStagesReadService) {}
 
@@ -27,7 +34,7 @@ export class OrderHistoryController {
     description: 'Returns a paginated list of stages with optional filters.',
   })
   @ApiOkResponse({ type: OrderHistoryQueryResultDto })
-  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  @UsePipes(new ValidationPipe(validator))
   async read(@Query() q: ReadOrderStagesQueryDto) {
     return this.svc.read({
       commissionerId: q.commissionerId,
@@ -44,7 +51,8 @@ export class OrderHistoryController {
     });
   }
 
-  @Post('refresh')
+  @Post(OrderHistoryPaths.Refresh)
+  @UsePipes(new ValidationPipe(validator))
   @HttpCode(202)
   @ApiOperation({
     summary: 'Refresh the read model',

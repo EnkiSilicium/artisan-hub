@@ -1,14 +1,21 @@
 import { randomUUID } from 'crypto';
 
 import axios from 'axios';
-import { KafkaTopics } from 'contracts';
+
+import { ApiPaths, BonusReadPaths, KafkaTopics } from 'contracts';
+
 import { Kafka } from 'kafkajs';
+
 import { isoNow } from 'shared-kernel';
 
 import type { Producer } from 'kafkajs';
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Polls an async predicate until it resolves to true or the timeout elapses,
+ * logging intermittent failures to surface eventual-consistency issues.
+ */
 async function pollUntil(
   predicate: () => Promise<boolean>,
   {
@@ -55,14 +62,17 @@ describe('Bonus processor integration (Option B)', () => {
       process.env.READ_BASE_URL ??
       axios.defaults.baseURL ??
       'http://127.0.0.1:3002';
-
     // Make sure read API is up before we proceed
     await pollUntil(
       async () => {
         try {
-          await axios.get(`${readBaseUrl}/api/bonus-read`, {
-            params: { limit: 1, offset: 0 },
-          });
+
+          await axios.get(
+            `${readBaseUrl}/${ApiPaths.Root}/${BonusReadPaths.Root}`,
+            { params: { limit: 1, offset: 0 } },
+          );
+
+
           return true;
         } catch {
           return false;
@@ -152,13 +162,13 @@ describe('Bonus processor integration (Option B)', () => {
 
     // Brief grace period to let the processor ingest both
     await wait(300);
-
     // Poll read projection until it shows points > 0
     await pollUntil(
       async () => {
-        //refreshing
         const refresh = await axios.post(
-          `${readBaseUrl}/api/bonus-read/refresh`,
+
+          `${readBaseUrl}/${ApiPaths.Root}/${BonusReadPaths.Root}/${BonusReadPaths.Refresh}`,
+
           {
             params: { commissionerId, limit: 1, offset: 0 },
           },
@@ -166,9 +176,14 @@ describe('Bonus processor integration (Option B)', () => {
         console.log(
           `[E2E] Read API refresh response: ${JSON.stringify(refresh.data)}`,
         );
-        const res = await axios.get(`${readBaseUrl}/api/bonus-read`, {
-          params: { commissionerId, limit: 1, offset: 0 },
-        });
+
+        const res = await axios.get(
+          `${readBaseUrl}/${ApiPaths.Root}/${BonusReadPaths.Root}`,
+          {
+            params: { commissionerId, limit: 1, offset: 0 },
+          },
+        );
+
         console.log(`[E2E] Read API response: ${JSON.stringify(res.data)}`);
         const total = res.data?.total ?? 0;
         const firstPoints = res.data?.items?.[0]?.totalPoints ?? 0;
@@ -181,9 +196,15 @@ describe('Bonus processor integration (Option B)', () => {
       { timeoutMs: 90_000, intervalMs: 600 },
     );
 
-    const res = await axios.get(`${readBaseUrl}/api/bonus-read`, {
-      params: { commissionerId, limit: 1, offset: 0 },
-    });
+
+    const res = await axios.get(
+      `${readBaseUrl}/${ApiPaths.Root}/${BonusReadPaths.Root}`,
+      {
+        params: { commissionerId, limit: 1, offset: 0 },
+      },
+    );
+    {
+    }
 
     console.log(`[E2E] Final Read API response: ${JSON.stringify(res.data)}`);
     expect(res.data.total).toBeGreaterThan(0);

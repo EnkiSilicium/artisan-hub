@@ -16,6 +16,7 @@ export class RequestOrderInitPayloadV1 {
   @ApiProperty({
     type: String,
     description: 'Human‑readable title of the order',
+    example: 'Custom table',
   })
   @IsString()
   @IsNotEmpty()
@@ -24,6 +25,7 @@ export class RequestOrderInitPayloadV1 {
   @ApiProperty({
     type: String,
     description: 'Detailed description of the order',
+    example: 'Build a custom wooden table',
   })
   @IsString()
   @IsNotEmpty()
@@ -33,18 +35,23 @@ export class RequestOrderInitPayloadV1 {
     type: String,
     format: 'date-time',
     description: 'Deadline for the order (ISO‑8601 timestamp)',
+    example: '2024-06-01T00:00:00.000Z',
   })
   @IsISO8601()
   deadline!: string;
 
-  @ApiProperty({ type: String, description: 'Proposed budget for the work' })
+  @ApiProperty({
+    type: String,
+    description: 'Proposed budget for the work',
+    example: '2000',
+  })
   @IsString()
   @IsNotEmpty()
   budget!: string;
 }
 
 /**
- * DTO for creating an order (version 1).
+ * DTO for creating an order (version 1).
  */
 export class OrderInitDtoV1 {
   @ApiProperty({
@@ -59,6 +66,12 @@ export class OrderInitDtoV1 {
   @ApiProperty({
     type: () => RequestOrderInitPayloadV1,
     description: 'Payload describing the order request',
+    example: {
+      title: 'Custom table',
+      description: 'Build a custom wooden table',
+      deadline: '2024-06-01T00:00:00.000Z',
+      budget: '2000',
+    },
   })
   @ValidateNested()
   @Type(() => RequestOrderInitPayloadV1)

@@ -1,16 +1,22 @@
+
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { OrderHistoryController } from 'apps/order-service/src/app/read-model/adapters/http/order-history.controller';
 import { OrderStagesReadService } from 'apps/order-service/src/app/read-model/application/query-handlers/history.query-handler';
+
 import { OrderReadTypeOrmOptions } from 'apps/order-service/src/app/read-model/infra/config/typeorm-config';
 import { orderReadWinstonConfig } from 'apps/order-service/src/app/read-model/infra/config/winston.config';
 import { OrderHistoryProjection } from 'apps/order-service/src/app/read-model/infra/persistence/projections/order-histrory.projection';
 import { OrderStageFlatRepo } from 'apps/order-service/src/app/read-model/infra/persistence/repositories/order-history.repository';
 import { OrderHistoryRefreshWorker } from 'apps/order-service/src/app/read-model/infra/workers/order-history-refresh.worker';
+import { ORDER_HISTORY_REFRESH_QUEUE } from 'apps/order-service/src/app/read-model/infra/workers/order-history-refresh.token';
 import {
   HttpErrorInterceptor,
+  KafkaErrorInterceptor,
   HttpErrorInterceptorOptions,
+  KafkaErrorInterceptorOptions,
+
 } from 'error-handling/interceptor';
 import { WinstonModule } from 'nest-winston';
 import { OpenTelemetryModule } from 'nestjs-otel';
@@ -19,6 +25,7 @@ import { LoggingInterceptor } from 'observability';
 @Module({
   imports: [
     TypeOrmModule.forRoot(OrderReadTypeOrmOptions),
+
 
     OpenTelemetryModule.forRoot({
       metrics: {
@@ -34,6 +41,7 @@ import { LoggingInterceptor } from 'observability';
       },
     }),
 
+
     BullModule.forRoot({
       connection: {
         host: process.env.REDIS_HOST || 'localhost',
@@ -41,13 +49,13 @@ import { LoggingInterceptor } from 'observability';
       },
     }),
     BullModule.registerQueue({
-      name: 'order-history-refresh',
+      name: ORDER_HISTORY_REFRESH_QUEUE,
+
     }),
 
     WinstonModule.forRoot({
       transports: [
         orderReadWinstonConfig.transports.consoleTransport,
-        orderReadWinstonConfig.transports.fileTransport,
       ],
     }),
   ],

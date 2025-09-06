@@ -4,11 +4,14 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Principal } from 'apps/order-service/src/app/order-workflow/infra/auth/guards/order-http-jwt.guard';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
-import { ActorName } from '../assertions/actor.enum';
+
+
 import { assertValidJwtPayload } from '../assertions/assert-valid-jwt-payload.assertion';
 import { assertJwtKeyDefined } from '../assertions/assert-jwt-key-defined.assertion';
 
-import type { Algorithm } from 'jsonwebtoken';
+import { ActorName } from 'auth';
+
+
 
 // Shape of the JWT payload you mint upstream
 export type JwtPayload = {

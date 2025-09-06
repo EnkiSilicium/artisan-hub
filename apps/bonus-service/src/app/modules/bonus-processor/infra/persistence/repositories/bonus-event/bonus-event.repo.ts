@@ -40,25 +40,4 @@ export class BonusEventRepo {
       remapTypeOrmPgErrorToInfra(error);
     }
   }
-
-  // Not updateable (?)
-  /*  
-  async update(BonusEventEntity: BonusEventEntity): Promise<void> {
-      const manager = requireTxManager(this.ds);
-  
-      const next = await updateWithVersionGuard({
-        entityManager: manager,
-        target: BonusEventEntity,
-        pkWhere: { eventId: BonusEventEntity.commissionerId },
-        set: {
-          grade: BonusEventEntity.grade,
-          bonusPolicyVersion: BonusEventEntity.bonusPolicyVersion,
-          gradePolicyVersion: BonusEventEntity.gradePolicyVersion,
-        },
-        currentVersion: BonusEventEntity.version,
-    });
-    BonusEventEntity.version = next
-  
-    }
-  */
 }

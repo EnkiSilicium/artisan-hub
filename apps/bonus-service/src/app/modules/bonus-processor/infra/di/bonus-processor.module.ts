@@ -33,7 +33,22 @@ import {
 @Module({
   imports: [
     TypeOrmModule.forRoot(bonusProcessorTypeOrmOptions),
+
+
     OutboxModule,
+
+    OpenTelemetryModule.forRoot({
+      metrics: {
+        apiMetrics: {
+          enable: true,
+          defaultAttributes: {
+            service: 'bonus-processor',
+          },
+          ignoreUndefinedRoutes: false,
+          prefix: 'metrics',
+        },
+      },
+    }),
 
     BullModule.registerQueue(outboxBullMqConfigFactory()),
 
@@ -44,19 +59,7 @@ import {
       },
     }),
 
-    OpenTelemetryModule.forRoot({
-      metrics: {
-        apiMetrics: {
-          enable: true, // Includes api metrics
-          defaultAttributes: {
-            // You can set default labels for api metrics
-            service: 'bonus-processor',
-          },
-          ignoreUndefinedRoutes: false, //Records metrics for all URLs, even undefined ones
-          prefix: 'metrics', // Add a custom prefix to all API metrics
-        },
-      },
-    }),
+    
     ClientsModule.register([
       {
         name: KAFKA_PRODUCER,
@@ -73,7 +76,6 @@ import {
     WinstonModule.forRoot({
       transports: [
         bonusProcessorWinstonConfig.transports.consoleTransport,
-        bonusProcessorWinstonConfig.transports.fileTransport,
       ],
     }),
   ],
@@ -107,4 +109,4 @@ import {
     },
   ],
 })
-export class BonusProcessorModule {}
+export class BonusProcessorModule { }

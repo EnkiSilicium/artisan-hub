@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
 
-import { Controller, UseInterceptors } from '@nestjs/common';
+import { Controller, UseInterceptors, UsePipes, ValidationPipe } from '@nestjs/common';
 import {
   Ctx,
   EventPattern,
@@ -13,6 +13,7 @@ import { KafkaErrorInterceptor } from 'error-handling/interceptor';
 import { assertCommissionerIdDefined } from '../assertions/assert-commissioner-id-defined.assertion';
 import { assertEventNameDefined } from '../assertions/assert-event-name-defined.assertion';
 import { LoggingInterceptor } from 'observability';
+import { validator } from 'adapter';
 import { isoNow } from 'shared-kernel';
 
 @Controller()
@@ -21,6 +22,7 @@ export class BonusEventsConsumer {
 
   @UseInterceptors(KafkaErrorInterceptor, LoggingInterceptor)
   @EventPattern(KafkaTopics.OrderTransitions)
+  @UsePipes(new ValidationPipe(validator))
   async onOrderTransitions(
     @Payload() payload: object,
     @Ctx() ctx: KafkaContext,
@@ -30,6 +32,7 @@ export class BonusEventsConsumer {
   }
 
   @EventPattern(KafkaTopics.StageTransitions)
+  @UsePipes(new ValidationPipe(validator))
   async onStageTransitions(
     @Payload() payload: object,
     @Ctx() ctx: KafkaContext,

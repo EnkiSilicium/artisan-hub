@@ -19,6 +19,7 @@ import {
   BonusReadQueryDto,
   BonusReadPaths,
 } from 'contracts';
+import { validator } from 'adapter';
 
 @ApiTags('Bonus read')
 @Controller(BonusReadPaths.Root)
@@ -31,7 +32,7 @@ export class BonusReadController {
     description: 'Returns a paginated list of bonus records with filters.',
   })
   @ApiOkResponse({ type: BonusReadresultDto })
-  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  @UsePipes(new ValidationPipe(validator))
   async read(@Query() q: BonusReadQueryDto) {
     return this.svc.read({
       commissionerId: q.commissionerId,
@@ -53,6 +54,7 @@ export class BonusReadController {
 
   @Post(BonusReadPaths.Refresh)
   @HttpCode(202)
+  @UsePipes(new ValidationPipe(validator))
   @ApiOperation({
     summary: 'Refresh the bonus read projection',
     description: 'Initiates an asynchronous refresh of the bonus read model.',
