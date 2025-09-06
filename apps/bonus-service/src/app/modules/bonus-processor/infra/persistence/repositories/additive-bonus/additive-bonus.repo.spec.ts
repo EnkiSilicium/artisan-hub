@@ -1,10 +1,6 @@
 import 'reflect-metadata';
 import { Test } from '@nestjs/testing';
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
-
-// Repos under test
-
-// Entities (direct)
 import { AdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity';
 import { makeAdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity.mock-factory';
 import { BonusEventEntity } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity';

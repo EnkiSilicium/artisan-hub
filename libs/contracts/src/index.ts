@@ -39,6 +39,7 @@ export * from './order-service/events/_union.types';
 export * from './order-service/paths/order-init-paths.enum';
 export * from './order-service/paths/stage-completion-paths.enum';
 export * from './order-service/paths/workshop-invitation-response-paths.enum';
+export * from './order-service/paths/order-history-paths.enum';
 export * from './_common/base-event.event';
 export * from './_common/contracts';
 export * from './_common/kafka-topics.enum';

@@ -9,7 +9,6 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 
 import { ActorName } from 'auth';
 
-import type { Algorithm } from 'jsonwebtoken';
 
 // Shape of the JWT payload you mint upstream
 export type JwtPayload = {

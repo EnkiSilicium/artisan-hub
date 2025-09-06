@@ -1,4 +1,11 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  UsePipes,
+  ValidationPipe,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -6,12 +13,17 @@ import {
   ApiCreatedResponse,
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiNotFoundResponse,
+  ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 import { OrderInitService } from 'apps/order-service/src/app/order-workflow/application/services/order/order-init.service';
 // Re-exported DTO from libs/contracts
 
 import { OrderInitResultDto } from 'contracts';
 import { OrderInitDtoV1, OrderInitPaths } from 'contracts';
+import { validator } from 'adapter';
+import { OrderAuthGuardProxy } from 'apps/order-service/src/app/order-workflow/infra/auth/proxy/auth-token-proxy';
+
 
 @ApiTags('Order workflow')
 @ApiBearerAuth('JWT')
@@ -20,6 +32,8 @@ export class OrderInitController {
   constructor(private readonly orderInitService: OrderInitService) {}
 
   @Post()
+  @UseGuards(OrderAuthGuardProxy)
+  @UsePipes(new ValidationPipe(validator))
   @ApiOperation({
     summary: 'Create a new order',
     description:
@@ -31,6 +45,8 @@ export class OrderInitController {
     type: OrderInitResultDto,
   })
   @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiNotFoundResponse({ description: 'Workshop not found (NOT_FOUND)' })
+  @ApiUnprocessableEntityResponse({ description: 'Domain validation failed (VALIDATION)' })
   async postOrderInit(@Body() body: OrderInitDtoV1) {
     return await this.orderInitService.orderInit({
       payload: {

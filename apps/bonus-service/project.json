@@ -76,14 +76,21 @@
         }
       }
     },
-    "test": {
-      "executor": "@nx/jest:jest",
-      "outputs": [
-        "{workspaceRoot}/coverage/apps/bonus-service"
-      ],
+    "test-entities": {
+      "executor": "nx:run-commands",
       "options": {
-        "jestConfig": "apps/bonus-service/jest.config.ts",
-        "passWithNoTests": false
+        "env": { "JEST_ONLY": "entities" },
+        "command": "node ./node_modules/jest/bin/jest.js --config apps/bonus-service/jest.config.ts --passWithNoTests",
+        "cwd": "."
+      }
+    },
+
+    "test-repos": {
+      "executor": "nx:run-commands",
+      "options": {
+        "env": { "JEST_ONLY": "repos" },
+        "command": "node ./node_modules/jest/bin/jest.js --config apps/bonus-service/jest.config.ts --passWithNoTests",
+        "cwd": "."
       }
     }
   }

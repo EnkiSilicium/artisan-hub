@@ -50,6 +50,8 @@ import {
   TypeOrmUoW,
 } from 'persistence';
 import { extractBoolEnv } from 'shared-kernel';
+import {AUTH_GUARD} from 'auth'
+import { OrderAuthGuardProxy } from 'apps/order-service/src/app/order-workflow/infra/auth/proxy/auth-token-proxy';
 
 @Module({
   imports: [
@@ -139,13 +141,16 @@ import { extractBoolEnv } from 'shared-kernel';
     HttpErrorInterceptor,
     KafkaErrorInterceptor,
 
-    ...(extractBoolEnv('true') ? [] : [JwtStrategy]),
+    ...(extractBoolEnv(process.env.DISABLE_AUTH) ? [] : [JwtStrategy]),
+    //JwtStrategy,
+
     {
-      provide: OrderHttpJwtGuard,
+      provide: AUTH_GUARD,
       useClass: extractBoolEnv(process.env.DISABLE_AUTH)
         ? MockAuthGuard
         : OrderHttpJwtGuard,
     },
+    OrderAuthGuardProxy,
 
     {
       provide: HttpErrorInterceptorOptions,
@@ -163,4 +168,4 @@ import { extractBoolEnv } from 'shared-kernel';
     },
   ],
 })
-export class OrderWorkflowModule {}
+export class OrderWorkflowModule { }

@@ -1,0 +1,115 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      
+      NX_DAEMON: "false"
+      NODE_OPTIONS: "--max-old-space-size=4096"
+     
+      TESTCONTAINERS_PULl_ALWAYS: "true"  
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # required for nx affected
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+     
+      - name: Restore Nx cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            .nx/cache
+            node_modules/.cache
+          key: nx-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            nx-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-
+            nx-${{ runner.os }}-
+
+      - name: Docker check
+        run: |
+          docker version
+          docker info
+          # If you run Elasticsearch/OpenSearch in tests, uncomment:
+          # sudo sysctl -w vm.max_map_count=262144
+
+
+
+      - name: Type check (affected on PR; all on main)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            npx nx affected -t typecheck --parallel --base="${{ github.event.pull_request.base.sha }}" --head="${{ github.sha }}" --exclude=artisan-hub
+          else
+            npx nx run-many -t typecheck --all --parallel --exclude=artisan-hub
+          fi
+
+      - name: Unit tests (affected on PR; all on main)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            npx nx affected -t test --parallel --base="${{ github.event.pull_request.base.sha }}" --head="${{ github.sha }}" --exclude=artisan-hub
+          else
+            npx nx run-many -t test --all --parallel --exclude=artisan-hub
+          fi
+
+      - name: Unit tests (affected on PR; all on main)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            npx nx affected -t test-entities --parallel --base="${{ github.event.pull_request.base.sha }}" --head="${{ github.sha }}" --exclude=artisan-hub
+          else
+            npx nx run-many -t test-entities --all --parallel --exclude=artisan-hub
+          fi
+
+
+      - name: Unit tests (affected on PR; all on main)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            npx nx affected -t test-repos --parallel --base="${{ github.event.pull_request.base.sha }}" --head="${{ github.sha }}" --exclude=artisan-hub
+          else
+            npx nx run-many -t test-repos --all --parallel --exclude=artisan-hub
+          fi
+
+
+      - name: E2E tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            npx nx affected -t e2e --parallel --base="${{ github.event.pull_request.base.sha }}" --head="${{ github.sha }}" --exclude=artisan-hub
+          else
+            npx nx run-many -t e2e --all --parallel --exclude=artisan-hub
+          fi
+
+
+      - name: Save Nx cache (post-tests/build)
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            .nx/cache
+            node_modules/.cache
+          key: nx-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ github.sha }}

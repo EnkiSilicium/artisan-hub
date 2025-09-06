@@ -6,9 +6,12 @@ import type { EntityTechnicalsInterface } from 'libs/persistence/src/lib/interfa
 export function assertImplementsEntityTechnicals(
   entity: any,
 ): asserts entity is EntityTechnicalsInterface {
+
+
+
   const versionDefined = typeof entity?.version === 'number';
-  const createdAtDefined = typeof entity?.createdAt === 'string';
-  const lastUpdatedAtDefined = typeof entity?.lastUpdatedAt === 'string';
+  const createdAtDefined = typeof entity?.createdAt === 'string' || entity?.createdAt instanceof Date;
+  const lastUpdatedAtDefined = typeof entity?.lastUpdatedAt === 'string' || entity?.createdAt instanceof Date;
 
   if (!(versionDefined && createdAtDefined && lastUpdatedAtDefined)) {
     throw new ProgrammerError({
