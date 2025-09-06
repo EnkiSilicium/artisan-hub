@@ -1,0 +1,98 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      # Nx in CI: no background daemon; keep memory sane
+      NX_DAEMON: "false"
+      NODE_OPTIONS: "--max-old-space-size=4096"
+      # Testcontainers: force image pulls to reduce flakiness in CI (optional)
+      TESTCONTAINERS_PULl_ALWAYS: "true"   # note: lib ignores unknown keys; correct is TESTCONTAINERS_PULL_ALWAYS
+      TESTCONTAINERS_PULL_ALWAYS: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # required for nx affected
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # Cache Nx local outputs so the runner “recreates” cache locally on restore
+      - name: Restore Nx cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            .nx/cache
+            node_modules/.cache
+          key: nx-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            nx-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-
+            nx-${{ runner.os }}-
+
+      - name: Docker sanity
+        run: |
+          docker version
+          docker info
+          # If you run Elasticsearch/OpenSearch in tests, uncomment:
+          # sudo sysctl -w vm.max_map_count=262144
+
+      # Optional: pre-pull common images your tests need to avoid cold pulls during test run
+      # - name: Pre-pull images (optional)
+      #   run: |
+      #     docker pull testcontainers/ryuk:0.5.1 || true
+      #     docker pull postgres:16-alpine || true
+      #     docker pull redis:7-alpine || true
+
+      - name: Type check (affected on PR; all on main)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            npx nx affected -t typecheck --parallel --base="${{ github.event.pull_request.base.sha }}" --head="${{ github.sha }}"
+          else
+            npx nx run-many -t typecheck --all --parallel
+          fi
+
+      - name: Unit tests (affected on PR; all on main)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            npx nx affected -t test --parallel --base="${{ github.event.pull_request.base.sha }}" --head="${{ github.sha }}"
+          else
+            npx nx run-many -t test --all --parallel
+          fi
+
+      - name: Build (affected on PR; all on main)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            npx nx affected -t build --parallel --base="${{ github.event.pull_request.base.sha }}" --head="${{ github.sha }}"
+          else
+            npx nx run-many -t build --all --parallel
+          fi
+
+      - name: Save Nx cache (post-tests/build)
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            .nx/cache
+            node_modules/.cache
+          key: nx-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ github.sha }}
