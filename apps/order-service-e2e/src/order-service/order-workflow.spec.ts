@@ -10,6 +10,7 @@ import {
   AcceptWorkshopInvitationDtoV1,
   ConfirmStageCompletionDtoV1,
   KafkaTopics,
+  OrderCancelDtoV1,
   MarkStageCompletionDtoV1,
   OrderHistoryQueryResultDto,
   OrderHistoryQueryResultFlatDto,
@@ -471,6 +472,91 @@ describe('Order workflow integration (read model + Kafka)', () => {
     const final = await readStages(READ, commissionerId);
     expect(final.total).toBeGreaterThan(0);
   }, 180_000);
+
+  it('cancel-before-accept: emits OrderCancelled; read model reflects cancellation', async () => {
+    console.log(`[E2E] Starting cancel-before-accept test...`);
+    const commissionerId = randomUUID();
+    const workshops = [randomUUID(), randomUUID()];
+
+    const seen = new Set<string>();
+    let orderId!: string;
+
+    await withConsumer(
+      [String(KafkaTopics.OrderTransitions)],
+      ({ headers, value }) => {
+        const name = headers['x-event-name'];
+        const vOrderId = value?.orderId ?? value?.orderID;
+        if (name && vOrderId && vOrderId === orderId) seen.add(name);
+      },
+      async () => {
+        const postOrderUrl = `${CMD}/${ApiPaths.Root}/${OrderInitPaths.Root}`;
+        console.log(`[E2E] Running order creation...`);
+        await axios.post(postOrderUrl, {
+          commissionerId,
+          selectedWorkshops: workshops,
+          request: {
+            title: 'cancel',
+            description: 'cancel-before-accept',
+            deadline: isoNow(),
+            budget: '1',
+          },
+        } satisfies OrderInitDtoV1);
+
+        orderId = await pollUntil(
+          async () => {
+            const d = await readStages(READ, commissionerId);
+            return Boolean(d?.items?.[0]?.orderId);
+          },
+          {
+            timeoutMs: 90_000,
+            intervalMs: 400,
+          },
+          `Timed out waiting for order to appear in read model for commissioner ${commissionerId}`,
+        ).then(async () => {
+          const d = await readStages(READ, commissionerId);
+          return d.items[0].orderId;
+        });
+        console.log(`[E2E] Order retrieved: ${orderId}`);
+
+        const cancelUrl = `${CMD}/${ApiPaths.Root}/order/cancel`;
+        console.log(`[E2E][HTTP] POST ${cancelUrl} orderId=${orderId}`);
+        await axios.post(cancelUrl, {
+          orderId,
+          cancelledBy: 'commissioner',
+          reason: 'test',
+        } satisfies OrderCancelDtoV1);
+
+        console.log(`[E2E] Waiting for OrderCancelled event...`);
+        await pollUntil(
+          async () => seen.has('OrderCancelled'),
+          {
+            timeoutMs: 60_000,
+            intervalMs: 400,
+          },
+          `Timed out waiting for OrderCancelled event for order ${orderId}`,
+        );
+
+        console.log(`[E2E] Waiting for read model to reflect cancellation...`);
+        await pollUntil(
+          async () => {
+            const d = await readStages(READ, commissionerId);
+            return d.items[0]?.orderState === 'Cancelled';
+          },
+          {
+            timeoutMs: 60_000,
+            intervalMs: 400,
+          },
+          `Timed out waiting for read model cancellation for order ${orderId}`,
+        );
+      },
+    );
+
+    console.log(`[E2E] verifying results of cancel-before-accept...`);
+    expect(seen.has('OrderCancelled')).toBe(true);
+    const after = await readStages(READ, commissionerId);
+    expect(after.items[0]?.orderState).toBe('Cancelled');
+    expect(after.items[0]?.isTerminated).toBe(true);
+  }, 120_000);
 
   // --------- Non-happy paths ---------
 
