@@ -3,7 +3,11 @@ import {
   ProgrammerErrorRegistry,
   InfraErrorRegistry,
 } from 'error-handling/registries/common';
+
+import { assertPositiveInteger } from '../assertions/assert-positive-integer.assertion';
+
 import { assertImplementsEntityTechnicals } from 'libs/persistence/src/lib/assertions/assert-implements-entity-technicals.assertion';
+
 import { isoNow } from 'shared-kernel';
 
 import type { DataSource, EntityManager, ObjectType } from 'typeorm';
@@ -37,14 +41,10 @@ export async function updateWithVersionGuard<T extends object>(input: {
     (entityManager as any)?.dataSource ?? (entityManager as any)?.connection;
   const meta = ds.getMetadata(target);
 
-  if (!Number.isInteger(currentVersion) || currentVersion <= 0) {
-    throw new ProgrammerError({
-      errorObject: ProgrammerErrorRegistry.byCode.BUG,
-      details: {
-        description: `version must be a positive integer; do not use ${updateWithVersionGuard.name} for inserts`,
-      },
-    });
-  }
+  assertPositiveInteger({
+    value: currentVersion,
+    description: `version must be a positive integer; do not use ${updateWithVersionGuard.name} for inserts`,
+  });
 
   assertImplementsEntityTechnicals(input.entity);
 

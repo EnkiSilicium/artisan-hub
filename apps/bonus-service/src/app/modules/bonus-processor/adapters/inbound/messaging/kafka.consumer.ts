@@ -9,9 +9,9 @@ import {
 } from '@nestjs/microservices';
 import { BonusEventService } from 'apps/bonus-service/src/app/modules/bonus-processor/application/services/bonus-event/bonus-event.service';
 import { KafkaTopics } from 'contracts';
-import { ProgrammerError } from 'error-handling/error-core';
 import { KafkaErrorInterceptor } from 'error-handling/interceptor';
-import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
+import { assertCommissionerIdDefined } from '../assertions/assert-commissioner-id-defined.assertion';
+import { assertEventNameDefined } from '../assertions/assert-event-name-defined.assertion';
 import { LoggingInterceptor } from 'observability';
 import { validator } from 'adapter';
 import { isoNow } from 'shared-kernel';
@@ -43,23 +43,11 @@ export class BonusEventsConsumer {
   // If event is invalid, it's detected at the application/domain layer.
   private async route(event: any, ctx: KafkaContext): Promise<void> {
     const eventId = event?.eventId ?? getHashId(event);
-    const commissionerId = event?.commissionerId;
-    if (!commissionerId) {
-      throw new ProgrammerError({
-        errorObject: ProgrammerErrorRegistry.byCode.BUG,
-        details: {
-          description: `injested event named [${event?.eventName}] does not have commissionerId`,
-        },
-      });
-    }
-    const injestedAt = isoNow();
     const eventName = event?.eventName;
-    if (!eventName) {
-      throw new ProgrammerError({
-        errorObject: ProgrammerErrorRegistry.byCode.BUG,
-        details: { description: `injested event does not have eventName` },
-      });
-    }
+    assertEventNameDefined({ eventName });
+    const commissionerId = event?.commissionerId;
+    assertCommissionerIdDefined({ commissionerId, eventName });
+    const injestedAt = isoNow();
 
     await this.bonusService.process({
       eventId,
