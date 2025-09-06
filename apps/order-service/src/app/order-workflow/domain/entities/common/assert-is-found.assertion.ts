@@ -9,7 +9,7 @@ export function assertIsFound<event extends { name: string }>(
     commissionerId?: string;
     workshopId?: string;
   },
-): asserts object is event {
+): void {
   if (!object) {
     throw new DomainError({
       errorObject: OrderDomainErrorRegistry.byCode.NOT_FOUND,
