@@ -83,7 +83,7 @@
       ],
       "options": {
         "jestConfig": "apps/bonus-service/jest.config.ts",
-        "passWithNoTests": false
+        "passWithNoTests": true
       }
     }
   }

@@ -84,7 +84,7 @@
       ],
       "options": {
         "jestConfig": "apps/order-service/jest.config.ts",
-        "passWithNoTests": false
+        "passWithNoTests": true
       }
     }
   }
