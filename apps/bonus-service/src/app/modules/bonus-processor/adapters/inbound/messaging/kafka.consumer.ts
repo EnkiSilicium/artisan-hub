@@ -13,7 +13,8 @@ import { KafkaErrorInterceptor } from 'error-handling/interceptor';
 import { assertsCanBeBonusEvent } from '../assertions/asserts-can-be-bonus-event.assertion';
 import { LoggingInterceptor } from 'observability';
 import { validator } from 'adapter';
-import { isoNow } from 'shared-kernel';
+import { assertIsObject, isoNow } from 'shared-kernel';
+import { BonusEventName } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.registy.js';
 
 @Controller()
 export class BonusEventsConsumer {
@@ -40,9 +41,13 @@ export class BonusEventsConsumer {
   }
 
   // If event is invalid, it's detected at the application/domain layer.
-  private async route(event: any, ctx: KafkaContext): Promise<void> {
+
+    
+
+  private async route(event: unknown, _ctx: KafkaContext): Promise<void> {
+    assertIsObject(event);
     assertsCanBeBonusEvent(event);
-    const eventId = event.eventId ?? getHashId(event);
+    const eventId = (event['eventId'] as string | undefined) ?? getHashId(event);
     const { eventName, commissionerId } = event;
     const injestedAt = isoNow();
 
@@ -50,7 +55,8 @@ export class BonusEventsConsumer {
       eventId,
       commissionerId,
       injestedAt,
-      eventName,
+      //deciding whether it is actually a bonus even is domain logic
+      eventName: eventName as BonusEventName, 
     });
   }
 }

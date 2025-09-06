@@ -2,17 +2,13 @@ import { ProgrammerError } from 'error-handling/error-core';
 import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
 import type { BaseEvent } from 'contracts';
 
-interface MaybeEvent {
-  eventName?: unknown;
-  commissionerId?: unknown;
-}
 
 export function assertsCanBeBonusEvent(
-  event: MaybeEvent,
-): asserts event is BaseEvent<string> & { commissionerId: string } {
+  event: Record<string, unknown>,
+): asserts event is BaseEvent<string> & { commissionerId: string } & Record<string, unknown> {
 
-  const eventName = event?.eventName
-  const commissionerId = event?.commissionerId
+  const eventName = event['eventName']
+  const commissionerId = event['commissionerId']
 
   if (!eventName) {
     throw new ProgrammerError({
