@@ -98,7 +98,6 @@ import { OrderAuthGuardProxy } from 'apps/order-service/src/app/order-workflow/i
     WinstonModule.forRoot({
       transports: [
         orderWorkflowWinstonConfig.transports.consoleTransport,
-        orderWorkflowWinstonConfig.transports.fileTransport,
       ],
     }),
   ],

@@ -5,6 +5,13 @@ on:
   push:
     branches: [master]
 
+env: 
+  ORDER_WRKFLOW_HTTP_PORT: 3001
+  ORDER_READ_HTTP_PORT: 3002
+  BONUS_PROC_HTTP_PORT: 3003
+  BONUS_READ_HTTP_PORT: 3004
+
+
 jobs:
   verify:
     runs-on: ubuntu-latest

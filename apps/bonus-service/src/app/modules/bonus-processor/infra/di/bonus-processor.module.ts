@@ -33,16 +33,9 @@ import {
 @Module({
   imports: [
     TypeOrmModule.forRoot(bonusProcessorTypeOrmOptions),
+
+
     OutboxModule,
-
-    BullModule.registerQueue(outboxBullMqConfigFactory()),
-
-    BullModule.forRoot({
-      connection: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: Number(process.env.REDIS_PORT || 6379),
-      },
-    }),
 
     OpenTelemetryModule.forRoot({
       metrics: {
@@ -56,6 +49,17 @@ import {
         },
       },
     }),
+
+    BullModule.registerQueue(outboxBullMqConfigFactory()),
+
+    BullModule.forRoot({
+      connection: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: Number(process.env.REDIS_PORT || 6379),
+      },
+    }),
+
+    
     ClientsModule.register([
       {
         name: KAFKA_PRODUCER,
@@ -72,7 +76,6 @@ import {
     WinstonModule.forRoot({
       transports: [
         bonusProcessorWinstonConfig.transports.consoleTransport,
-        bonusProcessorWinstonConfig.transports.fileTransport,
       ],
     }),
   ],
@@ -106,4 +109,4 @@ import {
     },
   ],
 })
-export class BonusProcessorModule {}
+export class BonusProcessorModule { }

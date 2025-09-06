@@ -16,12 +16,7 @@ export function makeWinstonOptions(overrides: LoggerFactoryOverrides = {}) {
   const level =
     overrides.level ??
     (extractBoolEnv(process.env.DEBUG) ? 'debug' : 'verbose');
-  const logFile =
-    overrides.logFile ??
-    extractStrEnvWithFallback(
-      process.env.LOGFILE_OUTPUT_LOCATION,
-      '/logs/logfile.log',
-    );
+
 
   const serviceName = overrides.serviceName ?? 'order-service';
 
@@ -48,25 +43,13 @@ export function makeWinstonOptions(overrides: LoggerFactoryOverrides = {}) {
     format: production ? prodFormat : devFormat,
   });
 
-  const fileJson = winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json(),
-  );
 
-  const fileTransport = new winston.transports.File({
-    filename: logFile,
-    format: fileJson,
-  });
 
   return {
-    transports: { consoleTransport, fileTransport },
+    transports: { consoleTransport },
     exceptionHandlers: {
       consoleTransport: new winston.transports.Console({
         format: production ? prodFormat : devFormat,
-      }),
-      fileTransport: new winston.transports.File({
-        filename: 'exceptions.log',
-        format: fileJson,
       }),
     },
   } as const;
