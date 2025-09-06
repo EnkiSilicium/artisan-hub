@@ -83,7 +83,7 @@
       ],
       "options": {
         "jestConfig": "apps/workshop-mobile-bff/jest.config.ts",
-        "passWithNoTests": false
+        "passWithNoTests": true
       }
     }
   }

@@ -1,12 +1,14 @@
+import { Optional } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsString,
   IsNotEmpty,
   ValidateNested,
   IsISO8601,
+  IsBoolean,
+  IsNumber,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-import { Optional } from '@nestjs/common';
 
 /**
  * Acceptance payload data for a workshop invitation.
@@ -66,7 +68,7 @@ export class StagesDataV1 {
     example: true,
   })
   @IsNotEmpty()
-  @IsString()
+  @IsBoolean()
   needsConfirmation!: boolean;
 
   @ApiProperty({
@@ -80,7 +82,7 @@ export class StagesDataV1 {
 
   @ApiProperty({ type: Number, description: 'Order of the stage', example: 1 })
   @IsNotEmpty()
-  @IsString()
+  @IsNumber()
   stageOrder!: number;
 }
 

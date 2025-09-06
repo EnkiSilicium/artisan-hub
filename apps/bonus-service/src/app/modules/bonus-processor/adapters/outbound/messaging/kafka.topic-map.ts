@@ -1,8 +1,12 @@
-import { BonusEventInstanceUnion, KafkaTopics } from "contracts";
+import { KafkaTopics } from 'contracts';
 
-export const BonusServiceTopicMap: Record<BonusEventInstanceUnion["eventName"], KafkaTopics> ={
-    GradeAttained: KafkaTopics.GradeUpdates,
-    VipAccquired: KafkaTopics.VipStatusUpdates,
-    VipLost: KafkaTopics.VipStatusUpdates
+import type { BonusEventInstanceUnion } from 'contracts';
 
-} as const
+export const BonusServiceTopicMap: Record<
+  BonusEventInstanceUnion['eventName'],
+  KafkaTopics
+> = {
+  GradeAttained: KafkaTopics.GradeUpdates,
+  VipAccquired: KafkaTopics.VipStatusUpdates,
+  VipLost: KafkaTopics.VipStatusUpdates,
+} as const;

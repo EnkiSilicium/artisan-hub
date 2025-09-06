@@ -2,6 +2,9 @@ import {
   Body,
   Controller,
   Post,
+  UsePipes,
+  ValidationPipe,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -10,30 +13,32 @@ import {
   ApiCreatedResponse,
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiNotFoundResponse,
+  ApiConflictResponse,
+  ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 import { WorkshopInvitationResponseService } from 'apps/order-service/src/app/order-workflow/application/services/workshop/workshop-invitation-response.service';
 import {
   AcceptWorkshopInvitationDtoV1,
   DeclineWorkshopInvitationDtoV1,
-
   WorkshopInvitationAcceptResultDto,
   WorkshopInvitationDeclineResultDto,
-
   WorkshopInvitationResponsePaths,
-
 } from 'contracts';
+import { validator } from 'adapter';
+import { OrderAuthGuardProxy } from 'apps/order-service/src/app/order-workflow/infra/auth/proxy/auth-token-proxy';
 
 @ApiTags('Order workflow')
-
 @ApiBearerAuth('JWT')
 @Controller({ path: WorkshopInvitationResponsePaths.Root, version: '1' })
-
 export class WorkshopInvitationResponseController {
   constructor(
     private readonly workshopInvitationResponseService: WorkshopInvitationResponseService,
   ) {}
 
   @Post(WorkshopInvitationResponsePaths.Accept)
+  @UseGuards(OrderAuthGuardProxy)
+  @UsePipes(new ValidationPipe(validator))
   @ApiOperation({
     summary: 'Accept a workshop invitation',
     description:
@@ -45,6 +50,9 @@ export class WorkshopInvitationResponseController {
     type: WorkshopInvitationAcceptResultDto,
   })
   @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiNotFoundResponse({ description: 'Order or invitation not found (NOT_FOUND)' })
+  @ApiConflictResponse({ description: 'Illegal state transition (ILLEGAL_TRANSITION)' })
+  @ApiUnprocessableEntityResponse({ description: 'Validation failed (VALIDATION)' })
   async accept(
     @Body() body: AcceptWorkshopInvitationDtoV1,
   ) {
@@ -67,6 +75,8 @@ export class WorkshopInvitationResponseController {
   }
 
   @Post(WorkshopInvitationResponsePaths.Decline)
+  @UseGuards(OrderAuthGuardProxy)
+  @UsePipes(new ValidationPipe(validator))
   @ApiOperation({
     summary: 'Decline a workshop invitation',
     description:
@@ -78,6 +88,8 @@ export class WorkshopInvitationResponseController {
     type: WorkshopInvitationDeclineResultDto,
   })
   @ApiBadRequestResponse({ description: 'Validation failed' })
+  @ApiNotFoundResponse({ description: 'Order or invitation not found (NOT_FOUND)' })
+  @ApiConflictResponse({ description: 'Illegal state transition (ILLEGAL_TRANSITION)' })
   async decline(
     @Body() body: DeclineWorkshopInvitationDtoV1,
   ) {

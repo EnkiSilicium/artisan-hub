@@ -1,5 +1,5 @@
-import { DomainError} from 'error-handling/error-core';
-import {OrderDomainErrorRegistry} from 'error-handling/registries/order'
+import { DomainError } from 'error-handling/error-core';
+import { OrderDomainErrorRegistry } from 'error-handling/registries/order';
 
 export function assertIsFound<event extends { name: string }>(
   object: unknown,

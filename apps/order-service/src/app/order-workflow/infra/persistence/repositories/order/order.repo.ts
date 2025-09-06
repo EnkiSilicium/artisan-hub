@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Order } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.entity';
+import { OrderStates } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.enum';
+import { StateRegistry } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.state';
+import { StateClassUnion } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.type';
+import { remapTypeOrmPgErrorToInfra } from 'error-handling/remapper/typeorm-postgres';
 import {
   currentManager,
   requireTxManager,
@@ -7,14 +11,10 @@ import {
   updateWithVersionGuard,
 } from 'persistence';
 import { DataSource } from 'typeorm';
-import { remapTypeOrmPgErrorToInfra } from 'error-handling/remapper/typeorm-postgres'
-import { OrderStates } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.enum';
-import { StateRegistry } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.state';
-import { StateClassUnion } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.type';
 
 @Injectable()
 export class OrderRepo {
-  constructor(private readonly ds: DataSource) { }
+  constructor(private readonly ds: DataSource) {}
 
   async findById(orderId: string): Promise<Order | null> {
     try {
@@ -41,7 +41,6 @@ export class OrderRepo {
       const state: StateClassUnion = order.state;
       (order.state as unknown as OrderStates) = state.stateName;
 
-
       const setCreatedAt = true;
       setNewTimeAndVersion(1, order, setCreatedAt);
 
@@ -62,14 +61,12 @@ export class OrderRepo {
         entity: order,
         set: {
           commissionerId: order.commissionerId,
-          state: order.state.stateName as any, // hack to store the name instead of the object
+          state: order.state.stateName as unknown as StateClassUnion, // hack to store the name instead of the object
           isTerminated: order.isTerminated,
           createdAt: order.createdAt,
         },
         currentVersion: order.version,
-      });  
-
-
+      });
     } catch (error) {
       remapTypeOrmPgErrorToInfra(error);
     }

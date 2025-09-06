@@ -1,6 +1,6 @@
-import { makeRegistry } from "error-handling/error-core";
-import { BaseDescriptor } from "error-handling/error-core";
+import { makeRegistry } from 'error-handling/error-core';
 
+import type { BaseDescriptor } from 'error-handling/error-core';
 
 export const BonusDomainErrorDefs = [
   {
@@ -27,7 +27,7 @@ export const BonusDomainErrorDefs = [
     httpStatus: 412,
     v: 1,
   },
-    {
+  {
     code: 'INVARIANTS_VIOLATED',
     message: 'Invariants violated',
     service: 'bonus-service',
@@ -35,7 +35,7 @@ export const BonusDomainErrorDefs = [
     httpStatus: 409,
     v: 1,
   },
-    {
+  {
     code: 'POLICY_VERSION_CONFLICT',
     message: 'Policy version mismatch',
     service: 'bonus-service',

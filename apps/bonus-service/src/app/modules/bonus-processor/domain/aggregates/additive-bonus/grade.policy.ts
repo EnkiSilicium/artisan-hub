@@ -1,6 +1,5 @@
-import { ProgrammerError } from "error-handling/error-core";
-import { ProgrammerErrorRegistry } from "error-handling/registries/common";
-
+import { ProgrammerError } from 'error-handling/error-core';
+import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
 
 export abstract class GradePolicyAttributes {
   abstract readonly policyName: 'GradePolicy';
@@ -59,7 +58,7 @@ export const GradePolicy: GradePolicyInterface & GradePolicyMethods = {
     // Amount of grades is expected to be < 5, so, building a B-tree is actually
     // less performant
     for (const name of gradeNames) {
-      let threshold = this.registry[name].startThreshold;
+      const threshold = this.registry[name].startThreshold;
       if (threshold <= points && threshold >= currentGrade.threshold) {
         currentGrade = {
           name: name,

@@ -1,10 +1,6 @@
-
 // PROGRAMMER registry
 
-import { makeRegistry } from "error-handling/error-core";
-
-
-
+import { makeRegistry } from 'error-handling/error-core';
 
 export const ProgrammerErrorDefs = [
   {
@@ -19,7 +15,6 @@ export const ProgrammerErrorDefs = [
 
 export const ProgrammerErrorRegistry = makeRegistry(
   'PROGRAMMER',
-  ProgrammerErrorDefs
+  ProgrammerErrorDefs,
 );
 export const ProgrammerErrorCodes = ProgrammerErrorRegistry.codes;
-

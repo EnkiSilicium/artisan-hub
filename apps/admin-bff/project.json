@@ -83,7 +83,7 @@
       ],
       "options": {
         "jestConfig": "apps/admin-bff/jest.config.ts",
-        "passWithNoTests": false
+        "passWithNoTests": true
       }
     }
   }

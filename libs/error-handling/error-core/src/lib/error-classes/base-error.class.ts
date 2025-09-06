@@ -1,8 +1,5 @@
-import { BaseDescriptor } from "error-handling/error-core";
-import { ErrorKind } from 'error-handling/error-core';
-
-
-
+import type { BaseDescriptor } from 'error-handling/error-core';
+import type { ErrorKind } from 'error-handling/error-core';
 
 export class AppError extends Error {
   readonly kind: ErrorKind;
@@ -15,7 +12,7 @@ export class AppError extends Error {
   readonly details?: Record<string, unknown>;
   /**Original error goes here. */
   //@ts-ignore
-  override readonly cause?: Record<string, unknown>; 
+  override readonly cause?: Record<string, unknown>;
 
   protected constructor(args: {
     kind: ErrorKind;

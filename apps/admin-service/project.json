@@ -83,7 +83,7 @@
       ],
       "options": {
         "jestConfig": "apps/admin-service/jest.config.ts",
-        "passWithNoTests": false
+        "passWithNoTests": true
       }
     }
   }

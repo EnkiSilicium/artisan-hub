@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { AdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity';
+import { remapTypeOrmPgErrorToInfra } from 'error-handling/remapper/typeorm-postgres';
 import {
   currentManager,
   requireTxManager,
   updateWithVersionGuard,
 } from 'persistence';
 import { DataSource, EntityManager } from 'typeorm';
-import { remapTypeOrmPgErrorToInfra } from 'error-handling/remapper/typeorm-postgres';
-import { AdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity';
 
 @Injectable()
 export class AdditiveBonusRepo {

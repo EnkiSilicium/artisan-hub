@@ -1,18 +1,19 @@
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+
+import { Injectable } from '@nestjs/common';
 import { BonusEventProcessCommand } from 'apps/bonus-service/src/app/modules/bonus-processor/application/services/bonus-event/bonus-event.command';
-import { BonusEventEntity } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity';
-import { VipProfile } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.entity';
+import { AdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity';
 import { GradePolicy } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/grade.policy';
+import { BonusEventEntity } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.entity';
 import { BonusEventRegistry } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/common/bonus-event.registy';
+import { VipProfile } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.entity';
 import { VipProfileRegistry } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/vip-profile.registry';
 import { WindowAlgoRegistry } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/vip-profile/window-algo.registry';
 import { AdditiveBonusRepo } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/persistence/repositories/additive-bonus/additive-bonus.repo';
 import { BonusEventRepo } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/persistence/repositories/bonus-event/bonus-event.repo';
 import { VipProfileRepo } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/persistence/repositories/vip-profile/vip-profile.repo';
-import { enqueueOutbox, TypeOrmUoW } from 'persistence';
 import { GradeAttainedEventV1, VipAccquiredEventV1 } from 'contracts';
-import { createHash, randomUUID } from 'crypto';
-import { AdditiveBonus } from 'apps/bonus-service/src/app/modules/bonus-processor/domain/aggregates/additive-bonus/additive-bonus.entity';
+import { enqueueOutbox, TypeOrmUoW } from 'persistence';
 import { isoNow } from 'shared-kernel';
 
 @Injectable()
@@ -22,12 +23,9 @@ export class BonusEventService {
     private readonly additiveBonusRepo: AdditiveBonusRepo,
     private readonly bonusEventRepo: BonusEventRepo,
     private readonly vipProfileRepo: VipProfileRepo,
-  ) { }
+  ) {}
   async process(cmd: BonusEventProcessCommand) {
     return this.uow.runWithRetry({}, async () => {
-
-      
-
       let additiveBonusProfile: AdditiveBonus | null =
         await this.additiveBonusRepo.findByCommissionerId(cmd.commissionerId);
       if (!additiveBonusProfile) {
@@ -36,8 +34,8 @@ export class BonusEventService {
           gradePolicy: GradePolicy,
           bonusRegistry: BonusEventRegistry,
         });
-        this.additiveBonusRepo.insert(additiveBonusProfile);
-      } 
+        await this.additiveBonusRepo.insert(additiveBonusProfile);
+      }
 
       const event = new BonusEventEntity({
         eventId: cmd.eventId,
@@ -47,8 +45,6 @@ export class BonusEventService {
       });
 
       await this.bonusEventRepo.insert(event);
-
-
 
       let vipProfile: VipProfile | null =
         await this.vipProfileRepo.findByCommissionerId(cmd.commissionerId);
@@ -61,7 +57,7 @@ export class BonusEventService {
         });
 
         await this.vipProfileRepo.insert(vipProfile);
-      } 
+      }
 
       const { gradeChanged } = additiveBonusProfile.processBonusEvent(
         event.eventName,
@@ -80,12 +76,9 @@ export class BonusEventService {
         BonusEventRegistry,
       );
 
+      await this.vipProfileRepo.update(vipProfile);
 
-        await this.vipProfileRepo.update(vipProfile);
-
-
-        await this.additiveBonusRepo.update(additiveBonusProfile);
-
+      await this.additiveBonusRepo.update(additiveBonusProfile);
 
       if (vipGained) {
         const vipGainedPayload: VipAccquiredEventV1 = {

@@ -6,17 +6,16 @@ import {
   CallHandler,
   Logger,
 } from '@nestjs/common';
+import { KafkaContext } from '@nestjs/microservices';
 import { Observable, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
-import { KafkaContext } from '@nestjs/microservices';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
   private readonly logger = new Logger(LoggingInterceptor.name);
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    Logger.debug({ message: `${LoggingInterceptor.name} active` })
-
+    Logger.debug({ message: `${LoggingInterceptor.name} active` });
 
     const controller = context.getClass()?.name ?? 'UnknownController';
     const method = context.getHandler()?.name ?? 'unknownMethod';
@@ -31,7 +30,7 @@ export class LoggingInterceptor implements NestInterceptor {
       method,
       transport,
       meta,
-    } as any);
+    });
 
     return next.handle().pipe(
       // AFTER SUCCESS
@@ -43,10 +42,10 @@ export class LoggingInterceptor implements NestInterceptor {
           transport,
           durationMs: Date.now() - started,
           meta,
-        } as any);
+        });
       }),
       // FAILURE
-      catchError((error: unknown) => {
+      catchError((error: Error) => {
         try {
           this.logger.error({
             message: `${controller}::${method} FAILURE`,
@@ -56,12 +55,12 @@ export class LoggingInterceptor implements NestInterceptor {
             durationMs: Date.now() - started,
             meta,
             error: this.toPlain(error),
-          } as any);
+          });
         } catch {
           // last-ditch fallback if someone throws a cursed object
           this.logger.error(
             `${controller}::${method} FAILURE`,
-            (error as any)?.stack,
+            error?.stack,
             LoggingInterceptor.name,
           );
         }
@@ -136,7 +135,7 @@ export class LoggingInterceptor implements NestInterceptor {
     return Object.keys(out).length ? out : undefined;
   }
 
-  private toPlain(error: any) {
+  private toPlain(error: Error): object {
     try {
       // include non-enumerable props like 'message' and 'stack'
       return JSON.parse(

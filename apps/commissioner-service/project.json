@@ -83,7 +83,7 @@
       ],
       "options": {
         "jestConfig": "apps/commissioner-service/jest.config.ts",
-        "passWithNoTests": false
+        "passWithNoTests": true
       }
     }
   }

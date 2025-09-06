@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { toOrderStageFlatPageDto } from 'apps/order-service/src/app/read-model/application/query-handlers/history-mapper';
-
 import {
   OrderStageFlatQuery,
   OrderStageFlatRepo,

@@ -13,55 +13,44 @@ type Stack = {
 };
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __E2E_STACK__: Stack;
 }
 
 module.exports = async function () {
   console.log('\n[E2E] Setting up Postgres, Kafka, and app (Option B)...\n');
-
-  // 1) Infra containers
+  // Start dependent containers
   const pg = await new PostgreSqlContainer('postgres:16-alpine').start();
-
-  // Confluent image required by KafkaContainer typings in your version
   const KAFKA_IMAGE = process.env.KAFKA_IMAGE ?? 'confluentinc/cp-kafka:7.5.3';
   const kafka = await new KafkaContainer(KAFKA_IMAGE)
     .withStartupTimeout(120_000)
     .start();
-
-  // Prefer getBootstrapServers if available, else use mapped 9093
   const anyKafka = kafka as any;
   const bootstrap: string =
     typeof anyKafka.getBootstrapServers === 'function'
       ? anyKafka.getBootstrapServers()
       : `${kafka.getHost()}:${kafka.getMappedPort(9093)}`;
-
-  // 2) App ports
+  // Expose ports for processor and read API
   const PROC_PORT = Number(process.env.BONUS_PROC_HTTP_PORT ?? 3001);
   const READ_PORT = Number(process.env.BONUS_READ_HTTP_PORT ?? 3002);
-
-  // 3) Environment for the spawned app and for tests
+  // Shared environment for app and tests
   const env = {
     ...process.env,
-    // DB
     PG_HOST: pg.getHost(),
     PG_PORT: String(pg.getMappedPort(5432)),
     PG_USER: pg.getUsername(),
     PG_PASSWORD: pg.getPassword(),
     PG_DB: pg.getDatabase(),
     DB_SCHEMA: 'public',
-    // Kafka
     KAFKA_BOOTSTRAP: bootstrap,
     KAFKA_BROKER_HOSTNAME: bootstrap.split(':')[0],
     KAFKA_BROKER_PORT: bootstrap.split(':')[1],
-    // HTTP
     BONUS_PROC_HTTP_PORT: String(PROC_PORT),
     BONUS_READ_HTTP_PORT: String(READ_PORT),
     HTTP_PREFIX: 'api',
     READ_BASE_URL: `http://127.0.0.1:${READ_PORT}`,
   };
-
-  // 4) Spawn the built app (dist/apps/bonus-service/main.js)
+  // Spawn built bonus-service entry
   const entry = path.join(process.cwd(), 'dist', 'apps', 'bonus-service', 'main.js');
   if (!fs.existsSync(entry)) {
     throw new Error(
@@ -72,14 +61,11 @@ module.exports = async function () {
   const app = spawn('node', [entry], {
     env,
     stdio: 'inherit',
-    shell: true, // Windows-friendly
+    shell: true,
   });
-
-  // 5) Wait for HTTP surfaces
+  // Wait for HTTP endpoints to be ready
   await waitForPortOpen(PROC_PORT, { host: '127.0.0.1' });
   await waitForPortOpen(READ_PORT, { host: '127.0.0.1' });
-
-  // 6) Keep only live handles for teardown
   (globalThis as any).__E2E_STACK__ = { pg, kafka, app };
 
   process.env.KAFKA_BOOTSTRAP = env.KAFKA_BOOTSTRAP;

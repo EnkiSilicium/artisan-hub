@@ -1,3 +1,21 @@
+import { Logger } from '@nestjs/common';
+import { StageStatus } from 'apps/order-service/src/app/order-workflow/domain/entities/stage/stage-status.enum';
+import {
+  IsUUID,
+  IsString,
+  IsNotEmpty,
+  IsBoolean,
+  Length,
+  IsNumber,
+  Min,
+  IsEnum,
+  IsInt,
+  IsOptional,
+} from 'class-validator';
+import { DomainError } from 'error-handling/error-core';
+import { OrderDomainErrorRegistry } from 'error-handling/registries/order';
+import { EntityTechnicalsInterface, IsoDateTransformer } from 'persistence';
+import { assertValid } from 'shared-kernel';
 import {
   Entity,
   PrimaryColumn,
@@ -11,25 +29,8 @@ import {
   VersionColumn,
   CreateDateColumn,
 } from 'typeorm';
-import {
-  IsUUID,
-  IsString,
-  IsNotEmpty,
-  IsBoolean,
-  Length,
-  IsNumber,
-  Min,
-  IsEnum,
-  IsInt,
-  IsOptional,
-} from 'class-validator';
+
 import { WorkshopInvitation } from '../workshop-invitation/workshop-invitation.entity';
-import { EntityTechnicalsInterface, IsoDateTransformer } from 'persistence';
-import { assertValid } from 'shared-kernel';
-import { StageStatus } from 'apps/order-service/src/app/order-workflow/domain/entities/stage/stage-status.enum';
-import { DomainError } from 'error-handling/error-core';
-import { OrderDomainErrorRegistry } from 'error-handling/registries/order';
-import { Logger } from '@nestjs/common';
 
 /**
  * Aggregate root for Stage entity.
@@ -163,7 +164,7 @@ export class StagesAggregate {
    */
   private findFirstNonCompleted(): number | undefined {
     for (let i = 0; i < this.amountOfStages; i++) {
-      if (this.stages[i]!.status !== StageStatus.Completed) return i;
+      if (this.stages[i].status !== StageStatus.Completed) return i;
     }
     return undefined;
   }
@@ -175,7 +176,7 @@ export class StagesAggregate {
   private advanceCurrentIfCompleted(changedOrder: number): void {
     if (
       changedOrder === this.currentStage &&
-      this.stages[changedOrder]!.status === StageStatus.Completed
+      this.stages[changedOrder].status === StageStatus.Completed
     ) {
       //technically, would work even if StageStatus = awaitingConfiramtion
       const next = this.findFirstNonCompleted();

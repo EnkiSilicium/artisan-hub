@@ -1,13 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
-import { InvitationResponseTracker } from './invitation-response-tracker.entity';
+import { KafkaProducerPort } from 'adapter';
 import {
   AllInvitationsDeclinedEventV1,
   AllResponsesReceivedEventV1,
   OrderEventInstanceUnion,
 } from 'contracts';
-import { KafkaProducerPort } from 'adapter';
 import { isoNow } from 'shared-kernel';
+import { DataSource, Repository } from 'typeorm';
+
+import { InvitationResponseTracker } from './invitation-response-tracker.entity';
 
 @Injectable()
 export class WorkshopInvitationTracker {
@@ -16,16 +17,16 @@ export class WorkshopInvitationTracker {
   constructor(
     private readonly ds: DataSource,
     private readonly producer: KafkaProducerPort<OrderEventInstanceUnion>,
-  ) {
-
-  }
+  ) {}
 
   async initialize(
     orderId: string,
     commissionerId: string,
     total: number,
   ): Promise<void> {
-    const repo: Repository<InvitationResponseTracker> = this.ds.getRepository(InvitationResponseTracker);
+    const repo: Repository<InvitationResponseTracker> = this.ds.getRepository(
+      InvitationResponseTracker,
+    );
 
     const entity = new InvitationResponseTracker();
     entity.orderId = orderId;
@@ -38,13 +39,16 @@ export class WorkshopInvitationTracker {
   }
 
   async handleResponse(orderId: string, declined: boolean) {
-    const repo: Repository<InvitationResponseTracker> = this.ds.getRepository(InvitationResponseTracker);
-    
+    const repo: Repository<InvitationResponseTracker> = this.ds.getRepository(
+      InvitationResponseTracker,
+    );
+
     const tracker = await repo.findOneBy({ orderId });
     if (!tracker) {
-      this.logger.warn(
-        { message: `Received invitation response for unknown order`, orderId },
-      );
+      this.logger.warn({
+        message: `Received invitation response for unknown order`,
+        orderId,
+      });
       return;
     }
 
@@ -76,8 +80,7 @@ export class WorkshopInvitationTracker {
       }
 
       await this.producer.dispatch(events);
-      await repo.delete({ orderId } );
+      await repo.delete({ orderId });
     }
   }
 }
-

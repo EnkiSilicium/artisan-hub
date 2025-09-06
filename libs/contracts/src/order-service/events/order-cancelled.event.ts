@@ -1,34 +1,39 @@
-import { Equals, IsInt, IsISO8601, IsNotEmpty, IsOptional, IsString } from "class-validator";
-import { BaseEvent } from "libs/contracts/src/_common/base-event.event";
+import {
+  Equals,
+  IsInt,
+  IsISO8601,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import { BaseEvent } from 'libs/contracts/src/_common/base-event.event';
 
 export class OrderCancelledEventV1 implements BaseEvent<'OrderCancelled'> {
+  @IsNotEmpty()
+  @IsString()
+  eventName!: 'OrderCancelled';
 
-    @IsNotEmpty()
-    @IsString()
-    eventName!: "OrderCancelled";
+  @IsNotEmpty()
+  @IsString()
+  orderId!: string;
 
-    @IsNotEmpty()
-    @IsString()
-    orderId!: string;
+  @IsNotEmpty()
+  @IsString()
+  cancelledAt!: string;
 
-    @IsNotEmpty()
-    @IsString()
-    cancelledAt!: string;
+  @IsNotEmpty()
+  @IsString()
+  @IsISO8601()
+  cancelledBy!: string;
 
-    @IsNotEmpty()
-    @IsString()
-    @IsISO8601()
-    cancelledBy!: string;
+  @IsInt()
+  aggregateVersion!: number;
 
-    @IsInt()
-    aggregateVersion!: number 
+  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
+  reason?: string;
 
-    @IsOptional()
-    @IsNotEmpty()
-    @IsString()
-    reason?: string;
-
-    @Equals(1)
-    schemaV!: 1;
-
+  @Equals(1)
+  schemaV!: 1;
 }

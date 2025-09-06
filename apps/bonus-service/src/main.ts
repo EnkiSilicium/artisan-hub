@@ -1,24 +1,30 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { INestApplication } from '@nestjs/common';
-import { Transport, MicroserviceOptions } from '@nestjs/microservices';
+import { Transport } from '@nestjs/microservices';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { bonusProcessorKafkaConfig } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/config/kafka.config';
 import { BonusProcessorModule } from 'apps/bonus-service/src/app/modules/bonus-processor/infra/di/bonus-processor.module';
 import { BonusReadModule } from 'apps/bonus-service/src/app/modules/read-projection/infra/di/bonus-read.module';
-import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
-import { HttpErrorInterceptor, KafkaErrorInterceptor } from 'error-handling/interceptor';
-import { LoggingInterceptor } from 'observability';
 import { ApiPaths } from 'contracts';
-import otelSDK from 'libs/observability/src/lib/open-telemetry/tracing';
-import { Span } from 'nestjs-otel';
+import {
+  HttpErrorInterceptor,
+  KafkaErrorInterceptor,
+} from 'error-handling/interceptor';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { LoggingInterceptor } from 'observability';
+import { otelSDK } from 'observability';
 
+import type { INestApplication } from '@nestjs/common';
+import type { MicroserviceOptions } from '@nestjs/microservices';
 
-function setupSwagger(app: INestApplication, {
-  title,
-  version = '1.0.0',
-  path = '../docs',
-}: { title: string; version?: string; path?: string; }) {
+function setupSwagger(
+  app: INestApplication,
+  {
+    title,
+    version = '1.0.0',
+    path = '../docs',
+  }: { title: string; version?: string; path?: string },
+) {
   const config = new DocumentBuilder()
     .setTitle(title)
     .setVersion(version)
@@ -27,11 +33,12 @@ function setupSwagger(app: INestApplication, {
   SwaggerModule.setup(path, app, doc, { customSiteTitle: title });
 }
 
-
 async function startBonusProcessorApp() {
   const httpPort = Number(process.env.BONUS_PROC_HTTP_PORT ?? 3001);
 
-  const app = await NestFactory.create(BonusProcessorModule, { bufferLogs: true });
+  const app = await NestFactory.create(BonusProcessorModule, {
+    bufferLogs: true,
+  });
   //app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   app.enableShutdownHooks();
   app.setGlobalPrefix(process.env.HTTP_PREFIX ?? ApiPaths.Root);
@@ -40,9 +47,6 @@ async function startBonusProcessorApp() {
     app.get(HttpErrorInterceptor),
     app.get(LoggingInterceptor),
   );
-
-
-
 
   const microservice = app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.KAFKA,
@@ -53,15 +57,24 @@ async function startBonusProcessorApp() {
       run: bonusProcessorKafkaConfig.run,
     },
   });
-  microservice.useGlobalInterceptors(app.get(KafkaErrorInterceptor), app.get(LoggingInterceptor),);
+  microservice.useGlobalInterceptors(
+    app.get(KafkaErrorInterceptor),
+    app.get(LoggingInterceptor),
+  );
 
   await app.startAllMicroservices();
 
-  setupSwagger(app, { title: 'Bonus Processor API', path: 'docs', version: '1.0' });
+  setupSwagger(app, {
+    title: 'Bonus Processor API',
+    path: 'docs',
+    version: '1.0',
+  });
 
   await app.listen(httpPort);
   const url = await app.getUrl();
-  console.log(`[BonusReadModule] HTTP listening: ${url}  |  Swagger: ${url}/docs`);
+  console.log(
+    `[BonusReadModule] HTTP listening: ${url}  |  Swagger: ${url}/docs`,
+  );
 }
 
 async function startBonusReadApp() {
@@ -76,30 +89,26 @@ async function startBonusReadApp() {
     app.get(LoggingInterceptor),
   );
 
-
-  @Span()
-
   setupSwagger(app, { title: 'Bonus Read API', path: 'docs', version: '1.0' });
 
   await app.listen(httpPort);
   const url = await app.getUrl();
 
-  console.log(`[BonusReadModule] HTTP listening: ${url}  |  Swagger: ${url}/docs`);
+  console.log(
+    `[BonusReadModule] HTTP listening: ${url}  |  Swagger: ${url}/docs`,
+  );
 }
-
 
 async function bootstrap() {
   await otelSDK.start();
 
-
-  await startBonusProcessorApp()
+  await startBonusProcessorApp();
   //read depends on processor
-  await startBonusReadApp()
+  await startBonusReadApp();
 
   // Graceful shutdown on signals
   const shutdown = async (signal: string) => {
-
-    console.log(`\nReceived ${signal}. Shutting down...`)
+    console.log(`\nReceived ${signal}. Shutting down...`);
     process.exit(0);
   };
   process.on('SIGINT', () => shutdown('SIGINT'));
@@ -107,7 +116,6 @@ async function bootstrap() {
 }
 
 bootstrap().catch((err) => {
-  // eslint-disable-next-line no-console
   console.error('Fatal on bootstrap:', err);
   process.exit(1);
 });

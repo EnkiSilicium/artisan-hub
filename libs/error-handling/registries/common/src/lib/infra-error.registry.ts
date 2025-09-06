@@ -1,5 +1,6 @@
-import { makeRegistry } from "error-handling/error-core";
-import { BaseDescriptor } from "error-handling/error-core";
+import { makeRegistry } from 'error-handling/error-core';
+
+import type { BaseDescriptor } from 'error-handling/error-core';
 
 export const InfraErrorDefs = [
   {
@@ -9,7 +10,7 @@ export const InfraErrorDefs = [
     // details: { dependency, host?, port?, operation?, attempt? }
     code: 'UNAVAILABLE',
     message: 'Dependency unavailable',
-    retryable: true,          // retry with backoff is sensible
+    retryable: true, // retry with backoff is sensible
     httpStatus: 503,
     v: 1,
     service: 'infra',
@@ -20,7 +21,7 @@ export const InfraErrorDefs = [
     // details: { dependency, operation?, timeoutMs, attempt?, route?/queryHash? }
     code: 'TIMEOUT',
     message: 'Timeout',
-    retryable: true,          // retry may succeed later
+    retryable: true, // retry may succeed later
     httpStatus: 504,
     v: 1,
     service: 'infra',
@@ -31,7 +32,7 @@ export const InfraErrorDefs = [
     // details: { dependency, limit?, remaining?, resetAt?, operation? }
     code: 'RATE_LIMITED',
     message: 'Rate limited',
-    retryable: true,          // retry after reset/backoff
+    retryable: true, // retry after reset/backoff
     httpStatus: 429,
     v: 1,
     service: 'infra',
@@ -42,7 +43,7 @@ export const InfraErrorDefs = [
     // details: { dependency, breakerName?, openedAt?, coolDownMs?, failures? }
     code: 'CIRCUIT_OPEN',
     message: 'Circuit breaker open',
-    retryable: true,          // retry after cool-down
+    retryable: true, // retry after cool-down
     httpStatus: 503,
     v: 1,
     service: 'infra',
@@ -54,7 +55,7 @@ export const InfraErrorDefs = [
     // details: { dependency, status?, bodySnippet?, parseError?, operation? }
     code: 'BAD_DEPENDENCY_RESPONSE',
     message: 'Bad dependency response',
-    retryable: false,         // usually needs a fix upstream or contract change
+    retryable: false, // usually needs a fix upstream or contract change
     httpStatus: 502,
     v: 1,
     service: 'infra',
@@ -66,7 +67,7 @@ export const InfraErrorDefs = [
     // details: { dependency, reason, providerCode?, operation?, hint? }
     code: 'INTEGRATION',
     message: 'Integration error',
-    retryable: false,         // fix config/code, don’t auto-retry
+    retryable: false, // fix config/code, don’t auto-retry
     httpStatus: 502,
     v: 1,
     service: 'infra',
@@ -77,7 +78,7 @@ export const InfraErrorDefs = [
     // details: { db?, table?, driverCode?, retryAfterMs?, operation? }
     code: 'TX_CONFLICT',
     message: 'Transaction conflict',
-    retryable: true,          // safe to retry the unit of work
+    retryable: true, // safe to retry the unit of work
     httpStatus: 409,
     v: 1,
     service: 'infra',
@@ -88,7 +89,7 @@ export const InfraErrorDefs = [
     // details: { resource, lockType?, waitedMs?, ownerHint?, operation? }
     code: 'LOCK_TIMEOUT',
     message: 'Lock timeout',
-    retryable: true,          // retry after backoff
+    retryable: true, // retry after backoff
     httpStatus: 409,
     v: 1,
     service: 'infra',
@@ -99,7 +100,7 @@ export const InfraErrorDefs = [
     // details: { resource, quota?, used?, limit?, namespace?, operation? }
     code: 'RESOURCE_EXHAUSTED',
     message: 'Resource exhausted',
-    retryable: false,         // not until capacity changes
+    retryable: false, // not until capacity changes
     httpStatus: 507,
     v: 1,
     service: 'infra',
@@ -110,7 +111,7 @@ export const InfraErrorDefs = [
     // details: { source: 'kafka'|'http'|..., topic?/route?, offset?/requestId?, schemaVersion? }
     code: 'DESERIALIZATION_FAILED',
     message: 'Deserialization failed',
-    retryable: false,         // send to DLQ; replaying won’t help
+    retryable: false, // send to DLQ; replaying won’t help
     httpStatus: 502,
     v: 1,
     service: 'infra',
@@ -122,13 +123,12 @@ export const InfraErrorDefs = [
     // details: { expectedVersion, actualVersion, schemaId?/migration?, component? }
     code: 'SCHEMA_MISMATCH',
     message: 'Schema or contract mismatch',
-    retryable: false,         // coordinate a deploy/migration
+    retryable: false, // coordinate a deploy/migration
     httpStatus: 409,
     v: 1,
     service: 'infra',
   },
 ] as const satisfies readonly BaseDescriptor<string>[];
-
 
 export const InfraErrorRegistry = makeRegistry('INFRA', InfraErrorDefs);
 export const InfraErrorCodes = InfraErrorRegistry.codes;

@@ -3,6 +3,9 @@ import {
     Controller,
     Post,
     HttpCode,
+    UsePipes,
+    ValidationPipe,
+    UseGuards,
 } from '@nestjs/common';
 import {
     ApiTags,
@@ -11,17 +14,23 @@ import {
     ApiCreatedResponse,
     ApiBadRequestResponse,
     ApiBearerAuth,
+    ApiNotFoundResponse,
+    ApiConflictResponse,
 } from '@nestjs/swagger';
 import { OrderCancelService } from 'apps/order-service/src/app/order-workflow/application/services/order/order-cancel.service';
 import { OrderCancelDtoV1, OrderInitDtoV1 } from 'contracts';
+import { validator } from 'adapter';
+import { OrderAuthGuardProxy } from 'apps/order-service/src/app/order-workflow/infra/auth/proxy/auth-token-proxy';
 
 @ApiTags('Order workflow')
 @ApiBearerAuth('JWT')
 @Controller({ path: 'order/cancel', version: '1' })
 export class OrderCancelController {
-    constructor(private readonly orderCancelService: OrderCancelService) { }
+  constructor(private readonly orderCancelService: OrderCancelService) {}
 
     @Post()
+    @UseGuards(OrderAuthGuardProxy)
+    @UsePipes(new ValidationPipe(validator))
     @HttpCode(200)
     @ApiOperation({
         summary: 'Cancel an order',
@@ -30,6 +39,8 @@ export class OrderCancelController {
     @ApiBody({ type: OrderInitDtoV1 })
     @ApiCreatedResponse({ description: 'Order canceled successfully' })
     @ApiBadRequestResponse({ description: 'Validation failed' })
+    @ApiNotFoundResponse({ description: 'Order not found (NOT_FOUND)' })
+    @ApiConflictResponse({ description: 'Illegal state transition (ILLEGAL_TRANSITION)' })
     async postOrderCancel(@Body() body: OrderCancelDtoV1) {
         return await this.orderCancelService.orderCancel({
             orderId: body.orderId,

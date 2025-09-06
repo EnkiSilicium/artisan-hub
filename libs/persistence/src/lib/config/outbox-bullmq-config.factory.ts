@@ -1,19 +1,17 @@
-import { OUTBOX_QUEUE } from "libs/persistence/src/lib/tokens/outbox.tokens";
-
-
+import { OUTBOX_QUEUE } from 'libs/persistence/src/lib/tokens/outbox.tokens';
 
 export function outboxBullMqConfigFactory(override?: {
-  attempts?: number,
-  backoffCap?: number,
+  attempts?: number;
+  backoffCap?: number;
 }) {
   return {
     name: OUTBOX_QUEUE,
     // jobs default behavior
     defaultJobOptions: {
-      attempts: override?.attempts ?? 300,                             // total tries (initial + retries)
-      backoff: { type: 'expoCap' as any },      // see workerOptions.settings below
+      attempts: override?.attempts ?? 300, // total tries (initial + retries)
+      backoff: { type: 'expoCap' }, // see workerOptions.settings below
       removeOnComplete: true,
-      removeOnFail: false,                      // keep for inspection
+      removeOnFail: false, // keep for inspection
     },
     workerOptions: {
       concurrency: 1,
@@ -28,5 +26,5 @@ export function outboxBullMqConfigFactory(override?: {
         },
       },
     },
-  }
+  };
 }
