@@ -1,7 +1,4 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { OrderStates } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.enum';
-import { WorkshopInvitationStatus } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.enum';
-import { StageStatus } from 'apps/order-service/src/app/order-workflow/domain/entities/stage/stage-status.enum';
 
 /**
  * Flattened record describing a stage within an order.
@@ -19,7 +16,7 @@ export class OrderHistoryQueryResultFlatDto {
   @ApiProperty({
     type: String,
     description: 'Current state of the order',
-    example: OrderStates.PendingCompletion,
+    example: 'PendingCompletion',
   })
   orderState!: string;
 
@@ -111,7 +108,7 @@ export class OrderHistoryQueryResultFlatDto {
     type: String,
     nullable: true,
     description: 'Invitation status, or null if none',
-    example: WorkshopInvitationStatus.Pending,
+    example: 'pending',
   })
   invitationStatus!: string | null;
 
@@ -176,7 +173,7 @@ export class OrderHistoryQueryResultFlatDto {
     type: String,
     nullable: true,
     description: 'Status of the stage, or null',
-    example: StageStatus.Pending,
+    example: 'pending',
   })
   stageStatus!: string | null;
 
@@ -232,7 +229,7 @@ export class OrderHistoryQueryResultDto {
     example: [
       {
         orderId: 'a1b2c3d4-e5f6-7a89-b0c1-d2e3f4a5b6c7',
-        orderState: OrderStates.PendingCompletion,
+        orderState: 'PendingCompletion',
         commissionerId: 'c2d3e4f5-6789-0123-4567-89abcdef0123',
         isTerminated: false,
         orderCreatedAt: '2024-01-01T00:00:00.000Z',
@@ -244,7 +241,7 @@ export class OrderHistoryQueryResultDto {
         requestCreatedAt: '2023-12-01T00:00:00.000Z',
         requestLastUpdatedAt: '2023-12-15T00:00:00.000Z',
         workshopId: 'b7c8d9e0-f1a2-3b45-c6d7-e8f9a0b1c2d3',
-        invitationStatus: WorkshopInvitationStatus.Pending,
+        invitationStatus: 'pending',
         invitationDescription: 'Awaiting response',
         invitationDeadline: '2024-05-01T00:00:00.000Z',
         invitationBudget: '2100',
@@ -252,7 +249,7 @@ export class OrderHistoryQueryResultDto {
         invitationLastUpdatedAt: '2023-12-10T00:00:00.000Z',
         stageName: 'Design',
         stageOrder: 1,
-        stageStatus: StageStatus.Pending,
+        stageStatus: 'pending',
         approximateLength: '2 weeks',
         needsConfirmation: true,
         stageCreatedAt: '2023-12-20T00:00:00.000Z',
