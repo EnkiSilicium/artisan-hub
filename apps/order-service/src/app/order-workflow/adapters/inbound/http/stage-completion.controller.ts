@@ -25,7 +25,7 @@ import {
   StageCompletionPaths,
 } from 'contracts';
 import { validator } from 'adapter';
-import { OrderHttpJwtGuard } from 'apps/order-service/src/app/order-workflow/infra/auth/guards/order-http-jwt.guard';
+import { OrderAuthGuardProxy } from 'apps/order-service/src/app/order-workflow/infra/auth/proxy/auth-token-proxy';
 
 @ApiTags('Order workflow')
 @ApiBearerAuth('JWT')
@@ -36,7 +36,7 @@ export class StageCompletionController {
   ) {}
 
   @Post(StageCompletionPaths.Mark)
-  @UseGuards(OrderHttpJwtGuard)
+  @UseGuards(OrderAuthGuardProxy)
   @UsePipes(new ValidationPipe(validator))
   @ApiOperation({
     summary: 'Mark a stage as completed',
@@ -63,7 +63,7 @@ export class StageCompletionController {
   }
 
   @Post(StageCompletionPaths.Confirm)
-  @UseGuards(OrderHttpJwtGuard)
+  @UseGuards(OrderAuthGuardProxy)
   @UsePipes(new ValidationPipe(validator))
   @ApiOperation({
     summary: 'Confirm a completed stage',

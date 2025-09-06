@@ -6,6 +6,8 @@ import {
   IsNotEmpty,
   ValidateNested,
   IsISO8601,
+  IsBoolean,
+  IsNumber,
 } from 'class-validator';
 
 /**
@@ -53,7 +55,7 @@ export class StagesDataV1 {
     description: 'Whether the stage needs confirmation',
   })
   @IsNotEmpty()
-  @IsString()
+  @IsBoolean()
   needsConfirmation!: boolean;
 
   @ApiProperty({ type: String, description: 'Description of the stage' })
@@ -63,7 +65,7 @@ export class StagesDataV1 {
 
   @ApiProperty({ type: Number, description: 'Order of the stage' })
   @IsNotEmpty()
-  @IsString()
+  @IsNumber()
   stageOrder!: number;
 }
 

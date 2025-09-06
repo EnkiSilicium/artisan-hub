@@ -2,6 +2,7 @@
 import {
     CanActivate,
     ExecutionContext,
+    Inject,
     Injectable,
     Logger,
 } from '@nestjs/common';

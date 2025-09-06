@@ -26,7 +26,7 @@ import {
   WorkshopInvitationResponsePaths,
 } from 'contracts';
 import { validator } from 'adapter';
-import { OrderHttpJwtGuard } from 'apps/order-service/src/app/order-workflow/infra/auth/guards/order-http-jwt.guard';
+import { OrderAuthGuardProxy } from 'apps/order-service/src/app/order-workflow/infra/auth/proxy/auth-token-proxy';
 
 @ApiTags('Order workflow')
 @ApiBearerAuth('JWT')
@@ -37,7 +37,7 @@ export class WorkshopInvitationResponseController {
   ) {}
 
   @Post(WorkshopInvitationResponsePaths.Accept)
-  @UseGuards(OrderHttpJwtGuard)
+  @UseGuards(OrderAuthGuardProxy)
   @UsePipes(new ValidationPipe(validator))
   @ApiOperation({
     summary: 'Accept a workshop invitation',
@@ -75,7 +75,7 @@ export class WorkshopInvitationResponseController {
   }
 
   @Post(WorkshopInvitationResponsePaths.Decline)
-  @UseGuards(OrderHttpJwtGuard)
+  @UseGuards(OrderAuthGuardProxy)
   @UsePipes(new ValidationPipe(validator))
   @ApiOperation({
     summary: 'Decline a workshop invitation',
