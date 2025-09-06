@@ -10,9 +10,6 @@ import {
   Max,
   IsIn,
 } from 'class-validator';
-import { OrderStates } from 'apps/order-service/src/app/order-workflow/domain/entities/order/order.enum';
-import { WorkshopInvitationStatus } from 'apps/order-service/src/app/order-workflow/domain/entities/workshop-invitation/workshop-invitation.enum';
-import { StageStatus } from 'apps/order-service/src/app/order-workflow/domain/entities/stage/stage-status.enum';
 
 const SORT_FIELDS = [
   'orderCreatedAt',
@@ -37,7 +34,7 @@ export class ReadOrderStagesQueryDto {
   @ApiPropertyOptional({
     type: String,
     description: 'Filter by overall order state',
-    example: OrderStates.PendingCompletion,
+    example: 'PendingCompletion',
   })
   @IsOptional()
   @IsString()
@@ -46,7 +43,7 @@ export class ReadOrderStagesQueryDto {
   @ApiPropertyOptional({
     type: String,
     description: 'Filter by invitation status',
-    example: WorkshopInvitationStatus.Pending,
+    example: 'pending',
   })
   @IsOptional()
   @IsString()
@@ -55,7 +52,7 @@ export class ReadOrderStagesQueryDto {
   @ApiPropertyOptional({
     type: String,
     description: 'Filter by stage status',
-    example: StageStatus.Completed,
+    example: 'completed',
   })
   @IsOptional()
   @IsString()
