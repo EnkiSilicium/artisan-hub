@@ -20,7 +20,7 @@ import {
 import { OrderCancelService } from 'apps/order-service/src/app/order-workflow/application/services/order/order-cancel.service';
 import { OrderCancelDtoV1, OrderInitDtoV1 } from 'contracts';
 import { validator } from 'adapter';
-import { OrderHttpJwtGuard } from 'apps/order-service/src/app/order-workflow/infra/auth/guards/order-http-jwt.guard';
+import { OrderAuthGuardProxy } from 'apps/order-service/src/app/order-workflow/infra/auth/proxy/auth-token-proxy';
 
 @ApiTags('Order workflow')
 @ApiBearerAuth('JWT')
@@ -29,7 +29,7 @@ export class OrderCancelController {
   constructor(private readonly orderCancelService: OrderCancelService) {}
 
     @Post()
-    @UseGuards(OrderHttpJwtGuard)
+    @UseGuards(OrderAuthGuardProxy)
     @UsePipes(new ValidationPipe(validator))
     @HttpCode(200)
     @ApiOperation({

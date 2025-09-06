@@ -22,7 +22,7 @@ import { OrderInitService } from 'apps/order-service/src/app/order-workflow/appl
 import { OrderInitResultDto } from 'contracts';
 import { OrderInitDtoV1, OrderInitPaths } from 'contracts';
 import { validator } from 'adapter';
-import { OrderHttpJwtGuard } from 'apps/order-service/src/app/order-workflow/infra/auth/guards/order-http-jwt.guard';
+import { OrderAuthGuardProxy } from 'apps/order-service/src/app/order-workflow/infra/auth/proxy/auth-token-proxy';
 
 
 @ApiTags('Order workflow')
@@ -32,7 +32,7 @@ export class OrderInitController {
   constructor(private readonly orderInitService: OrderInitService) {}
 
   @Post()
-  @UseGuards(OrderHttpJwtGuard)
+  @UseGuards(OrderAuthGuardProxy)
   @UsePipes(new ValidationPipe(validator))
   @ApiOperation({
     summary: 'Create a new order',

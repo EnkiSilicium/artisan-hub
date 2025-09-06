@@ -13,7 +13,7 @@ type Stack = {
 };
 
 declare global {
-   
+
   var __E2E_STACK__: Stack;
 }
 
@@ -60,7 +60,8 @@ module.exports = async function () {
     HTTP_PREFIX: 'api',
     READ_BASE_URL: `http://127.0.0.1:${READ_PORT}`,
     NODE_ENV: 'development',
-    DISABLE_AUTH: 'true'
+    DISABLE_AUTH: 'true',
+    JWT_PUBLIC_KEY: `MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDtN+d1VO2TopWYkmRBXyMe98xMYbRdhw6NR5TgHngnTPm4n6qusTNWMaRmwOFKoAT905V3odVSCx7BcWe0FU2Y3/DQKZkFSaj0J8HF3WX2Im23zDKGlQvRm8g+2jdYKTrTxFqRxTJMoElWTTMIdGUcUo0a4jio1l4aFs9PxatumQIDAQAB`
   };
 
   // 4) Spawn the built app (dist/apps/order-service/main)
