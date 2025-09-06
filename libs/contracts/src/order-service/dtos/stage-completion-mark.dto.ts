@@ -35,6 +35,7 @@ export class MarkStageCompletionDtoV1 {
   @ApiProperty({
     type: String,
     description: 'Name of the stage to mark as completed',
+    example: 'Delivery',
   })
   @IsString()
   @IsNotEmpty()

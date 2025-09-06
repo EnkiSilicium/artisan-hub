@@ -32,7 +32,11 @@ export class ConfirmStageCompletionDtoV1 {
   @IsNotEmpty()
   orderId!: string;
 
-  @ApiProperty({ type: String, description: 'Name of the stage to confirm' })
+  @ApiProperty({
+    type: String,
+    description: 'Name of the stage to confirm',
+    example: 'Delivery',
+  })
   @IsString()
   @IsNotEmpty()
   stageName!: string;

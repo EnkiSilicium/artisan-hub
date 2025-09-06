@@ -15,8 +15,7 @@ import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
 import { OrderDomainErrorRegistry } from 'error-handling/registries/order';
 import { Request } from 'express';
 
-import { ActorEntityFieldMap } from '../assertions/actor-entity-field.map';
-import { ActorName } from '../assertions/actor.enum';
+import { ActorEntityFieldMap, ActorName } from 'auth';
 
 export type Principal = { actorName: ActorName; id: string };
 

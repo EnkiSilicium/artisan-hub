@@ -34,6 +34,7 @@ export class ReadOrderStagesQueryDto {
   @ApiPropertyOptional({
     type: String,
     description: 'Filter by overall order state',
+    example: 'PendingCompletion',
   })
   @IsOptional()
   @IsString()
@@ -42,6 +43,7 @@ export class ReadOrderStagesQueryDto {
   @ApiPropertyOptional({
     type: String,
     description: 'Filter by invitation status',
+    example: 'pending',
   })
   @IsOptional()
   @IsString()
@@ -50,6 +52,7 @@ export class ReadOrderStagesQueryDto {
   @ApiPropertyOptional({
     type: String,
     description: 'Filter by stage status',
+    example: 'completed',
   })
   @IsOptional()
   @IsString()
@@ -68,6 +71,7 @@ export class ReadOrderStagesQueryDto {
     type: String,
     format: 'date-time',
     description: 'Restrict orders created after this timestamp',
+    example: '2024-01-01T00:00:00.000Z',
   })
   @IsOptional()
   @IsISO8601()
@@ -77,6 +81,7 @@ export class ReadOrderStagesQueryDto {
     type: String,
     format: 'date-time',
     description: 'Restrict orders created before this timestamp',
+    example: '2024-12-31T23:59:59.000Z',
   })
   @IsOptional()
   @IsISO8601()
@@ -87,6 +92,7 @@ export class ReadOrderStagesQueryDto {
     minimum: 1,
     maximum: 500,
     description: 'Number of rows to return (default 50)',
+    example: 50,
   })
   @IsOptional()
   @Transform(({ value }) => Number(value))
@@ -99,6 +105,7 @@ export class ReadOrderStagesQueryDto {
     type: Number,
     minimum: 0,
     description: 'Offset into the result set (default 0)',
+    example: 0,
   })
   @IsOptional()
   @Transform(({ value }) => Number(value))
@@ -110,6 +117,7 @@ export class ReadOrderStagesQueryDto {
     enum: SORT_FIELDS,
     description: 'Field on which to sort',
     default: 'orderCreatedAt',
+    example: 'orderCreatedAt',
   })
   @IsOptional()
   @IsIn(SORT_FIELDS as readonly string[])
@@ -119,6 +127,7 @@ export class ReadOrderStagesQueryDto {
     enum: SORT_DIRS,
     description: 'Direction of the sort',
     default: 'desc',
+    example: 'desc',
   })
   @IsOptional()
   @IsIn(SORT_DIRS as readonly string[])
