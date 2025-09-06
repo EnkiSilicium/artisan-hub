@@ -10,7 +10,9 @@ interface MaybeEvent {
 export function assertsCanBeBonusEvent(
   event: MaybeEvent,
 ): asserts event is BaseEvent<string> & { commissionerId: string } {
-  const { eventName, commissionerId } = event;
+
+  const eventName = event?.eventName
+  const commissionerId = event?.commissionerId
 
   if (!eventName) {
     throw new ProgrammerError({
