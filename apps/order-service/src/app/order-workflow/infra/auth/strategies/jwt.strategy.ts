@@ -7,7 +7,7 @@ import { ProgrammerErrorRegistry } from 'error-handling/registries/common';
 import { OrderDomainErrorRegistry } from 'error-handling/registries/order';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
-import { ActorName } from '../assertions/actor.enum';
+import { ActorName } from 'auth';
 
 
 // Shape of the JWT payload you mint upstream
