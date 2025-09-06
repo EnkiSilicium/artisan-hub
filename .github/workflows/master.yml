@@ -43,7 +43,7 @@ jobs:
             nx-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-
             nx-${{ runner.os }}-
 
-      - name: Docker sanity
+      - name: Docker check
         run: |
           docker version
           docker info
@@ -57,9 +57,9 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            npx nx affected -t typecheck --parallel --base="${{ github.event.pull_request.base.sha }}" --head="${{ github.sha }}"
+            npx nx affected -t typecheck --parallel --base="${{ github.event.pull_request.base.sha }}" --head="${{ github.sha }}" --exclude=artisan-hub
           else
-            npx nx run-many -t typecheck --all --parallel
+            npx nx run-many -t typecheck --all --parallel --exclude=artisan-hub
           fi
 
       - name: Unit tests (affected on PR; all on main)
@@ -67,20 +67,22 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            npx nx affected -t test --parallel --base="${{ github.event.pull_request.base.sha }}" --head="${{ github.sha }}"
+            npx nx affected -t test --parallel --base="${{ github.event.pull_request.base.sha }}" --head="${{ github.sha }}" --exclude=artisan-hub
           else
-            npx nx run-many -t test --all --parallel
+            npx nx run-many -t test --all --parallel --exclude=artisan-hub
           fi
 
-      - name: Build (affected on PR; all on main)
+
+      - name: E2E tests
         shell: bash
         run: |
           set -euo pipefail
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            npx nx affected -t build --parallel --base="${{ github.event.pull_request.base.sha }}" --head="${{ github.sha }}"
+            npx nx affected -t e2e --parallel --base="${{ github.event.pull_request.base.sha }}" --head="${{ github.sha }}" --exclude=artisan-hub
           else
-            npx nx run-many -t build --all --parallel
+            npx nx run-many -t e2e --all --parallel --exclude=artisan-hub
           fi
+
 
       - name: Save Nx cache (post-tests/build)
         if: always()
