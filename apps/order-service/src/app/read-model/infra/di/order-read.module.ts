@@ -56,7 +56,6 @@ import { LoggingInterceptor } from 'observability';
     WinstonModule.forRoot({
       transports: [
         orderReadWinstonConfig.transports.consoleTransport,
-        orderReadWinstonConfig.transports.fileTransport,
       ],
     }),
   ],

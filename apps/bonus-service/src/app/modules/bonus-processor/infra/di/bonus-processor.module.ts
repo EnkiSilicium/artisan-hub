@@ -76,7 +76,6 @@ import {
     WinstonModule.forRoot({
       transports: [
         bonusProcessorWinstonConfig.transports.consoleTransport,
-        bonusProcessorWinstonConfig.transports.fileTransport,
       ],
     }),
   ],
