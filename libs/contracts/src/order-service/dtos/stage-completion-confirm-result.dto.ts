@@ -22,6 +22,7 @@ export class StageCompletionConfirmResultDto {
     type: Boolean,
     description: 'Whether all stages are completed',
     example: false,
+
   })
   allStagesCompleted!: boolean;
 }
