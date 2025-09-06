@@ -11,7 +11,7 @@ import { KAFKA_PRODUCER } from 'adapter'; // token bound to ClientKafka
 import { KafkaProducerPort } from 'adapter';
 import { OrderServiceTopicMap } from 'apps/order-service/src/app/order-workflow/adapters/outbound/messaging/kafka.topic-map';
 import { OrderEventInstanceUnion } from 'contracts';
-import { assertTopicMappingDefined } from '../assertions/assert-topic-mapping-defined.assertion';
+import { assertTopicMappingDefined } from 'adapter';
 import { lastValueFrom } from 'rxjs';
 import { defaultIfEmpty } from 'rxjs/operators';
 

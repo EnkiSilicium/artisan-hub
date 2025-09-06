@@ -10,8 +10,7 @@ import {
 import { BonusEventService } from 'apps/bonus-service/src/app/modules/bonus-processor/application/services/bonus-event/bonus-event.service';
 import { KafkaTopics } from 'contracts';
 import { KafkaErrorInterceptor } from 'error-handling/interceptor';
-import { assertCommissionerIdDefined } from '../assertions/assert-commissioner-id-defined.assertion';
-import { assertEventNameDefined } from '../assertions/assert-event-name-defined.assertion';
+import { assertsCanBeBonusEvent } from '../assertions/asserts-can-be-bonus-event.assertion';
 import { LoggingInterceptor } from 'observability';
 import { validator } from 'adapter';
 import { isoNow } from 'shared-kernel';
@@ -42,11 +41,9 @@ export class BonusEventsConsumer {
 
   // If event is invalid, it's detected at the application/domain layer.
   private async route(event: any, ctx: KafkaContext): Promise<void> {
-    const eventId = event?.eventId ?? getHashId(event);
-    const eventName = event?.eventName;
-    assertEventNameDefined({ eventName });
-    const commissionerId = event?.commissionerId;
-    assertCommissionerIdDefined({ commissionerId, eventName });
+    assertsCanBeBonusEvent(event);
+    const eventId = event.eventId ?? getHashId(event);
+    const { eventName, commissionerId } = event;
     const injestedAt = isoNow();
 
     await this.bonusService.process({
